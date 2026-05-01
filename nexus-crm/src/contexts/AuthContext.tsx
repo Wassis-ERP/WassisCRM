@@ -2,7 +2,7 @@ import { createContext, useEffect, useState, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 import type { AuthState, UserProfile, Role, ModulePermission } from '../types/auth';
-import type { Session } from '@supabase/supabase-js';
+import type { Session } from '../types/auth';
 
 interface AuthContextType extends AuthState {
   signOut: () => Promise<void>;

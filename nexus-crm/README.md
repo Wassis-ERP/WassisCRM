@@ -10,7 +10,7 @@ Frontend CRM/Kanban do ecossistema W.Assis, focado em funis operacionais por mod
 - React Router
 - TanStack Query
 - Zustand
-- Supabase Auth/Database
+- WAssisBE API/JWT
 - Tailwind CSS 4
 
 ## Estrutura
@@ -36,8 +36,6 @@ Copy-Item .env.example .env
 Variaveis:
 
 ```env
-VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-VITE_SUPABASE_ANON_KEY=sua-chave-anon-publica
 VITE_API_BASE_URL=https://localhost:54269
 ```
 
@@ -63,8 +61,9 @@ npm run dev
 
 ## Integracoes
 
-- Supabase: `src/lib/supabase.ts`
-- API .NET: helper inicial em `src/lib/apiClient.ts`
+- API .NET: helper em `src/lib/apiClient.ts`
+- Sessao backend/JWT: `src/lib/backendSession.ts`
+- Adaptador legado: `src/lib/supabase.ts` roteia chamadas antigas para o `WAssisBE` enquanto os hooks sao migrados para endpoints dedicados.
 - Queries/cache: TanStack Query em `src/lib/queryClient.ts`
 - Autenticacao: `src/contexts/AuthContext.tsx`
 - Funis dinamicos: hooks em `src/hooks/usePipelines*.ts`
@@ -72,8 +71,8 @@ npm run dev
 ## Seguranca
 
 - `.env`, `node_modules` e `dist` ficam fora do Git.
-- Chave `service_role` do Supabase nunca deve entrar neste repositorio.
-- O app depende de RLS no Supabase para isolamento por tenant.
+- O app nao deve acessar banco direto pelo browser.
+- JWT signing keys, connection strings e credenciais de integracao ficam apenas no backend/ambiente seguro.
 - Antes de release:
 
 ```powershell
@@ -83,12 +82,12 @@ npm run build
 
 ## Backend relacionado
 
-Repositorio: `C:\Users\PC\source\repos\WAssisInsurance`
+Repositorio: `C:\Users\PC\source\repos\WAssisBE`
 
 API local:
 
 ```powershell
-dotnet run --project C:\Users\PC\source\repos\WAssisInsurance\src\WAssis.Services.Api\WAssis.Services.Api.csproj
+dotnet run --project C:\Users\PC\source\repos\WAssisBE\src\WAssis.Services.Api\WAssis.Services.Api.csproj
 ```
 
 O backend aceita CORS para os hosts Vite locais configurados em `Frontend:AllowedOrigins`.
