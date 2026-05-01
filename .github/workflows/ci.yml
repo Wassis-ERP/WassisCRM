@@ -5,13 +5,18 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    name: Build and audit
+    name: Test, build and audit
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -40,6 +45,10 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_SUPABASE_URL: https://example.supabase.co
-          VITE_SUPABASE_ANON_KEY: ci-placeholder-anon-key
           VITE_API_BASE_URL: https://localhost:54269
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wassis-crm-dist
+          path: nexus-crm/dist
