@@ -1,73 +1,94 @@
-# React + TypeScript + Vite
+# WassisCRM
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend CRM/Kanban do ecossistema W.Assis, focado em funis operacionais por modulo: comercial, emissao, pos-venda, financeiro e sinistro.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19
+- Vite 8
+- TypeScript strict
+- React Router
+- TanStack Query
+- Zustand
+- Supabase Auth/Database
+- Tailwind CSS 4
 
-## React Compiler
+## Estrutura
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Este app fica dentro do workspace `WassisCRM`:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+WassisCRM/
+  package.json          # scripts roteados para nexus-crm
+  nexus-crm/            # aplicacao Vite/React
+  planos/               # planejamento tecnico e migracoes auxiliares
+  stitch_screens/       # referencias visuais
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Configuracao local
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Na raiz do workspace ou dentro de `nexus-crm`, crie um `.env` a partir do exemplo:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```powershell
+Copy-Item .env.example .env
 ```
+
+Variaveis:
+
+```env
+VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-chave-anon-publica
+VITE_API_BASE_URL=https://localhost:54269
+```
+
+## Comandos
+
+Pela raiz do workspace:
+
+```powershell
+npm install
+npm run dev
+npm run build
+npm run lint
+npm run preview
+```
+
+Ou diretamente no app:
+
+```powershell
+cd nexus-crm
+npm install
+npm run dev
+```
+
+## Integracoes
+
+- Supabase: `src/lib/supabase.ts`
+- API .NET: helper inicial em `src/lib/apiClient.ts`
+- Queries/cache: TanStack Query em `src/lib/queryClient.ts`
+- Autenticacao: `src/contexts/AuthContext.tsx`
+- Funis dinamicos: hooks em `src/hooks/usePipelines*.ts`
+
+## Seguranca
+
+- `.env`, `node_modules` e `dist` ficam fora do Git.
+- Chave `service_role` do Supabase nunca deve entrar neste repositorio.
+- O app depende de RLS no Supabase para isolamento por tenant.
+- Antes de release:
+
+```powershell
+npm audit --audit-level=moderate
+npm run build
+```
+
+## Backend relacionado
+
+Repositorio: `C:\Users\PC\source\repos\WAssisInsurance`
+
+API local:
+
+```powershell
+dotnet run --project C:\Users\PC\source\repos\WAssisInsurance\src\WAssis.Services.Api\WAssis.Services.Api.csproj
+```
+
+O backend aceita CORS para os hosts Vite locais configurados em `Frontend:AllowedOrigins`.
