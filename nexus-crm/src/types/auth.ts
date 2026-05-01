@@ -1,4 +1,13 @@
-import type { Session } from '@supabase/supabase-js';
+export interface Session {
+  access_token: string;
+  expires_at?: number;
+  user: {
+    id: string;
+    email?: string;
+    created_at?: string;
+    app_metadata?: Record<string, unknown>;
+  } | null;
+}
 
 // Papéis definidos no banco de dados (app_role)
 export type Role = 'admin' | 'vendedor' | 'visualizador';

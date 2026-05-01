@@ -32,7 +32,7 @@ function useOportunidadesLookup(searchTerm: string) {
       const { data, error } = await builder;
       if (error) throw error;
 
-      return (data ?? []).map((row) => {
+      return (data ?? []).map((row: unknown) => {
         const r = row as unknown as { id: string; nome: string; segurados: { nome: string } | null };
         return { id: r.id, nome: r.nome, segurado_nome: r.segurados?.nome ?? null };
       });
