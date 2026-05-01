@@ -1,0 +1,14 @@
+{
+  "name": "wassis-crm-workspace",
+  "version": "1.0.0",
+  "description": "Workspace raiz do CRM Gestor Wassis. Comandos roteados para nexus-crm.",
+  "scripts": {
+    "dev": "npm run dev --prefix nexus-crm",
+    "build": "npm run build --prefix nexus-crm",
+    "lint": "npm run lint --prefix nexus-crm",
+    "preview": "npm run preview --prefix nexus-crm"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

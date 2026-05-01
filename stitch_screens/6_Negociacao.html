@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Detalhes da Oportunidade - Insurance CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#0056b3",
+              "background-light": "#f8fafc",
+              "background-dark": "#0f172a",
+              "card-light": "#ffffff",
+              "card-dark": "#1e293b",
+            },
+            fontFamily: {
+              display: ["Inter", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "0.75rem",
+            },
+          },
+        },
+      };
+    </script>
+<style type="text/tailwindcss">
+      @layer base {
+        body {
+          font-family: 'Inter', sans-serif;
+        }
+      }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+      }
+      .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #475569;
+      }
+      .tab-active {
+        @apply border-primary text-primary;
+      }
+      .tab-inactive {
+        @apply border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300;
+      }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex">
+<aside class="w-16 md:w-20 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col items-center py-6 gap-8 fixed inset-y-0 z-50">
+<div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white">
+<span class="material-symbols-outlined">shield</span>
+</div>
+<nav class="flex flex-col gap-6">
+<a class="p-2 text-slate-400 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">dashboard</span></a>
+<a class="p-2 text-primary bg-slate-100 dark:bg-slate-800 rounded-lg" href="#"><span class="material-symbols-outlined">view_list</span></a>
+<a class="p-2 text-slate-400 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">people</span></a>
+<a class="p-2 text-slate-400 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">analytics</span></a>
+<a class="p-2 text-slate-400 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">settings</span></a>
+</nav>
+<div class="mt-auto">
+<button class="p-2 text-slate-400 hover:text-primary transition-colors" onclick="document.documentElement.classList.toggle('dark')">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+</div>
+</aside>
+<main class="flex-1 ml-16 md:ml-20 flex flex-col min-h-screen">
+<header class="sticky top-0 z-40 px-8 py-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div>
+<h1 class="text-xl font-bold tracking-tight">Oportunidade #OP-2218</h1>
+<p class="text-xs text-slate-500 font-medium">Criada em 15 de Jan, 2026 • Por Renato Oliveira</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 uppercase tracking-wider">Qualificação</span>
+<div class="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
+<button class="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Descartar</button>
+<button class="bg-primary hover:opacity-90 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-all">
+                Salvar Alterações
+            </button>
+</div>
+</header>
+<div class="flex-1 p-8 max-w-7xl mx-auto w-full">
+<div class="mb-6 p-6 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 rounded-2xl flex items-center justify-between">
+<div class="flex items-center gap-5">
+<div class="w-16 h-16 rounded-2xl overflow-hidden border-2 border-white dark:border-slate-800 shadow-sm">
+<img alt="Lead Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeUT7JIt9yxCeX7mDC7_bgAZ310PYrSUmK842khl9jWP70Fmkf3vfUW5D7y1vCd6g2Whi_iAJ-Ev9htsZViAEWExNPgHqnEddP2jAn_foyuauyMoIeKxvCeUzeYlJr2_4kmSlnwk_ICDAvyu6bw7jm0ol1iaOtB9kp3zEzeVMRUlg7l35XmGSyP7mRQTndhOSBBaQduNvBnLDinZr-nllXCmyi3KrTkcXbzjLNQynmMnhF7jYzoV9lga27KhAM8NEqj0SeJgpRjYPj"/>
+</div>
+<div>
+<h2 class="text-lg font-bold text-blue-900 dark:text-blue-200">Renata Flor de Souza Santos</h2>
+<div class="flex items-center gap-4 mt-1 text-sm text-blue-700/70 dark:text-blue-400/70 font-medium">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">mail</span> renata.flor@email.com</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">call</span> (11) 98765-4321</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-4 py-2 bg-white dark:bg-slate-800 text-primary border border-blue-200 dark:border-blue-900 rounded-xl text-sm font-bold shadow-sm hover:bg-blue-50 transition-colors">Ver Perfil Completo</button>
+</div>
+</div>
+<div class="mb-8 border-b border-slate-200 dark:border-slate-800">
+<nav class="flex gap-8">
+<button class="pb-4 px-1 text-sm font-bold border-b-2 tab-active transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">handshake</span> Negociação
+</button>
+<button class="pb-4 px-1 text-sm font-semibold border-b-2 tab-inactive transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">request_quote</span> Orçamento
+</button>
+<button class="pb-4 px-1 text-sm font-semibold border-b-2 tab-inactive transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">badge</span> Produtores
+</button>
+<button class="pb-4 px-1 text-sm font-semibold border-b-2 tab-inactive transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">attach_file</span> Anexos
+</button>
+<button class="pb-4 px-1 text-sm font-semibold border-b-2 tab-inactive transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">history</span> Logs/Histórico
+</button>
+<button class="pb-4 px-1 text-sm font-semibold border-b-2 tab-inactive transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">layers</span> Oportunidades
+</button>
+</nav>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<div class="lg:col-span-7 space-y-6">
+<div class="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary">description</span>
+<h3 class="text-base font-bold uppercase tracking-widest text-slate-400">Dados da Negociação</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-500 uppercase">Ramo do Seguro</label>
+<select class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-4 text-sm focus:ring-primary">
+<option>Automóvel</option>
+<option selected="">Vida Individual</option>
+<option>Saúde</option>
+<option>Residencial</option>
+<option>Empresarial</option>
+</select>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-500 uppercase">Tipo de Seguro</label>
+<div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+<button class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-primary">Novo</button>
+<button class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700">Renovação</button>
+<button class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700">Endosso</button>
+</div>
+</div>
+<div class="md:col-span-2 space-y-2">
+<label class="text-xs font-bold text-slate-500 uppercase">Seguradora (Carrier)</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">business</span>
+<select class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-primary">
+<option>Selecione a Seguradora</option>
+<option selected="">Porto Seguro</option>
+<option>Bradesco Seguros</option>
+<option>SulAmérica</option>
+<option>Liberty Seguros</option>
+</select>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-500 uppercase">Início de Vigência</label>
+<input class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-4 text-sm focus:ring-primary" type="date" value="2026-03-10"/>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-500 uppercase">Término de Vigência</label>
+<input class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-4 text-sm focus:ring-primary" type="date" value="2027-03-10"/>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary">source</span>
+<h3 class="text-base font-bold uppercase tracking-widest text-slate-400">Origem e Agendamento</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-500 uppercase">Origem do Lead</label>
+<select class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-4 text-sm focus:ring-primary">
+<option>Indicação</option>
+<option selected="">Campanha Facebook</option>
+<option>Site Institucional</option>
+<option>Prospecção Ativa</option>
+</select>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-500 uppercase">Próximo Follow-up</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-primary">event_repeat</span>
+<input class="w-full bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-primary font-bold text-primary" type="date" value="2026-02-28"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="lg:col-span-5 space-y-6">
+<div class="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex items-center gap-2 mb-8">
+<span class="material-symbols-outlined text-emerald-500">payments</span>
+<h3 class="text-base font-bold uppercase tracking-widest text-slate-400">Projeção Financeira</h3>
+</div>
+<div class="space-y-8">
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-500 uppercase">Prêmio Líquido (R$)</label>
+<div class="relative">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">R$</span>
+<input class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl py-5 pl-12 pr-6 text-3xl font-black text-slate-900 dark:text-white focus:ring-primary focus:border-primary transition-all" type="text" value="3.420,00"/>
+</div>
+<p class="text-[10px] text-slate-400 mt-1">Valor base para o cálculo da comissão.</p>
+</div>
+<div class="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-6">
+<div class="flex items-center justify-between">
+<div class="space-y-1">
+<label class="text-xs font-bold text-slate-500 uppercase">Comissão (%)</label>
+<div class="flex items-center gap-3">
+<input class="w-20 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl py-2 px-3 text-lg font-bold focus:ring-primary" type="number" value="15"/>
+<span class="text-slate-400 font-bold">%</span>
+</div>
+</div>
+<div class="text-slate-300">
+<span class="material-symbols-outlined text-4xl">link</span>
+</div>
+<div class="space-y-1 text-right">
+<label class="text-xs font-bold text-slate-500 uppercase">Valor Comissão</label>
+<div class="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                                        R$ 513,00
+                                    </div>
+</div>
+</div>
+<div class="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full bg-emerald-500 w-[15%]"></div>
+</div>
+</div>
+<div class="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-between items-end">
+<div>
+<label class="text-xs font-bold text-slate-500 uppercase">Probabilidade de Fechamento</label>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-2xl font-bold text-primary">85%</span>
+<span class="text-xs font-medium text-slate-400">Alta Probabilidade</span>
+</div>
+</div>
+<div class="w-32 h-10 flex items-end gap-1">
+<div class="flex-1 bg-slate-100 dark:bg-slate-800 h-1/4 rounded-sm"></div>
+<div class="flex-1 bg-slate-100 dark:bg-slate-800 h-2/4 rounded-sm"></div>
+<div class="flex-1 bg-primary h-3/4 rounded-sm"></div>
+<div class="flex-1 bg-primary h-full rounded-sm"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Notas da Oportunidade</h3>
+<textarea class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl p-4 text-sm h-32 resize-none focus:ring-primary" placeholder="Adicione observações importantes sobre a negociação..."></textarea>
+</div>
+</div>
+</div>
+</div>
+</main>
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-primary text-white shadow-2xl rounded-full flex items-center justify-center hover:scale-110 transition-transform z-50">
+<span class="material-symbols-outlined text-2xl">chat</span>
+</button>
+
+</body></html>
