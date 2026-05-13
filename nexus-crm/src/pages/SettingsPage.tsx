@@ -32,8 +32,8 @@ import type { PipelineModule, PipelineRow } from '../modules/types'
 
 const MODULE_META: Record<PipelineModule, { label: string; icon: ComponentType<{ size?: number; className?: string }>; tone: string }> = {
   comercial: { label: 'Comercial', icon: Briefcase, tone: 'text-primary bg-primary/10' },
-  emissao: { label: 'EmissÃ£o', icon: FileSignature, tone: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' },
-  pos_venda: { label: 'PÃ³s-Venda', icon: HeartHandshake, tone: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20' },
+  emissao: { label: 'Emissão', icon: FileSignature, tone: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' },
+  pos_venda: { label: 'Pós-Venda', icon: HeartHandshake, tone: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20' },
   financeiro: { label: 'Financeiro', icon: DollarSign, tone: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' },
   sinistro: { label: 'Sinistro', icon: AlertTriangle, tone: 'text-rose-600 bg-rose-50 dark:bg-rose-900/20' },
 }
@@ -45,7 +45,7 @@ const PipelineStagesPreview = ({ pipelineId }: { pipelineId: string }) => {
   if (isLoading) return <div className="h-1 w-full rounded-full bg-slate-100 dark:bg-slate-800 animate-pulse mt-1" />
   const stages = data ?? []
   if (stages.length === 0) {
-    return <p className="text-[10px] text-slate-400 italic mt-1">Nenhuma etapa configurada â€” clique para adicionar</p>
+    return <p className="text-[10px] text-slate-400 italic mt-1">Nenhuma etapa configurada — clique para adicionar</p>
   }
   return (
     <div className="flex gap-1 mt-1 opacity-60">
@@ -92,7 +92,7 @@ const FunisEtapasTab = () => {
   }
 
   const handleArchive = async (p: PipelineRow) => {
-    if (!window.confirm(`Arquivar o funil "${p.name}"? Cards jÃ¡ existentes nÃ£o serÃ£o removidos, mas ele deixa de aparecer no Kanban.`)) return
+    if (!window.confirm(`Arquivar o funil "${p.name}"? Cards já existentes não serão removidos, mas ele deixa de aparecer no Kanban.`)) return
     try {
       await archivePipeline(p.id)
     } catch (e) {
@@ -102,7 +102,7 @@ const FunisEtapasTab = () => {
 
   return (
     <div className="animate-fade-in space-y-8">
-      {/* CriaÃ§Ã£o */}
+      {/* Criação */}
       <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all">
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Novo Funil</h3>
         <div className="flex flex-col md:flex-row gap-3">
@@ -111,7 +111,7 @@ const FunisEtapasTab = () => {
             value={newPipelineName}
             onChange={(e) => setNewPipelineName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-            placeholder="Ex: RenovaÃ§Ã£o Auto..."
+            placeholder="Ex: Renovação Auto..."
             disabled={isCreatingPipeline}
             className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg text-sm focus:border-primary focus:outline-none transition-all disabled:opacity-50"
           />
@@ -138,11 +138,11 @@ const FunisEtapasTab = () => {
           <p className="mt-3 text-xs text-red-600 font-medium">{createError}</p>
         )}
         <p className="mt-3 text-[11px] text-slate-400 italic">
-          O funil Ã© criado vazio. Clique nele depois para adicionar as etapas.
+          O funil é criado vazio. Clique nele depois para adicionar as etapas.
         </p>
       </div>
 
-      {/* Listagem por mÃ³dulo */}
+      {/* Listagem por módulo */}
       {isLoading && (
         <div className="flex items-center justify-center gap-2 py-12 text-slate-500">
           <Loader2 className="animate-spin" size={18} /> Carregando funis...
@@ -169,7 +169,7 @@ const FunisEtapasTab = () => {
                 </div>
                 <div className="space-y-3">
                   {list.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic px-3">Nenhum funil criado para este mÃ³dulo</p>
+                    <p className="text-xs text-slate-400 italic px-3">Nenhum funil criado para este módulo</p>
                   ) : (
                     list.map((p) => (
                       <div
@@ -310,7 +310,7 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'produtores', label: 'Equipe e Perfis', icon: Users, component: <ProdutoresPage /> },
-    { id: 'permissoes', label: 'Matriz de PermissÃµes', icon: ShieldCheck, component: <PermissionsMatrix /> },
+    { id: 'permissoes', label: 'Matriz de Permissões', icon: ShieldCheck, component: <PermissionsMatrix /> },
     { id: 'funis', label: 'Funis & Etapas', icon: GitBranch, component: <FunisEtapasTab /> },
     { id: 'ramos', label: 'Ramos de Seguros', icon: ShieldCheck, component: <DBLookupListTab title="Ramo" table="ramos" useDataHook={useRamos} icon={ShieldCheck} /> },
     { id: 'seguradoras', label: 'Seguradoras', icon: Building2, component: <DBLookupListTab title="Seguradora" table="seguradoras" useDataHook={useSeguradoras} icon={Building2} /> },
@@ -322,12 +322,12 @@ export default function SettingsPage() {
 
   return (
     <div className="animate-fade-in flex flex-col min-h-full">
-      {/* CabeÃ§alho Padronizado */}
+      {/* Cabeçalho Padronizado */}
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold mb-2">ConfiguraÃ§Ãµes</h1>
+          <h1 className="text-3xl font-bold mb-2">Configurações</h1>
           <p className="text-slate-500 dark:text-slate-400 font-medium tracking-tight">
-            Gerencie os parÃ¢metros, regras e automaÃ§Ãµes do seu CRM.
+            Gerencie os parâmetros, regras e automações do seu CRM.
           </p>
         </div>
       </div>
@@ -356,7 +356,7 @@ export default function SettingsPage() {
 
         </div>
 
-        {/* ConteÃºdo da Aba */}
+        {/* Conteúdo da Aba */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-slate-50/30 dark:bg-slate-900/10">
           <div className="max-w-6xl">
              {activeTabDetails?.component}

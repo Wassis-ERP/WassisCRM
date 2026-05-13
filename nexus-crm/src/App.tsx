@@ -2,8 +2,6 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import Sidebar from './components/layout/Sidebar'
 import Header from './components/layout/Header'
-import { PrivateRoute } from './components/layout/PrivateRoute'
-import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import SeguradosPage from './pages/SeguradosPage'
 import SeguradoDetalhePage from './pages/SeguradoDetalhePage'
@@ -92,25 +90,12 @@ function AppLayout() {
 
 /**
  * Componente raiz do Nexus CRM.
- * Define a rota pública /login e protege todo o restante com PrivateRoute.
+ *
+ * Modo frontend puro: não há rota pública de login — o AuthProvider já entrega
+ * um usuário admin estático, então o layout principal é montado direto.
  */
 function App() {
-  return (
-    <Routes>
-      {/* Rota pública — Login */}
-      <Route path="/login" element={<LoginPage />} />
-
-      {/* Todas as demais rotas são protegidas */}
-      <Route
-        path="/*"
-        element={
-          <PrivateRoute>
-            <AppLayout />
-          </PrivateRoute>
-        }
-      />
-    </Routes>
-  )
+  return <AppLayout />
 }
 
 export default App

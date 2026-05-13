@@ -175,7 +175,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">{pipeline.module}</span>
             </h2>
             <p className="text-xs text-slate-500 font-bold mt-1">
-              Defina o fluxo, ordem, cores e regras de conclusÃ£o das etapas
+              Defina o fluxo, ordem, cores e regras de conclusão das etapas
             </p>
           </div>
           <button onClick={onClose} disabled={isSavingStages} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 disabled:opacity-50">
@@ -217,7 +217,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
                 Etapas do Funil ({steps.length})
               </span>
               <span className="text-[10px] font-bold text-slate-400 italic">
-                Arraste pelo Ã­cone <GripVertical size={10} className="inline" /> para reordenar
+                Arraste pelo ícone <GripVertical size={10} className="inline" /> para reordenar
               </span>
             </div>
 
@@ -260,8 +260,8 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
                       }
                       title={
                         step.is_win_eligible
-                          ? 'Cards podem ser concluÃ­dos como GANHO desta etapa'
-                          : 'Marcar etapa como elegÃ­vel para GANHO'
+                          ? 'Cards podem ser concluídos como GANHO desta etapa'
+                          : 'Marcar etapa como elegível para GANHO'
                       }
                       className={`p-1.5 rounded-lg transition-all ${
                         step.is_win_eligible
@@ -277,8 +277,8 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
                       }
                       title={
                         step.is_loss_eligible
-                          ? 'Cards podem ser concluÃ­dos como PERDIDO desta etapa'
-                          : 'Marcar etapa como elegÃ­vel para PERDA'
+                          ? 'Cards podem ser concluídos como PERDIDO desta etapa'
+                          : 'Marcar etapa como elegível para PERDA'
                       }
                       className={`p-1.5 rounded-lg transition-all ${
                         step.is_loss_eligible
@@ -338,7 +338,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
             className="flex items-center gap-2 px-8 py-2.5 bg-primary text-white rounded-xl text-sm font-black hover:opacity-90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
           >
             {isSavingStages ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-            {isSavingStages ? 'Salvando...' : 'Salvar ConfiguraÃ§Ã£o'}
+            {isSavingStages ? 'Salvando...' : 'Salvar Configuração'}
           </button>
         </div>
       </div>
