@@ -1,9 +1,9 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
   workflow_dispatch:
 
@@ -15,9 +15,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  direct-push-guard:
+    name: Block direct pushes to main
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Reject direct main update
+        run: |
+          echo "A main deve receber alteracoes somente via pull request."
+          exit 1
+
   build:
     name: Test, build and audit
     runs-on: ubuntu-latest
+    if: github.event_name != 'push' || github.ref != 'refs/heads/main'
     defaults:
       run:
         working-directory: nexus-crm
