@@ -18,6 +18,7 @@ const TABLES = [
   'financeiro_cobrancas',
   'sinistros',
   'segurados',
+  'pessoa_contato',
   'pipelines',
   'pipeline_stages',
   'profiles',
@@ -82,6 +83,12 @@ export const RELATIONS: Record<
   'pos_vendas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
   'sinistros.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
   'financeiro_cobrancas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
+  // Segurado -> Produtor/Gerente (ambos apontam para profiles)
+  'segurados.produtor': { target: 'profiles', localFk: 'produtor_id', kind: 'forward' },
+  'segurados.gerente': { target: 'profiles', localFk: 'gerente_id', kind: 'forward' },
+  // pessoa_contato -> PJ/PF (ambos apontam para segurados)
+  'pessoa_contato.pj': { target: 'segurados', localFk: 'pj_id', kind: 'forward' },
+  'pessoa_contato.pf': { target: 'segurados', localFk: 'pf_id', kind: 'forward' },
 
   // reverse (one-to-many): row.<targetTable> = array de filhos
   'pipelines.pipeline_stages': { target: 'pipeline_stages', childFk: 'pipeline_id', kind: 'reverse' },
