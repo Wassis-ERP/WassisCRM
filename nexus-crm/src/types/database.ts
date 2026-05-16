@@ -910,54 +910,99 @@ export type Database = {
       }
       segurados: {
         Row: {
+          bairro: string | null
           cep: string | null
           chatwoot_id: string | null
           cidade: string | null
+          cnae: string | null
+          complemento: string | null
           cpf_cnpj: string | null
           created_at: string
           created_by: string | null
+          data_nascimento: string | null
           email: string | null
           endereco: string | null
           estado: string | null
+          estado_civil: Database["public"]["Enums"]["estado_civil"] | null
+          gerente_id: string | null
           id: string
+          lgpd_autorizado: boolean
+          logradouro: string | null
           nome: string
+          nome_fantasia: string | null
+          numero: string | null
           observacoes: string | null
+          porte: Database["public"]["Enums"]["porte_empresa"] | null
+          produtor_id: string | null
+          sexo: Database["public"]["Enums"]["sexo_pessoa"] | null
+          site: string | null
+          status: Database["public"]["Enums"]["status_pessoa"]
           telefone: string | null
           tenant_id: string | null
           tipo: Database["public"]["Enums"]["tipo_pessoa"]
           updated_at: string
         }
         Insert: {
+          bairro?: string | null
           cep?: string | null
           chatwoot_id?: string | null
           cidade?: string | null
+          cnae?: string | null
+          complemento?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           created_by?: string | null
+          data_nascimento?: string | null
           email?: string | null
           endereco?: string | null
           estado?: string | null
+          estado_civil?: Database["public"]["Enums"]["estado_civil"] | null
+          gerente_id?: string | null
           id?: string
+          lgpd_autorizado?: boolean
+          logradouro?: string | null
           nome: string
+          nome_fantasia?: string | null
+          numero?: string | null
           observacoes?: string | null
+          porte?: Database["public"]["Enums"]["porte_empresa"] | null
+          produtor_id?: string | null
+          sexo?: Database["public"]["Enums"]["sexo_pessoa"] | null
+          site?: string | null
+          status?: Database["public"]["Enums"]["status_pessoa"]
           telefone?: string | null
           tenant_id?: string | null
           tipo?: Database["public"]["Enums"]["tipo_pessoa"]
           updated_at?: string
         }
         Update: {
+          bairro?: string | null
           cep?: string | null
           chatwoot_id?: string | null
           cidade?: string | null
+          cnae?: string | null
+          complemento?: string | null
           cpf_cnpj?: string | null
           created_at?: string
           created_by?: string | null
+          data_nascimento?: string | null
           email?: string | null
           endereco?: string | null
           estado?: string | null
+          estado_civil?: Database["public"]["Enums"]["estado_civil"] | null
+          gerente_id?: string | null
           id?: string
+          lgpd_autorizado?: boolean
+          logradouro?: string | null
           nome?: string
+          nome_fantasia?: string | null
+          numero?: string | null
           observacoes?: string | null
+          porte?: Database["public"]["Enums"]["porte_empresa"] | null
+          produtor_id?: string | null
+          sexo?: Database["public"]["Enums"]["sexo_pessoa"] | null
+          site?: string | null
+          status?: Database["public"]["Enums"]["status_pessoa"]
           telefone?: string | null
           tenant_id?: string | null
           tipo?: Database["public"]["Enums"]["tipo_pessoa"]
@@ -966,6 +1011,72 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "segurados_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "segurados_produtor_id_fkey"
+            columns: ["produtor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "segurados_gerente_id_fkey"
+            columns: ["gerente_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pessoa_contato: {
+        Row: {
+          cargo: string | null
+          created_at: string
+          id: string
+          pf_id: string
+          pj_id: string
+          principal: boolean
+          tenant_id: string | null
+        }
+        Insert: {
+          cargo?: string | null
+          created_at?: string
+          id?: string
+          pf_id: string
+          pj_id: string
+          principal?: boolean
+          tenant_id?: string | null
+        }
+        Update: {
+          cargo?: string | null
+          created_at?: string
+          id?: string
+          pf_id?: string
+          pj_id?: string
+          principal?: boolean
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pessoa_contato_pj_id_fkey"
+            columns: ["pj_id"]
+            isOneToOne: false
+            referencedRelation: "segurados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_contato_pf_id_fkey"
+            columns: ["pf_id"]
+            isOneToOne: false
+            referencedRelation: "segurados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_contato_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1143,12 +1254,26 @@ export type Database = {
     Enums: {
       app_role: "admin" | "vendedor" | "visualizador"
       card_status: "pending" | "won" | "lost"
+      estado_civil:
+        | "Solteiro"
+        | "Casado"
+        | "Divorciado"
+        | "Viuvo"
+        | "UniaoEstavel"
       pipeline_module:
         | "comercial"
         | "emissao"
         | "pos_venda"
         | "financeiro"
         | "sinistro"
+      porte_empresa:
+        | "MEI"
+        | "Microempresa"
+        | "PequenoPorte"
+        | "MedioPorte"
+        | "GrandePorte"
+      sexo_pessoa: "M" | "F" | "Outro"
+      status_pessoa: "Ativo" | "Inativo" | "Prospecto"
       tipo_negocio: "novo" | "renovacao" | "endosso"
       tipo_pessoa: "PF" | "PJ"
       tipo_sinistro:
@@ -1286,6 +1411,13 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "vendedor", "visualizador"],
       card_status: ["pending", "won", "lost"],
+      estado_civil: [
+        "Solteiro",
+        "Casado",
+        "Divorciado",
+        "Viuvo",
+        "UniaoEstavel",
+      ],
       pipeline_module: [
         "comercial",
         "emissao",
@@ -1293,6 +1425,15 @@ export const Constants = {
         "financeiro",
         "sinistro",
       ],
+      porte_empresa: [
+        "MEI",
+        "Microempresa",
+        "PequenoPorte",
+        "MedioPorte",
+        "GrandePorte",
+      ],
+      sexo_pessoa: ["M", "F", "Outro"],
+      status_pessoa: ["Ativo", "Inativo", "Prospecto"],
       tipo_negocio: ["novo", "renovacao", "endosso"],
       tipo_pessoa: ["PF", "PJ"],
       tipo_sinistro: [
