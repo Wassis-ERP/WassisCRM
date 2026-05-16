@@ -1,13 +1,13 @@
-import { createContext } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { AuthState, ModulePermission, Session, UserProfile } from '../types/auth';
-
-interface AuthContextType extends AuthState {
-  signOut: () => Promise<void>;
-  refreshSession: () => Promise<void>;
-}
-
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import {
+  clearBackendSession,
+  getBackendAccessToken,
+  getBackendCurrentUser,
+  getBackendSessionSnapshot,
+} from '../lib/backendApi';
+import { AuthContext } from './authCore';
 
 /**
  * Provider de autenticação do modo frontend puro.
@@ -45,15 +45,94 @@ const MOCK_SESSION: Session = {
   },
 };
 
+function toUnixSeconds(value?: string) {
+  if (!value) return undefined;
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? undefined : Math.floor(timestamp / 1000);
+}
+
+function normalizeRole(roles: string[]): UserProfile['role'] {
+  if (roles.includes('admin') || roles.includes('brokerage-admin') || roles.includes('platform-admin')) {
+    return 'admin';
+  }
+
+  if (roles.includes('seller') || roles.includes('vendedor')) {
+    return 'vendedor';
+  }
+
+  return 'visualizador';
+}
+
+async function loadBackendAuthState(): Promise<AuthState | null> {
+  const snapshot = getBackendSessionSnapshot();
+  const token = getBackendAccessToken();
+  if (!snapshot || !token) return null;
+
+  const currentUser = await getBackendCurrentUser();
+  if (!currentUser?.isAuthenticated || !currentUser.userId) {
+    clearBackendSession();
+    return null;
+  }
+
+  const email = snapshot.username;
+  const roles = currentUser.roles.length > 0 ? currentUser.roles : snapshot.roles;
+  const user: UserProfile = {
+    id: currentUser.userId,
+    email,
+    role: normalizeRole(roles),
+    firstName: email.split('@')[0],
+    fullName: email,
+    tenantId: currentUser.tenantId,
+    permissions: MOCK_PERMISSIONS,
+  };
+
+  return {
+    loading: false,
+    user,
+    session: {
+      access_token: token,
+      expires_at: toUnixSeconds(snapshot.expiresAtUtc),
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+    },
+  };
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [authState, setAuthState] = useState<AuthState>({
+    session: MOCK_SESSION,
+    user: MOCK_USER,
+    loading: true,
+  });
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const backendState = await loadBackendAuthState();
+      setAuthState(backendState ?? { session: MOCK_SESSION, user: MOCK_USER, loading: false });
+    } catch {
+      clearBackendSession();
+      setAuthState({ session: MOCK_SESSION, user: MOCK_USER, loading: false });
+    }
+  }, []);
+
+  const signOut = useCallback(async () => {
+    clearBackendSession();
+    setAuthState({ session: MOCK_SESSION, user: MOCK_USER, loading: false });
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refreshSession();
+  }, [refreshSession]);
+
   return (
     <AuthContext.Provider
       value={{
-        session: MOCK_SESSION,
-        user: MOCK_USER,
-        loading: false,
-        signOut: async () => {},
-        refreshSession: async () => {},
+        ...authState,
+        signOut,
+        refreshSession,
       }}
     >
       {children}

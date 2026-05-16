@@ -1,0 +1,152 @@
+const BACKEND_ACCESS_TOKEN_KEY = 'wassis.backend.accessToken';
+const BACKEND_SESSION_KEY = 'wassis.backend.session';
+
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '');
+
+type BackendRoles = string[];
+
+export interface BackendLoginResponse {
+  accessToken: string;
+  expiresAtUtc: string;
+  userId: string;
+  tenantId: string | null;
+  brokerageId: string | null;
+  sellerId: string | null;
+  userType: string;
+  roles: BackendRoles;
+}
+
+export interface BackendCurrentUser {
+  isAuthenticated: boolean;
+  userId: string | null;
+  tenantId: string | null;
+  brokerageId: string | null;
+  sellerId: string | null;
+  userType: string | null;
+  roles: BackendRoles;
+}
+
+type BackendSessionSnapshot = BackendLoginResponse & {
+  username: string;
+};
+
+function ensureApiBaseUrl() {
+  if (!API_BASE_URL) {
+    throw new Error('VITE_API_BASE_URL nao configurada para o WAssisBE.');
+  }
+}
+
+function readJson<T>(key: string): T | null {
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    localStorage.removeItem(key);
+    return null;
+  }
+}
+
+function asRecord(raw: unknown): Record<string, unknown> {
+  return raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+}
+
+function asString(value: unknown, fallback = '') {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function asNullableString(value: unknown) {
+  return typeof value === 'string' ? value : null;
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function normalizeLoginResponse(raw: unknown): BackendLoginResponse {
+  const data = asRecord(raw);
+  return {
+    accessToken: asString(data.accessToken ?? data.AccessToken),
+    expiresAtUtc: asString(data.expiresAtUtc ?? data.ExpiresAtUtc),
+    userId: asString(data.userId ?? data.UserId),
+    tenantId: asNullableString(data.tenantId ?? data.TenantId),
+    brokerageId: asNullableString(data.brokerageId ?? data.BrokerageId),
+    sellerId: asNullableString(data.sellerId ?? data.SellerId),
+    userType: asString(data.userType ?? data.UserType),
+    roles: asStringArray(data.roles ?? data.Roles),
+  };
+}
+
+function normalizeCurrentUser(raw: unknown): BackendCurrentUser {
+  const data = asRecord(raw);
+  return {
+    isAuthenticated: data.isAuthenticated === true || data.IsAuthenticated === true,
+    userId: asNullableString(data.userId ?? data.UserId),
+    tenantId: asNullableString(data.tenantId ?? data.TenantId),
+    brokerageId: asNullableString(data.brokerageId ?? data.BrokerageId),
+    sellerId: asNullableString(data.sellerId ?? data.SellerId),
+    userType: asNullableString(data.userType ?? data.UserType),
+    roles: asStringArray(data.roles ?? data.Roles),
+  };
+}
+
+async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  ensureApiBaseUrl();
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...init?.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || `WAssisBE respondeu ${response.status}.`);
+  }
+
+  return response.json() as Promise<T>;
+}
+
+export async function loginToBackend(username: string, password: string): Promise<BackendLoginResponse> {
+  const result = normalizeLoginResponse(
+    await requestJson('/api/identity/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    }),
+  );
+
+  const snapshot: BackendSessionSnapshot = { ...result, username };
+  localStorage.setItem(BACKEND_ACCESS_TOKEN_KEY, result.accessToken);
+  localStorage.setItem(BACKEND_SESSION_KEY, JSON.stringify(snapshot));
+
+  return result;
+}
+
+export function getBackendAccessToken(): string | null {
+  return localStorage.getItem(BACKEND_ACCESS_TOKEN_KEY);
+}
+
+export function getBackendSessionSnapshot(): BackendSessionSnapshot | null {
+  return readJson<BackendSessionSnapshot>(BACKEND_SESSION_KEY);
+}
+
+export async function getBackendCurrentUser(): Promise<BackendCurrentUser | null> {
+  const token = getBackendAccessToken();
+  if (!token) return null;
+
+  return normalizeCurrentUser(
+    await requestJson('/api/identity/me', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }),
+  );
+}
+
+export function clearBackendSession() {
+  localStorage.removeItem(BACKEND_ACCESS_TOKEN_KEY);
+  localStorage.removeItem(BACKEND_SESSION_KEY);
+}
