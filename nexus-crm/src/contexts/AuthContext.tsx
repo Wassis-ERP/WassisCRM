@@ -6,8 +6,11 @@ import {
   getBackendAccessToken,
   getBackendCurrentUser,
   getBackendSessionSnapshot,
+  loginToBackend,
 } from '../lib/backendApi';
 import { AuthContext } from './authCore';
+
+const REQUIRE_BACKEND_AUTH = import.meta.env.VITE_AUTH_MODE === 'backend';
 
 /**
  * Provider de autenticação do modo frontend puro.
@@ -33,6 +36,10 @@ const MOCK_USER: UserProfile = {
   fullName: 'Dev Wassis',
   avatarUrl: undefined,
   tenantId: 'mock-tenant-id',
+  brokerageId: 'mock-brokerage-id',
+  branchId: 'mock-branch-id',
+  branchIds: ['mock-branch-id'],
+  hasAllBranchesAccess: true,
   permissions: MOCK_PERMISSIONS,
 };
 
@@ -52,11 +59,22 @@ function toUnixSeconds(value?: string) {
 }
 
 function normalizeRole(roles: string[]): UserProfile['role'] {
-  if (roles.includes('admin') || roles.includes('brokerage-admin') || roles.includes('platform-admin')) {
+  const normalizedRoles = roles.map((role) => role.toLowerCase().replace(/_/g, '-'));
+
+  if (
+    normalizedRoles.includes('admin') ||
+    normalizedRoles.includes('brokerage-owner') ||
+    normalizedRoles.includes('brokerage-admin') ||
+    normalizedRoles.includes('platform-admin')
+  ) {
     return 'admin';
   }
 
-  if (roles.includes('seller') || roles.includes('vendedor')) {
+  if (
+    normalizedRoles.includes('seller') ||
+    normalizedRoles.includes('brokerage-seller') ||
+    normalizedRoles.includes('vendedor')
+  ) {
     return 'vendedor';
   }
 
@@ -83,6 +101,10 @@ async function loadBackendAuthState(): Promise<AuthState | null> {
     firstName: email.split('@')[0],
     fullName: email,
     tenantId: currentUser.tenantId,
+    brokerageId: currentUser.brokerageId,
+    branchId: currentUser.branchId ?? snapshot.branchId,
+    branchIds: currentUser.branchIds.length > 0 ? currentUser.branchIds : snapshot.branchIds,
+    hasAllBranchesAccess: currentUser.hasAllBranchesAccess || snapshot.hasAllBranchesAccess,
     permissions: MOCK_PERMISSIONS,
   };
 
@@ -102,24 +124,45 @@ async function loadBackendAuthState(): Promise<AuthState | null> {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authState, setAuthState] = useState<AuthState>({
-    session: MOCK_SESSION,
-    user: MOCK_USER,
+    session: REQUIRE_BACKEND_AUTH ? null : MOCK_SESSION,
+    user: REQUIRE_BACKEND_AUTH ? null : MOCK_USER,
     loading: true,
   });
 
   const refreshSession = useCallback(async () => {
     try {
       const backendState = await loadBackendAuthState();
-      setAuthState(backendState ?? { session: MOCK_SESSION, user: MOCK_USER, loading: false });
+      setAuthState(
+        backendState ??
+          (REQUIRE_BACKEND_AUTH
+            ? { session: null, user: null, loading: false }
+            : { session: MOCK_SESSION, user: MOCK_USER, loading: false }),
+      );
     } catch {
       clearBackendSession();
-      setAuthState({ session: MOCK_SESSION, user: MOCK_USER, loading: false });
+      setAuthState(
+        REQUIRE_BACKEND_AUTH
+          ? { session: null, user: null, loading: false }
+          : { session: MOCK_SESSION, user: MOCK_USER, loading: false },
+      );
     }
   }, []);
 
+  const signIn = useCallback(
+    async (username: string, password: string) => {
+      await loginToBackend(username, password);
+      await refreshSession();
+    },
+    [refreshSession],
+  );
+
   const signOut = useCallback(async () => {
     clearBackendSession();
-    setAuthState({ session: MOCK_SESSION, user: MOCK_USER, loading: false });
+    setAuthState(
+      REQUIRE_BACKEND_AUTH
+        ? { session: null, user: null, loading: false }
+        : { session: MOCK_SESSION, user: MOCK_USER, loading: false },
+    );
   }, []);
 
   useEffect(() => {
@@ -131,6 +174,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider
       value={{
         ...authState,
+        signIn,
         signOut,
         refreshSession,
       }}

@@ -29,6 +29,10 @@ export interface UserProfile {
   fullName?: string;
   avatarUrl?: string;
   tenantId: string | null;
+  brokerageId?: string | null;
+  branchId?: string | null;
+  branchIds?: string[];
+  hasAllBranchesAccess?: boolean;
   permissions: ModulePermission[];
 }
 

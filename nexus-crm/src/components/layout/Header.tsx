@@ -1,6 +1,7 @@
-import { Search } from 'lucide-react'
+import { LogOut, Search } from 'lucide-react'
 import { useState } from 'react'
 import ProfileModal from './ProfileModal'
+import { useAuth } from '../../hooks/useAuth'
 
 /**
  * Header principal do CRM.
@@ -8,6 +9,15 @@ import ProfileModal from './ProfileModal'
  */
 export default function Header() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+  const { user, signOut } = useAuth()
+  const displayName = user?.fullName || user?.email || 'Usuario'
+  const initials = displayName
+    .split(/\s+|@/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('')
+  const roleLabel = user?.role === 'admin' ? 'Administrador' : user?.role === 'vendedor' ? 'Vendedor' : 'Visualizador'
 
   return (
     <>
@@ -29,14 +39,22 @@ export default function Header() {
             className="flex items-center gap-3 p-1.5 pr-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all group"
           >
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-light flex items-center justify-center text-white font-bold text-sm shadow-sm group-hover:shadow-md transition-shadow">
-              RS
+              {initials || 'U'}
             </div>
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">Renato Silva</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">{displayName}</p>
               <p className="text-[10px] text-slate-500 flex items-center justify-end gap-1">
-                Corretor Master
+                {roleLabel}
               </p>
             </div>
+          </button>
+          <button
+            onClick={() => void signOut()}
+            className="p-2 text-slate-400 hover:text-danger hover:bg-danger/10 rounded-xl transition-all"
+            title="Sair"
+            aria-label="Sair"
+          >
+            <LogOut size={18} />
           </button>
         </div>
       </header>
@@ -48,4 +66,3 @@ export default function Header() {
     </>
   )
 }
-
