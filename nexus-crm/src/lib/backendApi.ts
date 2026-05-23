@@ -11,6 +11,9 @@ export interface BackendLoginResponse {
   userId: string;
   tenantId: string | null;
   brokerageId: string | null;
+  branchId: string | null;
+  branchIds: string[];
+  hasAllBranchesAccess: boolean;
   sellerId: string | null;
   userType: string;
   roles: BackendRoles;
@@ -21,6 +24,9 @@ export interface BackendCurrentUser {
   userId: string | null;
   tenantId: string | null;
   brokerageId: string | null;
+  branchId: string | null;
+  branchIds: string[];
+  hasAllBranchesAccess: boolean;
   sellerId: string | null;
   userType: string | null;
   roles: BackendRoles;
@@ -64,6 +70,10 @@ function asStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 }
 
+function asBoolean(value: unknown, fallback = false) {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
 function normalizeLoginResponse(raw: unknown): BackendLoginResponse {
   const data = asRecord(raw);
   return {
@@ -72,6 +82,9 @@ function normalizeLoginResponse(raw: unknown): BackendLoginResponse {
     userId: asString(data.userId ?? data.UserId),
     tenantId: asNullableString(data.tenantId ?? data.TenantId),
     brokerageId: asNullableString(data.brokerageId ?? data.BrokerageId),
+    branchId: asNullableString(data.branchId ?? data.BranchId),
+    branchIds: asStringArray(data.branchIds ?? data.BranchIds),
+    hasAllBranchesAccess: asBoolean(data.hasAllBranchesAccess ?? data.HasAllBranchesAccess),
     sellerId: asNullableString(data.sellerId ?? data.SellerId),
     userType: asString(data.userType ?? data.UserType),
     roles: asStringArray(data.roles ?? data.Roles),
@@ -85,6 +98,9 @@ function normalizeCurrentUser(raw: unknown): BackendCurrentUser {
     userId: asNullableString(data.userId ?? data.UserId),
     tenantId: asNullableString(data.tenantId ?? data.TenantId),
     brokerageId: asNullableString(data.brokerageId ?? data.BrokerageId),
+    branchId: asNullableString(data.branchId ?? data.BranchId),
+    branchIds: asStringArray(data.branchIds ?? data.BranchIds),
+    hasAllBranchesAccess: asBoolean(data.hasAllBranchesAccess ?? data.HasAllBranchesAccess),
     sellerId: asNullableString(data.sellerId ?? data.SellerId),
     userType: asNullableString(data.userType ?? data.UserType),
     roles: asStringArray(data.roles ?? data.Roles),
