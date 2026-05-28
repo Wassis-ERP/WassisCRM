@@ -14,10 +14,11 @@ import NovoSeguradoModal from '../components/NovoSeguradoModal'
 type TipoFilter = 'Todos' | 'PF' | 'PJ'
 type StatusFilter = 'Todos' | StatusPessoa
 
+// Status sempre via tokens --signal-* (nunca cor de ramo).
 const STATUS_BADGE: Record<StatusPessoa, string> = {
-  Ativo: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-  Inativo: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
-  Prospecto: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  Ativo: 'bg-signal-success/15 text-signal-success',
+  Inativo: 'bg-bg-surface-3 text-fg-3',
+  Prospecto: 'bg-signal-warning/15 text-signal-warning',
 }
 
 /**
@@ -102,14 +103,14 @@ export default function SeguradosPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Segurados</h1>
-          <p className="text-slate-500 dark:text-slate-400">
+          <p className="text-fg-3">
             Cadastro unificado de pessoas (PF/PJ). Gerencie clientes, prospects e contatos.
           </p>
         </div>
         <button
           type="button"
           onClick={handleOpenNovo}
-          className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
+          className="flex items-center gap-2 px-6 py-2.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-semibold hover:bg-accent-primary-hover transition-colors shadow-[var(--shadow-brand)]"
         >
           <UserPlus size={16} />
           Novo Segurado
@@ -117,7 +118,7 @@ export default function SeguradosPage() {
       </div>
 
       {saveError && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+        <div className="mb-4 rounded-[10px] border border-signal-danger/30 bg-signal-danger/10 px-4 py-3 text-sm text-signal-danger">
           {saveError}
         </div>
       )}
@@ -125,19 +126,19 @@ export default function SeguradosPage() {
       {/* Toolbar de filtros */}
       <div className="mb-4 flex flex-col md:flex-row md:items-center gap-3">
         <div className="relative flex-1 max-w-md">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
           <input
             type="text"
             placeholder="Buscar por nome, razão social, documento, e-mail..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:border-primary focus:outline-none transition-colors"
+            className="w-full pl-10 pr-4 py-2 bg-bg-surface text-fg-1 placeholder:text-fg-4 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-colors"
           />
         </div>
         <select
           value={tipoFilter}
           onChange={(e) => setTipoFilter(e.target.value as TipoFilter)}
-          className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm font-medium focus:border-primary focus:outline-none"
+          className="px-4 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[10px] text-sm font-medium focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
         >
           <option value="Todos">Todos os tipos</option>
           <option value="PF">Pessoa Física</option>
@@ -146,7 +147,7 @@ export default function SeguradosPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-          className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm font-medium focus:border-primary focus:outline-none"
+          className="px-4 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[10px] text-sm font-medium focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
         >
           <option value="Todos">Todos os status</option>
           <option value="Ativo">Ativo</option>
@@ -155,15 +156,15 @@ export default function SeguradosPage() {
         </select>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1 overflow-hidden">
         <div className="overflow-x-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center gap-2 py-20 text-slate-500">
+            <div className="flex items-center justify-center gap-2 py-20 text-fg-3">
               <Loader2 className="animate-spin" size={22} />
               <span className="text-sm">Carregando segurados…</span>
             </div>
           ) : isError ? (
-            <div className="px-6 py-16 text-center text-sm text-slate-600 dark:text-slate-400">
+            <div className="px-6 py-16 text-center text-sm text-fg-2">
               <p className="mb-3">Não foi possível carregar a lista.</p>
               <p className="mb-4 text-xs opacity-80">
                 {error instanceof Error ? error.message : 'Erro desconhecido'}
@@ -171,7 +172,7 @@ export default function SeguradosPage() {
               <button
                 type="button"
                 onClick={() => refetch()}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+                className="rounded-full bg-accent-primary px-4 py-2 text-sm font-semibold text-fg-on-brand hover:bg-accent-primary-hover"
               >
                 Tentar novamente
               </button>
@@ -179,20 +180,20 @@ export default function SeguradosPage() {
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                  <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">Pessoa</th>
-                  <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">Tipo</th>
-                  <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">Status</th>
-                  <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">Contato</th>
-                  <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">Cidade/UF</th>
-                  <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">Gerente</th>
-                  <th className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 text-right">Ações</th>
+                <tr className="bg-bg-surface-2 text-fg-4 text-[10px] font-bold uppercase tracking-wider">
+                  <th className="px-6 py-4 border-b border-border-1">Pessoa</th>
+                  <th className="px-6 py-4 border-b border-border-1">Tipo</th>
+                  <th className="px-6 py-4 border-b border-border-1">Status</th>
+                  <th className="px-6 py-4 border-b border-border-1">Contato</th>
+                  <th className="px-6 py-4 border-b border-border-1">Cidade/UF</th>
+                  <th className="px-6 py-4 border-b border-border-1">Gerente</th>
+                  <th className="px-6 py-4 border-b border-border-1 text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+              <tbody className="divide-y divide-border-1">
                 {filteredSegurados.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-500">
+                    <td colSpan={7} className="px-6 py-12 text-center text-sm text-fg-3">
                       {total === 0
                         ? 'Nenhum segurado cadastrado. Use «Novo Segurado» para incluir o primeiro.'
                         : 'Nenhum resultado para os filtros aplicados.'}
@@ -202,27 +203,27 @@ export default function SeguradosPage() {
                   filteredSegurados.map((s) => (
                     <tr
                       key={s.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                      className="hover:bg-bg-surface-2 transition-colors cursor-pointer"
                       onClick={() => navigate(`/segurados/${s.id}`)}
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center shrink-0">
+                          <div className="w-8 h-8 bg-accent-primary-soft text-accent-primary rounded-[10px] flex items-center justify-center shrink-0">
                             {s.tipo === 'PJ' ? <Building2 size={16} /> : <User size={16} />}
                           </div>
                           <div>
-                            <p className="font-semibold text-sm">{s.nome}</p>
+                            <p className="font-semibold text-sm text-fg-1">{s.nome}</p>
                             {s.tipo === 'PJ' && s.nomeFantasia && (
-                              <p className="text-xs text-slate-400">{s.nomeFantasia}</p>
+                              <p className="text-xs text-fg-4">{s.nomeFantasia}</p>
                             )}
-                            <p className="text-xs text-slate-400">
+                            <p className="text-xs text-fg-4">
                               {s.tipo === 'PJ' ? 'CNPJ' : 'CPF'}: {s.documento || '—'}
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold rounded uppercase tracking-wide">
+                        <span className="px-2.5 py-1 bg-bg-surface-3 text-fg-3 text-[10px] font-bold rounded uppercase tracking-wide">
                           {s.tipo}
                         </span>
                       </td>
@@ -233,13 +234,13 @@ export default function SeguradosPage() {
                           {s.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-400">
-                        <p>{s.email || <span className="italic text-slate-400">sem e-mail</span>}</p>
+                      <td className="px-6 py-4 text-xs text-fg-2">
+                        <p>{s.email || <span className="italic text-fg-4">sem e-mail</span>}</p>
                         <p className="whitespace-nowrap">
-                          {s.telefone || <span className="italic text-slate-400">sem telefone</span>}
+                          {s.telefone || <span className="italic text-fg-4">sem telefone</span>}
                         </p>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+                      <td className="px-6 py-4 text-sm text-fg-2">
                         {s.cidade || s.estado ? (
                           <span>
                             {s.cidade}
@@ -247,27 +248,27 @@ export default function SeguradosPage() {
                             {s.estado}
                           </span>
                         ) : (
-                          <span className="italic text-slate-400">—</span>
+                          <span className="italic text-fg-4">—</span>
                         )}
                       </td>
                       <td className="px-6 py-4">
                         {s.gerenteNome ? (
                           <div className="flex items-center gap-2">
                             <div
-                              className={`w-6 h-6 ${s.gerenteCor ?? 'bg-slate-200 text-slate-600'} rounded-full flex items-center justify-center text-[10px] font-bold`}
+                              className={`w-6 h-6 ${s.gerenteCor ?? 'bg-bg-surface-3 text-fg-3'} rounded-full flex items-center justify-center text-[10px] font-bold`}
                             >
                               {s.gerenteInicial}
                             </div>
-                            <span className="text-sm">{s.gerenteNome}</span>
+                            <span className="text-sm text-fg-1">{s.gerenteNome}</span>
                           </div>
                         ) : (
-                          <span className="text-sm text-slate-400 italic">—</span>
+                          <span className="text-sm text-fg-4 italic">—</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button
                           type="button"
-                          className="p-2 text-slate-400 hover:text-primary transition-colors"
+                          className="p-2 text-fg-4 hover:text-accent-primary transition-colors"
                           onClick={(e) => {
                             e.stopPropagation()
                             handleOpenEdit(s)
@@ -285,22 +286,22 @@ export default function SeguradosPage() {
         </div>
 
         {!isLoading && !isError && (
-          <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800">
-            <p className="text-sm text-slate-400">
+          <div className="px-6 py-4 border-t border-border-1">
+            <p className="text-sm text-fg-4">
               {filteredSegurados.length !== total ? (
                 <>
                   Exibindo{' '}
-                  <span className="font-medium text-slate-900 dark:text-slate-100">
+                  <span className="font-medium text-fg-1">
                     {filteredSegurados.length}
                   </span>{' '}
                   de{' '}
-                  <span className="font-medium text-slate-900 dark:text-slate-100">{total}</span>{' '}
+                  <span className="font-medium text-fg-1">{total}</span>{' '}
                   segurado(s) com os filtros atuais.
                 </>
               ) : (
                 <>
                   Total:{' '}
-                  <span className="font-medium text-slate-900 dark:text-slate-100">{total}</span>{' '}
+                  <span className="font-medium text-fg-1">{total}</span>{' '}
                   segurado(s).
                 </>
               )}

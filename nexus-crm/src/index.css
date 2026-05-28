@@ -1,33 +1,11 @@
 @import "tailwindcss";
-@variant dark (&:where(.dark, .dark *));
-
-
-/* ===== Design Tokens do Nexus CRM ===== */
-@theme {
-  --color-primary: #0056b3;
-  --color-primary-light: #3b82f6;
-  --color-primary-dark: #003d82;
-
-  --color-background-light: #f8fafc;
-  --color-background-dark: #0f172a;
-
-  --color-surface-light: #ffffff;
-  --color-surface-dark: #1e293b;
-
-  --color-border-light: #e2e8f0;
-  --color-border-dark: #334155;
-
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
-  --color-info: #3b82f6;
-
-  --font-family-display: "Inter", sans-serif;
-}
+@import "./design-system/colors_and_type.css";
 
 /* ===== Global Reset ===== */
 body {
-  font-family: var(--font-family-display);
+  font-family: var(--font-text);
+  color: var(--fg-1);
+  background: var(--bg-app);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -40,11 +18,11 @@ body {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--neutral-300);
   border-radius: 10px;
 }
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: var(--neutral-700);
 }
 
 /* ===== Animações ===== */
@@ -56,19 +34,12 @@ body {
   from { opacity: 0; transform: translateX(-16px); }
   to { opacity: 1; transform: translateX(0); }
 }
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn var(--dur-slow) var(--ease-out);
 }
 .animate-slide-in-left {
-  animation: slideInLeft 0.3s ease-out;
-}
-.animate-pulse-soft {
-  animation: pulse-soft 2s ease-in-out infinite;
+  animation: slideInLeft var(--dur-slow) var(--ease-out);
 }
 
 /* ===== Kanban Drag ===== */
@@ -79,5 +50,5 @@ body {
 .kanban-card:active {
   cursor: grabbing;
   transform: scale(1.03) rotate(1deg);
-  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-3);
 }

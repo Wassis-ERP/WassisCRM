@@ -120,32 +120,32 @@ export default function NovaEmissaoModal({ isOpen, onClose, pipelineId, onCreate
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-10 px-4">
-      <div className="fixed inset-0 z-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 my-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-[640px] border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900 z-10">
+      <div className="fixed inset-0 z-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 my-auto bg-bg-surface rounded-[14px] shadow-[var(--shadow-3)] w-full max-w-[640px] border border-border-1 animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between p-5 border-b border-border-1 sticky top-0 bg-bg-surface z-10">
           <div>
-            <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Nova Emissao</h2>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Cadastro administrativo</p>
+            <h2 className="text-lg font-black text-fg-1 tracking-tight">Nova Emissao</h2>
+            <p className="text-[10px] text-fg-4 font-bold uppercase tracking-widest mt-0.5">Cadastro administrativo</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="p-2 hover:bg-bg-surface-2 rounded-[10px] transition-all text-fg-4 hover:text-fg-2">
             <X size={20} />
           </button>
         </div>
 
         <div className="p-5 space-y-4">
-          <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl p-3 flex gap-3">
-            <Info size={16} className="text-primary flex-shrink-0 mt-0.5" />
-            <p className="text-[11px] text-primary/90 leading-relaxed">
+          <div className="bg-accent-primary-soft border border-accent-primary/20 rounded-[10px] p-3 flex gap-3">
+            <Info size={16} className="text-accent-primary flex-shrink-0 mt-0.5" />
+            <p className="text-[11px] text-accent-primary leading-relaxed">
               <strong className="font-black uppercase tracking-wider">Fluxo automatizado:</strong> em producao, emissoes sao criadas automaticamente quando uma oportunidade e concluida como <strong>Ganho</strong> (Fase 4 - n8n). Use este formulario apenas para casos excepcionais.
             </p>
           </div>
 
           <div ref={searchRef} className="relative z-[60]">
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">
+            <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">
               Oportunidade Ganha *
             </label>
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
               <input
                 type="text"
                 placeholder="Buscar oportunidade concluida como Ganho..."
@@ -156,29 +156,29 @@ export default function NovaEmissaoModal({ isOpen, onClose, pipelineId, onCreate
                   setShowSuggestions(true);
                 }}
                 onFocus={() => setShowSuggestions(true)}
-                className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
               />
             </div>
             {showSuggestions && !selectedOportunidade && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-[80] overflow-hidden max-h-[220px] overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-bg-surface border border-border-1 rounded-[10px] shadow-[var(--shadow-3)] z-[80] overflow-hidden max-h-[220px] overflow-y-auto">
                 {oportunidadesQuery.isError ? (
-                  <div className="p-3 text-center text-[10px] text-rose-500 font-bold">Erro ao carregar</div>
+                  <div className="p-3 text-center text-[10px] text-signal-danger font-bold">Erro ao carregar</div>
                 ) : oportunidadesQuery.isLoading ? (
-                  <div className="p-3 text-center text-[10px] text-slate-400 font-bold">Carregando...</div>
+                  <div className="p-3 text-center text-[10px] text-fg-4 font-bold">Carregando...</div>
                 ) : (oportunidadesQuery.data ?? []).length > 0 ? (
                   (oportunidadesQuery.data ?? []).map((op) => (
                     <button
                       key={op.id}
                       type="button"
                       onClick={() => { setSelectedOportunidade(op); setShowSuggestions(false); }}
-                      className="w-full text-left px-3 py-2 hover:bg-primary/5 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0"
+                      className="w-full text-left px-3 py-2 hover:bg-accent-primary-soft transition-colors border-b border-border-1 last:border-0"
                     >
-                      <p className="text-xs font-bold text-slate-900 dark:text-white">{op.nome}</p>
-                      <p className="text-[9px] text-slate-400">{op.segurado_nome ?? '-'}</p>
+                      <p className="text-xs font-bold text-fg-1">{op.nome}</p>
+                      <p className="text-[9px] text-fg-4">{op.segurado_nome ?? '-'}</p>
                     </button>
                   ))
                 ) : (
-                  <div className="p-3 text-center text-[10px] text-slate-400 font-bold">
+                  <div className="p-3 text-center text-[10px] text-fg-4 font-bold">
                     Nenhuma oportunidade ganha encontrada
                   </div>
                 )}
@@ -193,19 +193,19 @@ export default function NovaEmissaoModal({ isOpen, onClose, pipelineId, onCreate
             inputClassName="text-xs"
           />
 
-          <div className="bg-slate-50/60 dark:bg-slate-800/20 border border-slate-200/60 dark:border-slate-800 rounded-xl p-3 space-y-3">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Metadata (opcional)</p>
+          <div className="bg-bg-surface-2 border border-border-1 rounded-[10px] p-3 space-y-3">
+            <p className="text-[9px] font-black text-fg-4 uppercase tracking-widest">Metadata (opcional)</p>
             <div className="grid grid-cols-2 gap-3">
               {EMISSAO_METADATA.map((field) => (
                 <div key={field.key}>
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">
+                  <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">
                     {field.label}
                   </label>
                   {field.type === 'select' ? (
                     <select
                       value={String(metaFields[field.key] ?? '')}
                       onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold"
+                      className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
                     >
                       <option value="">Selecione</option>
                       {(field.options ?? []).map((opt) => (
@@ -217,7 +217,7 @@ export default function NovaEmissaoModal({ isOpen, onClose, pipelineId, onCreate
                       type="text"
                       value={String(metaFields[field.key] ?? '')}
                       onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold"
+                      className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
                     />
                   )}
                 </div>
@@ -226,17 +226,17 @@ export default function NovaEmissaoModal({ isOpen, onClose, pipelineId, onCreate
           </div>
 
           <div>
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Observacoes</label>
+            <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">Observacoes</label>
             <textarea
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold resize-none focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold resize-none focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
             />
           </div>
 
           {submitError && (
-            <div className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+            <div className="text-[11px] font-bold text-signal-danger bg-signal-danger/10 border border-signal-danger/30 rounded-[10px] px-3 py-2">
               {submitError}
             </div>
           )}
@@ -246,7 +246,7 @@ export default function NovaEmissaoModal({ isOpen, onClose, pipelineId, onCreate
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="w-full max-w-[300px] py-3 bg-primary text-white rounded-xl text-sm font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-xl shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full max-w-[300px] py-3 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black uppercase tracking-widest hover:bg-accent-primary-hover transition-all shadow-[var(--shadow-brand)] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {createEmissao.isPending ? 'Salvando...' : 'Criar Emissao'}
           </button>

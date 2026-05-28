@@ -111,13 +111,13 @@ export default function DateField({
   return (
     <div ref={rootRef} className={className}>
       {label && (
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+        <label className="text-[10px] font-black text-fg-4 uppercase tracking-widest ml-1">
           {label} {required ? '*' : ''}
         </label>
       )}
 
       <div className="relative mt-1">
-        <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
 
         <input
           ref={inputRef}
@@ -155,7 +155,7 @@ export default function DateField({
             }
           }}
           className={[
-            'w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pl-10 pr-10 text-sm font-bold focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all',
+            'w-full bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] py-2.5 pl-10 pr-10 text-sm font-bold focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary transition-all',
             inputClassName ?? '',
           ].join(' ')}
         />
@@ -168,7 +168,7 @@ export default function DateField({
               onChange('')
               requestAnimationFrame(() => inputRef.current?.focus())
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-white/60 dark:hover:bg-slate-700/50 transition-all"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-[10px] text-fg-4 hover:text-fg-2 hover:bg-bg-surface-3 transition-all"
             title="Limpar data"
           >
             <X size={14} />
@@ -176,25 +176,25 @@ export default function DateField({
         )}
 
         {open && !disabled && (
-          <div className="absolute z-50 mt-2 w-[320px] rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl shadow-slate-900/10 p-3 animate-in fade-in zoom-in-95 duration-150">
+          <div className="absolute z-50 mt-2 w-[320px] rounded-[14px] border border-border-1 bg-bg-surface backdrop-blur-md shadow-[var(--shadow-3)] p-3 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between px-1.5 pb-2">
               <button
                 type="button"
                 onClick={() => setMonth((m) => subMonths(m, 1))}
-                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+                className="p-2 rounded-[10px] hover:bg-bg-surface-2 text-fg-3 transition-colors"
                 title="Mês anterior"
               >
                 <ChevronLeft size={16} />
               </button>
 
-              <div className="text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-200">
+              <div className="text-xs font-black uppercase tracking-widest text-fg-2">
                 {format(month, 'MMMM yyyy', { locale: ptBR })}
               </div>
 
               <button
                 type="button"
                 onClick={() => setMonth((m) => addMonths(m, 1))}
-                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+                className="p-2 rounded-[10px] hover:bg-bg-surface-2 text-fg-3 transition-colors"
                 title="Próximo mês"
               >
                 <ChevronRight size={16} />
@@ -203,7 +203,7 @@ export default function DateField({
 
             <div className="grid grid-cols-7 gap-1 px-1.5 pb-2">
               {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((w) => (
-                <div key={w} className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center py-1">
+                <div key={w} className="text-[10px] font-black text-fg-4 uppercase tracking-widest text-center py-1">
                   {w}
                 </div>
               ))}
@@ -221,12 +221,12 @@ export default function DateField({
                     type="button"
                     onClick={() => handleSelectDate(d)}
                     className={[
-                      'h-9 rounded-xl text-sm font-black transition-all',
-                      inMonth ? 'text-slate-800 dark:text-slate-100' : 'text-slate-300 dark:text-slate-600',
+                      'h-9 rounded-[10px] text-sm font-black transition-all',
+                      inMonth ? 'text-fg-1' : 'text-fg-4',
                       selected
-                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                        : 'hover:bg-slate-100 dark:hover:bg-slate-800/70',
-                      today && !selected ? 'ring-2 ring-primary/30' : '',
+                        ? 'bg-accent-primary text-fg-on-brand shadow-[var(--shadow-brand)]'
+                        : 'hover:bg-bg-surface-2',
+                      today && !selected ? 'ring-2 ring-accent-primary/40' : '',
                     ].join(' ')}
                     aria-label={format(d, 'dd-MM-yyyy')}
                   >
@@ -240,12 +240,12 @@ export default function DateField({
               <button
                 type="button"
                 onClick={() => handleSelectDate(new Date())}
-                className="text-[10px] font-black uppercase tracking-widest text-primary hover:opacity-80 transition-opacity"
+                className="text-[10px] font-black uppercase tracking-widest text-accent-primary hover:opacity-80 transition-opacity"
               >
                 Hoje
               </button>
 
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <div className="text-[10px] font-black uppercase tracking-widest text-fg-4">
                 {selectedDate ? toDisplayDateBr(selectedDate) : '—'}
               </div>
             </div>

@@ -29,21 +29,20 @@ function AppLayout() {
   
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  // Sincroniza a classe .dark e o localStorage sempre que o estado mudar
+  // Sincroniza as classes de tema e o localStorage sempre que o estado mudar.
+  // Marca explicitamente .light/.dark: o design system tem auto dark-mode via
+  // prefers-color-scheme, e só a classe .light cancela esse modo automático.
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark')
-      localStorage.setItem('nexus-crm-theme', 'dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-      localStorage.setItem('nexus-crm-theme', 'light')
-    }
+    const root = document.documentElement
+    root.classList.toggle('dark', darkMode)
+    root.classList.toggle('light', !darkMode)
+    localStorage.setItem('nexus-crm-theme', darkMode ? 'dark' : 'light')
   }, [darkMode])
 
   const toggleTheme = () => setDarkMode(!darkMode)
 
   return (
-    <div className="h-screen flex overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
+    <div className="h-screen flex overflow-hidden bg-bg-app text-fg-1">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}

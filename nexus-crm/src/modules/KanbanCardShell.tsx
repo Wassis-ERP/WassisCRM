@@ -6,11 +6,19 @@ import type { KanbanCardProps } from './types';
 export type CardAccent = 'primary' | 'danger' | 'success' | 'warning' | 'info';
 
 const ACCENT_CLASSES: Record<CardAccent, string> = {
-  primary: 'text-primary',
-  danger: 'text-rose-500',
-  success: 'text-emerald-500',
-  warning: 'text-amber-500',
-  info: 'text-sky-500',
+  primary: 'text-accent-primary',
+  danger: 'text-signal-danger',
+  success: 'text-signal-success',
+  warning: 'text-signal-warning',
+  info: 'text-signal-info',
+};
+
+const ACCENT_BAR_CLASSES: Record<CardAccent, string> = {
+  primary: 'bg-accent-primary',
+  danger: 'bg-signal-danger',
+  success: 'bg-signal-success',
+  warning: 'bg-signal-warning',
+  info: 'bg-signal-info',
 };
 
 interface ShellOptions {
@@ -40,9 +48,9 @@ export function KanbanCardShell({
 }: KanbanCardProps & ShellOptions) {
   const dateStatus = getDateStatus(card.dueDate);
   const borderClass =
-    dateStatus === 'today' ? 'border-blue-500/60 dark:border-blue-400/50'
-    : dateStatus === 'overdue' ? 'border-red-500/70 dark:border-red-400/50'
-    : 'border-slate-200/60 dark:border-slate-800';
+    dateStatus === 'today' ? 'border-accent-primary/50'
+    : dateStatus === 'overdue' ? 'border-signal-danger/60'
+    : 'border-border-1';
 
   const primaryTag = card.tags?.find((t) => t.tone === 'default');
   const infoTag = card.tags?.find((t) => t.tone === 'info');
@@ -67,16 +75,10 @@ export function KanbanCardShell({
   return (
     <div
       onClick={() => onOpen?.(card)}
-      className={`group relative bg-white dark:bg-slate-900 border rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer p-3 overflow-hidden ${borderClass}`}
+      className={`group relative bg-bg-surface border rounded-[14px] shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] transition-all cursor-pointer p-3 overflow-hidden ${borderClass}`}
     >
       {accentBar && (
-        <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-          accent === 'danger' ? 'bg-rose-500'
-          : accent === 'success' ? 'bg-emerald-500'
-          : accent === 'warning' ? 'bg-amber-500'
-          : accent === 'info' ? 'bg-sky-500'
-          : 'bg-primary'
-        }`} />
+        <div className={`absolute left-0 top-0 bottom-0 w-1 ${ACCENT_BAR_CLASSES[accent]}`} />
       )}
 
       {onConclude && (
@@ -85,7 +87,7 @@ export function KanbanCardShell({
             <button
               onClick={(e) => stopAnd(e, () => onConclude(card, 'won'))}
               title="Marcar como Ganho"
-              className="p-1 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 border border-emerald-500/20"
+              className="p-1 rounded-md bg-signal-success/10 hover:bg-signal-success/20 text-signal-success border border-signal-success/20"
             >
               <Check size={11} />
             </button>
@@ -93,7 +95,7 @@ export function KanbanCardShell({
           <button
             onClick={(e) => stopAnd(e, () => onConclude(card, 'lost'))}
             title="Marcar como Perdido"
-            className="p-1 rounded-md bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 border border-rose-500/20"
+            className="p-1 rounded-md bg-signal-danger/10 hover:bg-signal-danger/20 text-signal-danger border border-signal-danger/20"
           >
             <X size={11} />
           </button>
@@ -102,18 +104,18 @@ export function KanbanCardShell({
 
       <div className="flex items-center justify-between gap-2 mb-2 pr-12">
         <div className="flex items-center gap-1.5 min-w-0">
-          {LeftIcon && <LeftIcon size={12} className="text-slate-400 shrink-0" />}
+          {LeftIcon && <LeftIcon size={12} className="text-fg-4 shrink-0" />}
           {primaryTag && (
-            <span className="px-2 py-0.5 bg-slate-50 dark:bg-slate-800 text-[9px] font-black text-slate-400 uppercase tracking-widest rounded-md border border-slate-100 dark:border-slate-700/50 truncate">
+            <span className="px-2 py-0.5 bg-bg-surface-2 text-[9px] font-black text-fg-4 uppercase tracking-widest rounded-md border border-border-1 truncate">
               {primaryTag.label}
             </span>
           )}
         </div>
         {card.dueDate && (
           <div className={`flex items-center gap-1 text-[9px] font-bold shrink-0 ${
-            dateStatus === 'overdue' ? 'text-rose-500'
-            : dateStatus === 'today' ? 'text-blue-500'
-            : 'text-amber-500'
+            dateStatus === 'overdue' ? 'text-signal-danger'
+            : dateStatus === 'today' ? 'text-accent-primary'
+            : 'text-signal-warning'
           }`}>
             <Calendar size={10} />
             <span>{dateText}</span>
@@ -121,11 +123,11 @@ export function KanbanCardShell({
         )}
       </div>
 
-      <h4 className="text-sm font-black text-slate-900 dark:text-white mb-1 group-hover:text-primary transition-all uppercase tracking-tight leading-tight">
+      <h4 className="text-sm font-black text-fg-1 mb-1 group-hover:text-accent-primary transition-all uppercase tracking-tight leading-tight">
         {card.title}
       </h4>
       {card.subtitle && (
-        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 truncate">
+        <p className="text-[9px] font-bold text-fg-4 uppercase tracking-widest mb-2 truncate">
           {card.subtitle}
         </p>
       )}
@@ -136,10 +138,10 @@ export function KanbanCardShell({
             <span
               key={`${t.label}-${i}`}
               className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider border ${
-                t.tone === 'danger' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
-                : t.tone === 'warning' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20'
-                : t.tone === 'success' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                : 'bg-slate-50 text-slate-500 border-slate-200'
+                t.tone === 'danger' ? 'bg-signal-danger/10 text-signal-danger border-signal-danger/20'
+                : t.tone === 'warning' ? 'bg-signal-warning/10 text-signal-warning border-signal-warning/20'
+                : t.tone === 'success' ? 'bg-signal-success/10 text-signal-success border-signal-success/20'
+                : 'bg-bg-surface-2 text-fg-3 border-border-1'
               }`}
             >
               {t.label}
@@ -148,24 +150,24 @@ export function KanbanCardShell({
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800">
+      <div className="flex items-center justify-between pt-2 border-t border-border-1">
         <div className="flex items-center gap-2 min-w-0">
           <img
             src={avatarUrl}
             alt={card.responsavelName ?? 'Responsavel'}
-            className="w-6 h-6 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm shrink-0"
+            className="w-6 h-6 rounded-full border border-border-1 shadow-[var(--shadow-1)] shrink-0"
           />
           <div className="flex flex-col min-w-0">
             {infoTag && (
-              <span className="text-[9px] font-black text-slate-400 uppercase leading-none truncate">{infoTag.label}</span>
+              <span className="text-[9px] font-black text-fg-4 uppercase leading-none truncate">{infoTag.label}</span>
             )}
             {firstName && (
-              <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 leading-tight truncate">{firstName}</span>
+              <span className="text-[10px] font-bold text-fg-2 leading-tight truncate">{firstName}</span>
             )}
           </div>
         </div>
         <div className="text-right shrink-0">
-          <span className="block text-[8px] font-black text-slate-300 uppercase leading-none mb-0.5">
+          <span className="block text-[8px] font-black text-fg-4 uppercase leading-none mb-0.5">
             {card.primaryValueLabel ?? 'Valor'}
           </span>
           <span className={`text-xs font-black tracking-tighter ${ACCENT_CLASSES[accent]}`}>

@@ -132,7 +132,7 @@ export default function PosVendaDetalhePage() {
   if (detail.isLoading) {
     return (
       <div className="animate-fade-in flex items-center justify-center py-24">
-        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Carregando registro...</p>
+        <p className="text-fg-4 font-bold uppercase tracking-widest text-xs">Carregando registro...</p>
       </div>
     );
   }
@@ -140,8 +140,8 @@ export default function PosVendaDetalhePage() {
   if (detail.isError || !rawRow) {
     return (
       <div className="animate-fade-in flex flex-col items-center justify-center py-24 gap-4">
-        <p className="text-rose-500 font-bold uppercase tracking-widest text-xs">Registro nao encontrado</p>
-        <button onClick={() => navigate(-1)} className="px-5 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm font-bold">
+        <p className="text-signal-danger font-bold uppercase tracking-widest text-xs">Registro nao encontrado</p>
+        <button onClick={() => navigate(-1)} className="px-5 py-2 bg-bg-surface-2 text-fg-1 rounded-[10px] text-sm font-bold">
           Voltar
         </button>
       </div>
@@ -157,19 +157,19 @@ export default function PosVendaDetalhePage() {
 
   return (
     <div className="animate-fade-in max-w-7xl mx-auto pb-12">
-      <div className="relative z-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 -mx-4 px-4 md:-mx-8 md:px-8 mb-8 shadow-sm">
+      <div className="relative z-0 bg-bg-surface backdrop-blur-md border-b border-border-1 -mx-4 px-4 md:-mx-8 md:px-8 mb-8 shadow-[var(--shadow-1)]">
         <div className="max-w-[1440px] mx-auto">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4">
             <div className="flex items-center gap-4">
-              <button onClick={() => navigate(-1)} className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-500 transition-colors border border-transparent hover:border-slate-200">
+              <button onClick={() => navigate(-1)} className="p-2.5 hover:bg-bg-surface-2 rounded-[10px] text-fg-3 transition-colors border border-transparent hover:border-border-1">
                 <ArrowLeft size={18} />
               </button>
               <div>
-                <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                  <LifeBuoy size={18} className="text-primary" /> #{shortId}
-                  <span className="text-secondary text-base font-medium">| {clienteNome}</span>
+                <h1 className="text-xl font-black tracking-tight text-fg-1 flex items-center gap-2">
+                  <LifeBuoy size={18} className="text-accent-primary" /> #{shortId}
+                  <span className="text-fg-3 text-base font-medium">| {clienteNome}</span>
                 </h1>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                <p className="text-[10px] text-fg-4 font-bold uppercase tracking-wider">
                   Registrado por {criadoPor}{tipoDemanda ? ` - ${tipoDemanda}` : ''}
                 </p>
               </div>
@@ -179,36 +179,36 @@ export default function PosVendaDetalhePage() {
               {!isConcluded && (
                 <>
                   {canWin && (
-                    <button onClick={() => setConcludeMode('won')} className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
+                    <button onClick={() => setConcludeMode('won')} className="flex items-center gap-2 px-4 py-2.5 bg-signal-success/10 hover:bg-signal-success/20 border border-signal-success/20 text-signal-success rounded-full text-xs font-black uppercase tracking-widest transition-all">
                       <Check size={14} /> Concluido
                     </button>
                   )}
-                  <button onClick={() => setConcludeMode('lost')} className="flex items-center gap-2 px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
+                  <button onClick={() => setConcludeMode('lost')} className="flex items-center gap-2 px-4 py-2.5 bg-signal-danger/10 hover:bg-signal-danger/20 border border-signal-danger/20 text-signal-danger rounded-full text-xs font-black uppercase tracking-widest transition-all">
                     <X size={14} /> Cancelado
                   </button>
                 </>
               )}
 
               {isConcluded && (
-                <span className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest ${
+                <span className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest ${
                   (rawRow.status as CardStatus) === 'won'
-                    ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
-                    : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                    ? 'bg-signal-success/10 text-signal-success border border-signal-success/20'
+                    : 'bg-signal-danger/10 text-signal-danger border border-signal-danger/20'
                 }`}>
                   {(rawRow.status as CardStatus) === 'won' ? 'Concluido' : 'Cancelado'}
                 </span>
               )}
 
-              <button onClick={handleDiscard} className="px-5 py-2.5 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
+              <button onClick={handleDiscard} className="px-5 py-2.5 text-sm font-bold text-fg-3 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[10px] transition-all">
                 Descartar
               </button>
-              <button onClick={handleSave} disabled={saveStatus === 'saving'} className="bg-primary hover:opacity-90 active:scale-95 text-white px-8 py-2.5 rounded-xl text-sm font-black shadow-lg shadow-primary/20 transition-all flex items-center gap-2 border border-primary/10 disabled:opacity-60">
+              <button onClick={handleSave} disabled={saveStatus === 'saving'} className="bg-accent-primary hover:bg-accent-primary-hover active:scale-95 text-fg-on-brand px-8 py-2.5 rounded-full text-sm font-black shadow-[var(--shadow-brand)] transition-all flex items-center gap-2 disabled:opacity-60">
                 {saveStatus === 'saving' ? 'Salvando...' : saveStatus === 'saved' ? 'Salvo!' : 'Salvar Alteracoes'}
               </button>
             </div>
           </div>
 
-          <div className="py-3 border-t border-slate-100 dark:border-slate-800/50 flex items-center gap-1 overflow-x-auto no-scrollbar">
+          <div className="py-3 border-t border-border-1 flex items-center gap-1 overflow-x-auto no-scrollbar">
             {funnelSteps.map((step, idx) => {
               const isActive = step.id === formData.stageId;
               const isPast = idx < safeCurrentIdx;
@@ -217,44 +217,44 @@ export default function PosVendaDetalhePage() {
                   <button
                     onClick={() => setFormData({ ...formData, stageId: step.id })}
                     className={`relative h-8 px-4 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap ${
-                      isActive ? 'bg-primary text-white border-primary shadow-md shadow-primary/20'
-                      : isPast ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20'
-                      : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                      isActive ? 'bg-accent-primary text-fg-on-brand border-accent-primary shadow-[var(--shadow-brand)]'
+                      : isPast ? 'bg-signal-success/10 text-signal-success border-signal-success/20 hover:bg-signal-success/20'
+                      : 'bg-bg-surface-2 text-fg-4 border-border-1 hover:border-border-2'
                     }`}
                   >
-                    {isPast && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                    {isPast && <div className="w-1.5 h-1.5 rounded-full bg-signal-success" />}
+                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-fg-on-brand" />}
                     {step.name}
                   </button>
-                  {idx < funnelSteps.length - 1 && <div className={`h-[2px] w-4 ${isPast ? 'bg-emerald-300' : 'bg-slate-200 dark:bg-slate-800'}`} />}
+                  {idx < funnelSteps.length - 1 && <div className={`h-[2px] w-4 ${isPast ? 'bg-signal-success/40' : 'bg-border-1'}`} />}
                 </div>
               );
             })}
           </div>
 
-          {saveError && <div className="pb-3 text-[11px] font-bold text-rose-600">{saveError}</div>}
+          {saveError && <div className="pb-3 text-[11px] font-bold text-signal-danger">{saveError}</div>}
         </div>
       </div>
 
       {oportunidade && (
-        <div className="bg-primary/5 dark:bg-primary/10 border border-primary/10 dark:border-primary/20 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+        <div className="bg-accent-primary-soft border border-accent-primary/10 rounded-[14px] p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[var(--shadow-1)]">
           <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center text-white text-2xl font-bold border-2 border-white dark:border-slate-800 shadow-xl shadow-primary/10">
+            <div className="w-16 h-16 rounded-[14px] bg-gradient-to-br from-accent-primary to-brand-primary-deep flex items-center justify-center text-fg-on-brand text-2xl font-bold shadow-[var(--shadow-2)]">
               {clienteNome.split(' ').map((n) => n[0]).join('').slice(0, 2)}
             </div>
             <div>
-              <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{clienteNome}</h2>
-              <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-slate-500 dark:text-slate-400 font-bold">
-                <span className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-3 py-1 rounded-full shadow-sm">
-                  <Mail size={14} className="text-primary" /> {email || '-'}
+              <h2 className="text-xl font-black text-fg-1 uppercase tracking-tight">{clienteNome}</h2>
+              <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-fg-3 font-bold">
+                <span className="flex items-center gap-1.5 bg-bg-surface px-3 py-1 rounded-full shadow-[var(--shadow-1)]">
+                  <Mail size={14} className="text-accent-primary" /> {email || '-'}
                 </span>
-                <span className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-3 py-1 rounded-full shadow-sm">
-                  <Phone size={14} className="text-primary" /> {telefone || '-'}
+                <span className="flex items-center gap-1.5 bg-bg-surface px-3 py-1 rounded-full shadow-[var(--shadow-1)]">
+                  <Phone size={14} className="text-accent-primary" /> {telefone || '-'}
                 </span>
               </div>
             </div>
           </div>
-          <button onClick={() => oportunidade.id && navigate(`/oportunidades/${oportunidade.id}`)} className="px-6 py-2.5 bg-white dark:bg-slate-800 text-primary border border-primary/20 dark:border-primary/40 rounded-xl text-sm font-black shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2">
+          <button onClick={() => oportunidade.id && navigate(`/oportunidades/${oportunidade.id}`)} className="px-6 py-2.5 bg-bg-surface text-accent-primary border border-accent-primary/20 rounded-full text-sm font-black shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] hover:-translate-y-0.5 transition-all flex items-center gap-2">
             <ExternalLink size={16} /> Oportunidade Vinculada
           </button>
         </div>
@@ -262,17 +262,17 @@ export default function PosVendaDetalhePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12 animate-fade-in">
         <div className="lg:col-span-7 space-y-6">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6">Dados da Demanda</h3>
+          <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-6">Dados da Demanda</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {POS_VENDA_METADATA.filter((f) => f.type !== 'textarea').map((field) => (
                 <div key={field.key} className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">{field.label}</label>
+                  <label className="text-[10px] font-bold text-fg-3 uppercase">{field.label}</label>
                   {field.type === 'select' ? (
                     <select
                       value={String(metaFields[field.key] ?? '')}
                       onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-4 text-sm focus:ring-primary focus:border-primary"
+                      className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
                     >
                       <option value="">Selecione</option>
                       {(field.options ?? []).map((opt) => (
@@ -283,14 +283,14 @@ export default function PosVendaDetalhePage() {
                     <DateField
                       value={String(metaFields[field.key] ?? '')}
                       onChange={(v) => setMetaFields((prev) => ({ ...prev, [field.key]: v }))}
-                      inputClassName="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl"
+                      inputClassName="bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl"
                     />
                   ) : (
                     <input
                       type="text"
                       value={String(metaFields[field.key] ?? '')}
                       onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-4 text-sm focus:ring-primary focus:border-primary"
+                      className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
                     />
                   )}
                 </div>
@@ -299,37 +299,37 @@ export default function PosVendaDetalhePage() {
 
             {POS_VENDA_METADATA.filter((f) => f.type === 'textarea').map((field) => (
               <div key={field.key} className="space-y-2 mt-6">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">{field.label}</label>
+                <label className="text-[10px] font-bold text-fg-3 uppercase">{field.label}</label>
                 <textarea
                   value={String(metaFields[field.key] ?? '')}
                   onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
                   rows={3}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl p-4 text-sm resize-none focus:ring-primary focus:border-primary"
+                  className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl p-4 text-sm resize-none focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
                 />
               </div>
             ))}
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Observacoes</h3>
+          <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-4">Observacoes</h3>
             <textarea
               value={formData.observacoes}
               onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-              className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl p-4 text-sm h-32 resize-none focus:ring-primary focus:border-primary"
+              className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl p-4 text-sm h-32 resize-none focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
               placeholder="Anotacoes sobre a demanda..."
             />
           </div>
         </div>
 
         <div className="lg:col-span-5 space-y-6">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6">Agendamento</h3>
+          <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-6">Agendamento</h3>
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase">Proximo Followup</label>
+              <label className="text-[10px] font-bold text-fg-3 uppercase">Proximo Followup</label>
               <DateField
                 value={formData.proximoFollowup}
                 onChange={(v) => setFormData({ ...formData, proximoFollowup: v })}
-                inputClassName="bg-primary/5 dark:bg-primary/10 text-primary border border-primary/20"
+                inputClassName="bg-accent-primary-soft text-accent-primary border border-accent-primary/20"
               />
             </div>
           </div>

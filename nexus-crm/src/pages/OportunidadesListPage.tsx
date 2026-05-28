@@ -60,7 +60,7 @@ const SortableHeader = ({
   const isActive = sortConfig?.key === sortKey;
   return (
     <th
-      className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group select-none relative"
+      className="px-6 py-4 text-[10px] font-black text-fg-4 uppercase tracking-widest whitespace-nowrap cursor-pointer hover:bg-bg-surface-2 transition-colors group select-none relative"
       onClick={() => onSort(sortKey)}
     >
       <div className="flex items-center gap-1.5">
@@ -68,9 +68,9 @@ const SortableHeader = ({
         <div className="flex flex-col opacity-0 group-hover:opacity-50 transition-opacity">
           {isActive ? (
             sortConfig.direction === 'asc' ? (
-              <ArrowUp size={12} className="text-primary opacity-100" />
+              <ArrowUp size={12} className="text-accent-primary opacity-100" />
             ) : (
-              <ArrowDown size={12} className="text-primary opacity-100" />
+              <ArrowDown size={12} className="text-accent-primary opacity-100" />
             )
           ) : (
             <ArrowUpDown size={12} />
@@ -190,11 +190,11 @@ export default function OportunidadesListPage({
 
   return (
     <div className="animate-fade-in w-full">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
+              <tr className="bg-bg-surface-2 border-b border-border-1">
                 <SortableHeader title="Vigencia" sortKey="vigencia" sortConfig={sortConfig} onSort={handleSort} />
                 <SortableHeader title="Segurado" sortKey="segurado" sortConfig={sortConfig} onSort={handleSort} />
                 <SortableHeader title="Ramo" sortKey="ramo" sortConfig={sortConfig} onSort={handleSort} />
@@ -208,11 +208,11 @@ export default function OportunidadesListPage({
                 <th className="px-6 py-4"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+            <tbody className="divide-y divide-border-1">
               {cardsQuery.isLoading && (
                 <tr>
                   <td colSpan={11} className="px-6 py-20 text-center">
-                    <p className="text-slate-400 font-bold uppercase tracking-widest text-xs italic">Carregando oportunidades...</p>
+                    <p className="text-fg-4 font-bold uppercase tracking-widest text-xs italic">Carregando oportunidades...</p>
                   </td>
                 </tr>
               )}
@@ -220,44 +220,44 @@ export default function OportunidadesListPage({
                 <tr
                   key={op.id}
                   onClick={() => navigate(`/oportunidades/${op.id}`)}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
+                  className="hover:bg-bg-surface-2 transition-colors cursor-pointer group"
                 >
-                  <td className="px-6 py-4 text-xs font-bold text-slate-500 whitespace-nowrap">{op.vigencia || '-'}</td>
+                  <td className="px-6 py-4 text-xs font-bold text-fg-3 whitespace-nowrap">{op.vigencia || '-'}</td>
                   <td className="px-6 py-4">
-                    <div className="font-black text-slate-900 dark:text-white text-sm uppercase tracking-tighter group-hover:text-primary transition-colors whitespace-nowrap">
+                    <div className="font-black text-fg-1 text-sm uppercase tracking-tighter group-hover:text-accent-primary transition-colors whitespace-nowrap">
                       {op.segurado}
                     </div>
-                    <div className="text-[10px] text-slate-400 font-bold mt-0.5">ID: #{op.id.slice(0, 8)}</div>
+                    <div className="text-[10px] text-fg-4 font-bold mt-0.5">ID: #{op.id.slice(0, 8)}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2 text-xs font-bold">{op.ramo}</div>
+                    <div className="flex items-center gap-2 text-xs font-bold text-fg-2">{op.ramo}</div>
                   </td>
-                  <td className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-400">{op.origem}</td>
+                  <td className="px-6 py-4 text-xs font-bold text-fg-2">{op.origem}</td>
                   <td className="px-6 py-4">
-                    <span className="text-sm font-black text-slate-700 dark:text-slate-200">{op.premioLiquido}</span>
+                    <span className="text-sm font-black text-fg-2">{op.premioLiquido}</span>
                   </td>
-                  <td className="px-6 py-4 text-sm font-black text-primary">{op.comissao}</td>
+                  <td className="px-6 py-4 text-sm font-black text-accent-primary">{op.comissao}</td>
                   <td className="px-6 py-4">
-                    <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-primary/5 text-primary border border-primary/10 dark:bg-primary/20 uppercase tracking-widest whitespace-nowrap">
+                    <span className="px-2.5 py-1 rounded-[10px] text-[10px] font-black bg-accent-primary-soft text-accent-primary border border-accent-primary/10 uppercase tracking-widest whitespace-nowrap">
                       {op.etapa}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-xs font-bold text-slate-500 whitespace-nowrap">{op.retorno}</td>
+                  <td className="px-6 py-4 text-xs font-bold text-fg-3 whitespace-nowrap">{op.retorno}</td>
                   <td className="px-6 py-4">
                     <span
                       className={`text-[10px] font-black uppercase tracking-widest ${
-                        op.status === 'Ativo' ? 'text-emerald-500'
-                        : op.status === 'Ganho' ? 'text-emerald-600'
-                        : op.status === 'Perdido' ? 'text-rose-500'
-                        : 'text-slate-400'
+                        op.status === 'Ativo' ? 'text-signal-success'
+                        : op.status === 'Ganho' ? 'text-signal-success'
+                        : op.status === 'Perdido' ? 'text-signal-danger'
+                        : 'text-fg-4'
                       }`}
                     >
                       {op.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap">{op.vendedor}</td>
+                  <td className="px-6 py-4 text-xs font-bold text-fg-2 whitespace-nowrap">{op.vendedor}</td>
                   <td className="px-6 py-4 text-right">
-                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button className="p-2 hover:bg-bg-surface-2 rounded-[10px] text-fg-4 opacity-0 group-hover:opacity-100 transition-opacity">
                       <MoreVertical size={18} />
                     </button>
                   </td>
@@ -266,7 +266,7 @@ export default function OportunidadesListPage({
               {!cardsQuery.isLoading && rows.length === 0 && (
                 <tr>
                   <td colSpan={11} className="px-6 py-20 text-center">
-                    <p className="text-slate-400 font-bold uppercase tracking-widest text-xs italic">
+                    <p className="text-fg-4 font-bold uppercase tracking-widest text-xs italic">
                       Nenhuma oportunidade encontrada com estes filtros.
                     </p>
                   </td>
@@ -276,16 +276,16 @@ export default function OportunidadesListPage({
           </table>
         </div>
 
-        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+        <div className="px-6 py-4 bg-bg-surface-2 flex items-center justify-between border-t border-border-1">
+          <p className="text-[10px] font-black text-fg-4 uppercase tracking-widest">
             Exibindo {rows.length} de {cardsQuery.data?.length ?? 0} registros
           </p>
           <div className="flex gap-1.5">
-            <button className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-white dark:hover:bg-slate-800 shadow-sm transition-all">
+            <button className="p-1.5 rounded-[10px] border border-border-1 text-fg-4 hover:bg-bg-surface shadow-[var(--shadow-1)] transition-all">
               <ChevronLeft size={16} />
             </button>
-            <button className="w-8 h-8 rounded-lg bg-primary text-white font-black text-xs shadow-md shadow-primary/20">1</button>
-            <button className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-white dark:hover:bg-slate-800 shadow-sm transition-all">
+            <button className="w-8 h-8 rounded-[10px] bg-accent-primary text-fg-on-brand font-black text-xs shadow-[var(--shadow-brand)]">1</button>
+            <button className="p-1.5 rounded-[10px] border border-border-1 text-fg-4 hover:bg-bg-surface shadow-[var(--shadow-1)] transition-all">
               <ChevronRight size={16} />
             </button>
           </div>

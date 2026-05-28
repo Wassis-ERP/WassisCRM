@@ -32,7 +32,7 @@ export default function KanbanPage({
 
   if (isLoading && !active) {
     return (
-      <div className="flex items-center justify-center py-24 text-[11px] font-black uppercase tracking-widest text-slate-400">
+      <div className="flex items-center justify-center py-24 text-[11px] font-black uppercase tracking-widest text-fg-4">
         Carregando funil...
       </div>
     );
@@ -40,7 +40,7 @@ export default function KanbanPage({
 
   if (isError) {
     return (
-      <div className="flex items-center justify-center py-24 text-[11px] font-black uppercase tracking-widest text-rose-500">
+      <div className="flex items-center justify-center py-24 text-[11px] font-black uppercase tracking-widest text-signal-danger">
         Nao foi possivel carregar os funis
       </div>
     );
@@ -48,7 +48,7 @@ export default function KanbanPage({
 
   if (!active) {
     return (
-      <div className="flex items-center justify-center py-24 text-[11px] font-black uppercase tracking-widest text-slate-400">
+      <div className="flex items-center justify-center py-24 text-[11px] font-black uppercase tracking-widest text-fg-4">
         Nenhum funil disponivel para este modulo
       </div>
     );
@@ -58,7 +58,7 @@ export default function KanbanPage({
     <div className="flex flex-col h-full">
       {hasMultiple && (
         <div className="flex items-center gap-3 mb-3 px-1">
-          <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Funil</span>
+          <span className="text-[9px] font-black uppercase tracking-widest text-fg-4">Funil</span>
           <PipelineSelector
             pipelines={pipelines}
             value={active.id}

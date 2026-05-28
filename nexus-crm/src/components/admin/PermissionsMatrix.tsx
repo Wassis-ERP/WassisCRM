@@ -18,46 +18,46 @@ export function PermissionsMatrix() {
     }
   };
 
-  if (isLoading) return <div className="text-center py-10 text-slate-500">Carregando matriz de permissões...</div>;
+  if (isLoading) return <div className="text-center py-10 text-fg-3">Carregando matriz de permissões...</div>;
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 p-4 rounded-2xl flex gap-3 items-start">
-        <Shield className="text-amber-600 shrink-0" size={20} />
+      <div className="bg-signal-warning/10 border border-signal-warning/30 p-4 rounded-[14px] flex gap-3 items-start">
+        <Shield className="text-signal-warning shrink-0" size={20} />
         <div>
-          <h4 className="text-sm font-bold text-amber-800 dark:text-amber-400 uppercase tracking-tight">Aviso de Segurança</h4>
-          <p className="text-xs text-amber-700/80 dark:text-amber-500/80 mt-1 leading-relaxed">
+          <h4 className="text-sm font-bold text-signal-warning uppercase tracking-tight">Aviso de Segurança</h4>
+          <p className="text-xs text-fg-3 mt-1 leading-relaxed">
             Alterações nesta matriz afetam <strong>todos</strong> os usuários vinculados ao cargo selecionado. 
             Use com cautela para garantir a conformidade com a LGPD e o sigilo de dados.
           </p>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+      <div className="bg-bg-surface rounded-[14px] border border-border-1 overflow-hidden shadow-[var(--shadow-1)]">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Módulo / Funcionalidade</th>
+              <tr className="bg-bg-surface-2 border-b border-border-1">
+                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-fg-4">Módulo / Funcionalidade</th>
                 {ROLES.map(role => (
-                  <th key={role} className="px-6 py-5 text-center text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <th key={role} className="px-6 py-5 text-center text-[10px] font-black uppercase tracking-widest text-fg-4">
                     {role}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+            <tbody className="divide-y divide-border-1">
               {modules.map(module => (
-                <tr key={module} className="group hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                <tr key={module} className="group hover:bg-bg-surface-2 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">{module}</span>
-                      <span className="text-[10px] text-slate-400 font-medium">Permissões de CRUD</span>
+                      <span className="text-sm font-bold text-fg-1 uppercase tracking-tight">{module}</span>
+                      <span className="text-[10px] text-fg-4 font-medium">Permissões de CRUD</span>
                     </div>
                   </td>
                   {ROLES.map(role => {
                     const perm = permissions.find(p => p.module === module && p.role === role);
-                    if (!perm) return <td key={role} className="px-6 py-4 text-center text-slate-300">-</td>;
+                    if (!perm) return <td key={role} className="px-6 py-4 text-center text-fg-4">-</td>;
 
                     return (
                       <td key={role} className="px-6 py-4">
@@ -116,9 +116,9 @@ function PermissionBadge({ label, active, onClick, disabled }: {
       onClick={onClick}
       disabled={disabled}
       className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter transition-all flex items-center gap-1 border ${
-        active 
-          ? 'bg-primary/10 text-primary border-primary/20' 
-          : 'bg-slate-50 text-slate-300 border-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-600'
+        active
+          ? 'bg-accent-primary-soft text-accent-primary border-accent-primary/20'
+          : 'bg-bg-surface-2 text-fg-4 border-border-1'
       } ${disabled ? 'opacity-80 cursor-not-allowed' : 'hover:scale-105 active:scale-95'}`}
     >
       {active ? <CheckCircle2 size={10} /> : <XCircle size={10} />}

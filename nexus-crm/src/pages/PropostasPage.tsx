@@ -181,24 +181,25 @@ const MOCK_PROPOSALS: Proposal[] = [
   },
 ]
 
+// Status do funil de propostas — sempre via tokens --signal-* / accent (nunca ramo).
 const CUSTOM_STATUSES: CustomProposalStatus[] = [
-  { id: 's1', name: 'Em Análise', color: 'bg-amber-500', order: 1 },
-  { id: 's2', name: 'Pendente', color: 'bg-orange-500', order: 2 },
-  { id: 's3', name: 'Pendência Resolvida', color: 'bg-sky-500', order: 3 },
-  { id: 's4', name: 'Proposta Emitida', color: 'bg-emerald-500', order: 4 },
+  { id: 's1', name: 'Em Análise', color: 'bg-signal-warning', order: 1 },
+  { id: 's2', name: 'Pendente', color: 'bg-signal-warning', order: 2 },
+  { id: 's3', name: 'Pendência Resolvida', color: 'bg-accent-primary', order: 3 },
+  { id: 's4', name: 'Proposta Emitida', color: 'bg-signal-success', order: 4 },
 ]
 
 const STATUS_BADGE: Record<string, string> = {
-  Vigente: 'bg-emerald-100 text-emerald-700',
-  Renovada: 'bg-emerald-100 text-emerald-700',
-  Endossada: 'bg-emerald-100 text-emerald-700',
-  Cancelada: 'bg-rose-100 text-rose-700',
-  Recusada: 'bg-rose-100 text-rose-700',
-  'Não renovada': 'bg-slate-200 text-slate-600',
-  'Em Análise': 'bg-amber-100 text-amber-700',
-  Pendente: 'bg-orange-100 text-orange-700',
-  'Pendência Resolvida': 'bg-sky-100 text-sky-700',
-  'Proposta Emitida': 'bg-blue-100 text-blue-700',
+  Vigente: 'bg-signal-success/15 text-signal-success',
+  Renovada: 'bg-signal-success/15 text-signal-success',
+  Endossada: 'bg-signal-success/15 text-signal-success',
+  Cancelada: 'bg-signal-danger/15 text-signal-danger',
+  Recusada: 'bg-signal-danger/15 text-signal-danger',
+  'Não renovada': 'bg-bg-surface-3 text-fg-3',
+  'Em Análise': 'bg-signal-warning/15 text-signal-warning',
+  Pendente: 'bg-signal-warning/15 text-signal-warning',
+  'Pendência Resolvida': 'bg-accent-primary-soft text-accent-primary',
+  'Proposta Emitida': 'bg-accent-primary-soft text-accent-primary',
 }
 
 /* =========================================================================
@@ -336,32 +337,32 @@ export default function PropostasPage() {
       key: 'emAndamento',
       title: 'Propostas',
       subtitle: 'Em andamento',
-      icon: <FileText size={28} className="text-slate-400" />,
-      color: 'text-emerald-500',
+      icon: <FileText size={28} className="text-fg-4" />,
+      color: 'text-accent-primary',
       value: counts.emAndamento,
     },
     {
       key: 'vigentes',
       title: 'Apólices',
       subtitle: 'Vigentes',
-      icon: <Shield size={28} className="text-slate-400" />,
-      color: 'text-blue-500',
+      icon: <Shield size={28} className="text-fg-4" />,
+      color: 'text-signal-success',
       value: counts.vigentes,
     },
     {
       key: 'renovacoesPendentes',
       title: 'Renovações',
       subtitle: 'Pendentes de renovação',
-      icon: <RefreshCcw size={28} className="text-slate-400" />,
-      color: 'text-orange-500',
+      icon: <RefreshCcw size={28} className="text-fg-4" />,
+      color: 'text-signal-warning',
       value: counts.renovacoesPendentes,
     },
     {
       key: 'renovacoes30d',
       title: 'Renovações',
       subtitle: 'Próximos 30 dias',
-      icon: <Calendar size={28} className="text-slate-400" />,
-      color: 'text-violet-500',
+      icon: <Calendar size={28} className="text-fg-4" />,
+      color: 'text-accent-primary',
       value: counts.renovacoes30d,
     },
   ]
@@ -373,20 +374,20 @@ export default function PropostasPage() {
       {/* Cabeçalho */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <p className="text-xs text-slate-400 mb-1">Negócios &rsaquo; Propostas e Apólices</p>
+          <p className="text-xs text-fg-4 mb-1">Negócios &rsaquo; Propostas e Apólices</p>
           <h1 className="text-3xl font-bold">Propostas e Apólices</h1>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => alert('Abrir tela de nova proposta (newProposal)')}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-accent-primary hover:bg-accent-primary-hover text-fg-on-brand rounded-full text-sm font-semibold shadow-[var(--shadow-brand)]"
           >
             <Plus size={16} />
             Novo
           </button>
           <button
             onClick={() => alert('Abrir tela de importação em lote')}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-semibold"
+            className="flex items-center gap-2 px-4 py-2 bg-bg-surface border border-border-1 hover:bg-bg-surface-2 text-fg-2 rounded-full text-sm font-semibold"
           >
             <Upload size={16} />
             Importar
@@ -402,40 +403,40 @@ export default function PropostasPage() {
             <button
               key={c.key}
               onClick={() => handleCardClick(c.key)}
-              className={`text-left bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border transition-all hover:shadow-md ${
+              className={`text-left bg-bg-surface p-6 rounded-[10px] shadow-[var(--shadow-1)] border transition-all hover:shadow-[var(--shadow-2)] ${
                 isActive
-                  ? 'border-blue-500 ring-2 ring-blue-500/20'
-                  : 'border-slate-200 dark:border-slate-800 hover:border-blue-300'
+                  ? 'border-accent-primary ring-2 ring-accent-primary/20'
+                  : 'border-border-1 hover:border-accent-primary/40'
               }`}
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{c.title}</p>
+                  <p className="text-sm font-medium text-fg-3">{c.title}</p>
                   <p className={`text-3xl font-bold mt-1 ${c.color}`}>{c.value}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{c.subtitle}</p>
+                  <p className="text-xs text-fg-3 mt-1">{c.subtitle}</p>
                 </div>
                 <div>{c.icon}</div>
               </div>
-              <p className="text-xs text-slate-400 mt-4">Atualizado em: {lastUpdated}</p>
+              <p className="text-xs text-fg-4 mt-4">Atualizado em: {lastUpdated}</p>
             </button>
           )
         })}
       </div>
 
       {/* Busca + Filtro */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-3 flex items-center gap-3">
+      <div className="bg-bg-surface border border-border-1 rounded-[14px] shadow-[var(--shadow-1)] p-3 flex items-center gap-3">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
           <input
             value={filters.searchTerm}
             onChange={e => setFilters(f => ({ ...f, searchTerm: e.target.value }))}
             placeholder="Buscar por segurado, ramo, seguradora, produtor, apólice..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border-none rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20"
+            className="w-full pl-9 pr-4 py-2 bg-bg-surface-2 text-fg-1 placeholder:text-fg-4 border-none rounded-[10px] text-sm focus:ring-2 focus:ring-accent-primary/30"
           />
         </div>
         <button
           onClick={() => setShowFilterPanel(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+          className="flex items-center gap-2 px-3 py-2 rounded-[10px] text-sm font-semibold bg-bg-surface-2 text-fg-3 hover:bg-bg-surface-3"
         >
           <Filter size={16} />
           Filtros
@@ -446,7 +447,7 @@ export default function PropostasPage() {
               setActiveCard(null)
               setViewMode('Lista')
             }}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100"
+            className="flex items-center gap-1 px-3 py-2 rounded-[10px] text-xs font-semibold bg-accent-primary-soft text-accent-primary hover:bg-accent-primary-soft"
           >
             <X size={14} />
             Limpar filtro do card
@@ -455,11 +456,11 @@ export default function PropostasPage() {
       </div>
 
       {/* Tabela / Kanban */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+      <div className="bg-bg-surface border border-border-1 rounded-[14px] shadow-[var(--shadow-1)]">
+        <div className="flex items-center justify-between p-4 border-b border-border-1">
           <h2 className="text-lg font-bold">Acompanhamento de Propostas</h2>
           <div
-            className={`flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg ${
+            className={`flex bg-bg-surface-2 p-1 rounded-[10px] ${
               activeCard === 'emAndamento' ? '' : 'invisible'
             }`}
           >
@@ -467,8 +468,8 @@ export default function PropostasPage() {
               onClick={() => setViewMode('Kanban')}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm transition-all ${
                 viewMode === 'Kanban'
-                  ? 'bg-white dark:bg-slate-900 shadow-sm text-blue-600 font-semibold'
-                  : 'text-slate-500 dark:text-slate-400'
+                  ? 'bg-bg-surface shadow-[var(--shadow-1)] text-accent-primary font-semibold'
+                  : 'text-fg-3'
               }`}
             >
               <Kanban size={14} />
@@ -478,8 +479,8 @@ export default function PropostasPage() {
               onClick={() => setViewMode('Lista')}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm transition-all ${
                 viewMode === 'Lista'
-                  ? 'bg-white dark:bg-slate-900 shadow-sm text-blue-600 font-semibold'
-                  : 'text-slate-500 dark:text-slate-400'
+                  ? 'bg-bg-surface shadow-[var(--shadow-1)] text-accent-primary font-semibold'
+                  : 'text-fg-3'
               }`}
             >
               <List size={14} />
@@ -534,13 +535,13 @@ function ListView({
   onToggleExpand: (id: string) => void
 }) {
   if (proposals.length === 0) {
-    return <div className="p-12 text-center text-sm text-slate-400">Nenhuma proposta encontrada com os filtros atuais.</div>
+    return <div className="p-12 text-center text-sm text-fg-4">Nenhuma proposta encontrada com os filtros atuais.</div>
   }
 
   return (
     <div className="overflow-x-auto">
       {/* Cabeçalho */}
-      <div className="grid grid-cols-12 gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800">
+      <div className="grid grid-cols-12 gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-fg-4 border-b border-border-1">
         <div className="col-span-3">Segurado</div>
         <div className="col-span-2">Ramo</div>
         <div className="col-span-2">Status</div>
@@ -552,22 +553,22 @@ function ListView({
         const isOpen = expanded.has(p.id)
         const effectiveStatus = p.currentStatus ?? p.status
         return (
-          <div key={p.id} className="border-b border-slate-100 dark:border-slate-800 last:border-b-0">
-            <div className="grid grid-cols-12 gap-3 px-4 py-3 items-center text-sm hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+          <div key={p.id} className="border-b border-border-1 last:border-b-0">
+            <div className="grid grid-cols-12 gap-3 px-4 py-3 items-center text-sm hover:bg-bg-surface-2">
               <div className="col-span-3">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onToggleExpand(p.id)}
-                    className="text-slate-400 hover:text-slate-600"
+                    className="text-fg-4 hover:text-fg-2"
                     aria-label="Expandir"
                   >
                     {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </button>
                   <div>
-                    <a className="font-semibold text-slate-800 dark:text-slate-100 hover:text-blue-600 cursor-pointer">
+                    <a className="font-semibold text-fg-1 hover:text-accent-primary cursor-pointer">
                       {p.insured}
                     </a>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-fg-4">
                       {p.vigenciaInicial && p.vigenciaFinal
                         ? `Vigência: ${fmtDate(p.vigenciaInicial)} → ${fmtDate(p.vigenciaFinal)}`
                         : '—'}
@@ -575,13 +576,13 @@ function ListView({
                   </div>
                 </div>
               </div>
-              <div className="col-span-2 text-slate-600 dark:text-slate-300">{p.branch}</div>
+              <div className="col-span-2 text-fg-2">{p.branch}</div>
               <div className="col-span-2">
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-slate-500">{p.proposalType}</span>
+                  <span className="text-xs text-fg-3">{p.proposalType}</span>
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold w-fit ${
-                      STATUS_BADGE[effectiveStatus] ?? 'bg-slate-100 text-slate-600'
+                      STATUS_BADGE[effectiveStatus] ?? 'bg-bg-surface-3 text-fg-3'
                     }`}
                   >
                     {effectiveStatus}
@@ -589,21 +590,21 @@ function ListView({
                 </div>
               </div>
               <div className="col-span-2 flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+                <div className="w-7 h-7 rounded-full bg-accent-primary-soft text-accent-primary text-xs font-bold flex items-center justify-center">
                   {initials(p.producer.name)}
                 </div>
-                <span className="text-slate-600 dark:text-slate-300 text-sm truncate">{p.producer.name}</span>
+                <span className="text-fg-2 text-sm truncate">{p.producer.name}</span>
               </div>
               <div className="col-span-2 flex items-center gap-2">
-                <div className="w-7 h-7 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold flex items-center justify-center">
+                <div className="w-7 h-7 rounded bg-bg-surface-2 text-fg-3 text-[10px] font-bold flex items-center justify-center">
                   {initials(p.insurer)}
                 </div>
-                <span className="text-slate-600 dark:text-slate-300 text-sm truncate">{p.insurer}</span>
+                <span className="text-fg-2 text-sm truncate">{p.insurer}</span>
               </div>
               <div className="col-span-1 flex justify-end">
                 <button
                   onClick={() => alert(`Abrir ProposalDetails: ${p.id}`)}
-                  className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+                  className="p-1.5 rounded-[10px] hover:bg-bg-surface-2 text-fg-3"
                   aria-label="Editar"
                 >
                   <Edit size={16} />
@@ -611,7 +612,7 @@ function ListView({
               </div>
             </div>
             {isOpen && (
-              <div className="px-12 pb-4 grid grid-cols-2 md:grid-cols-3 gap-3 text-xs text-slate-600 dark:text-slate-300">
+              <div className="px-12 pb-4 grid grid-cols-2 md:grid-cols-3 gap-3 text-xs text-fg-2">
                 <Detail label="Modelo" value={p.details?.model} />
                 <Detail label="Marca" value={p.details?.brand} />
                 <Detail label="Ano" value={p.details?.year} />
@@ -632,7 +633,7 @@ function ListView({
 function Detail({ label, value }: { label: string; value?: string }) {
   return (
     <div>
-      <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">{label}</p>
+      <p className="text-[10px] font-bold uppercase text-fg-4 tracking-wider">{label}</p>
       <p>{value || '—'}</p>
     </div>
   )
@@ -669,14 +670,14 @@ function KanbanView({
                   const id = e.dataTransfer.getData('text/plain')
                   if (id) onDrop(id, s.name)
                 }}
-                className="w-72 shrink-0 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 border border-slate-200 dark:border-slate-800"
+                className="w-72 shrink-0 bg-bg-surface-2 rounded-[14px] p-3 border border-border-1"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${s.color}`} />
-                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">{s.name}</h3>
+                    <h3 className="text-sm font-bold text-fg-2">{s.name}</h3>
                   </div>
-                  <span className="text-xs font-semibold text-slate-500 bg-white dark:bg-slate-900 rounded-full px-2 py-0.5">
+                  <span className="text-xs font-semibold text-fg-3 bg-bg-surface rounded-full px-2 py-0.5">
                     {items.length}
                   </span>
                 </div>
@@ -687,22 +688,22 @@ function KanbanView({
                       draggable
                       onDragStart={e => e.dataTransfer.setData('text/plain', p.id)}
                       onClick={() => alert(`Abrir ProposalDetails: ${p.id}`)}
-                      className="bg-white dark:bg-slate-900 rounded-lg p-3 shadow-sm border border-slate-200 dark:border-slate-800 cursor-grab active:cursor-grabbing hover:shadow-md transition-all"
+                      className="bg-bg-surface rounded-[10px] p-3 shadow-[var(--shadow-1)] border border-border-1 cursor-grab active:cursor-grabbing hover:shadow-[var(--shadow-2)] transition-all"
                     >
-                      <p className="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate">{p.insured}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{p.branch}</p>
+                      <p className="font-semibold text-sm text-fg-1 truncate">{p.insured}</p>
+                      <p className="text-xs text-fg-3 mt-0.5">{p.branch}</p>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-fg-4">
                           {p.proposalType}
                         </span>
-                        <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-full bg-accent-primary-soft text-accent-primary text-[10px] font-bold flex items-center justify-center">
                           {initials(p.producer.name)}
                         </div>
                       </div>
                     </div>
                   ))}
                   {items.length === 0 && (
-                    <div className="text-center text-xs text-slate-400 py-6">Sem propostas</div>
+                    <div className="text-center text-xs text-fg-4 py-6">Sem propostas</div>
                   )}
                 </div>
               </div>
@@ -742,11 +743,11 @@ function FilterPanel({
 
   return (
     <div className="fixed inset-0 z-[100] flex justify-end">
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col">
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+      <div className="absolute inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-bg-surface h-full shadow-[var(--shadow-3)] flex flex-col">
+        <div className="p-4 border-b border-border-1 flex items-center justify-between">
           <h3 className="font-bold">Filtros avançados</h3>
-          <button onClick={onClose} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+          <button onClick={onClose} className="p-1.5 rounded hover:bg-bg-surface-2 text-fg-3">
             <X size={16} />
           </button>
         </div>
@@ -777,16 +778,16 @@ function FilterPanel({
           </Section>
         </div>
 
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex gap-2">
+        <div className="p-4 border-t border-border-1 flex gap-2">
           <button
             onClick={onClear}
-            className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-200"
+            className="flex-1 px-3 py-2 bg-bg-surface-2 text-fg-2 rounded-[10px] text-sm font-semibold hover:bg-bg-surface-3"
           >
             Limpar Filtros
           </button>
           <button
             onClick={onClose}
-            className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold"
+            className="flex-1 px-3 py-2 bg-accent-primary hover:bg-accent-primary-hover text-fg-on-brand rounded-full text-sm font-semibold"
           >
             Aplicar Filtros
           </button>
@@ -799,7 +800,7 @@ function FilterPanel({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400">{title}</h4>
+      <h4 className="text-[10px] font-black uppercase tracking-wider text-fg-4">{title}</h4>
       {children}
     </div>
   )
@@ -818,11 +819,11 @@ function SelectField({
 }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs text-slate-500">{label}</label>
+      <label className="text-xs text-fg-3">{label}</label>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-sm"
+        className="w-full bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] px-2 py-1.5 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
       >
         <option value="">Todos</option>
         {options.map(o => (
@@ -838,12 +839,12 @@ function SelectField({
 function DateRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs text-slate-500">{label}</label>
+      <label className="text-xs text-fg-3">{label}</label>
       <input
         type="date"
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-sm"
+        className="w-full bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] px-2 py-1.5 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
       />
     </div>
   )
@@ -852,12 +853,12 @@ function DateRow({ label, value, onChange }: { label: string; value: string; onC
 function NumberField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs text-slate-500">{label}</label>
+      <label className="text-xs text-fg-3">{label}</label>
       <input
         type="number"
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-sm"
+        className="w-full bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] px-2 py-1.5 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
       />
     </div>
   )
