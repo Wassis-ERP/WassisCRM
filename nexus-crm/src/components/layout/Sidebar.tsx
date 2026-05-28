@@ -13,6 +13,7 @@ import {
   FileText,
   LifeBuoy,
   DollarSign,
+  LayoutGrid,
 } from 'lucide-react'
 
 /**
@@ -23,6 +24,7 @@ const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { label: 'Segurados', icon: Users, path: '/segurados' },
   { label: 'Oportunidades', icon: Kanban, path: '/oportunidades' },
+  { label: 'Painel', icon: LayoutGrid, path: '/propostas' },
   { label: 'Sinistros', icon: AlertTriangle, path: '/sinistros' },
   { label: 'Emissão', icon: FileText, path: '/emissoes' },
   { label: 'Pós-Venda', icon: LifeBuoy, path: '/pos-venda' },
