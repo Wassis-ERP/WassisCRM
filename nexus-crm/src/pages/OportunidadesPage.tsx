@@ -67,28 +67,28 @@ export default function OportunidadesPage() {
   const clearFilters = () => setFilters(INITIAL_FILTERS)
 
   return (
-    <div className="flex flex-col bg-slate-50/30 dark:bg-transparent">
+    <div className="flex flex-col">
       {/* Cabeçalho Compacto */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">Oportunidades</h1>
-          <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-800 hidden lg:block" />
-          <p className="text-xs text-slate-500 font-bold hidden lg:block uppercase tracking-wider opacity-60">
+          <h1 className="text-2xl font-black text-fg-1 tracking-tighter">Oportunidades</h1>
+          <div className="h-6 w-[1px] bg-border-1 hidden lg:block" />
+          <p className="text-xs text-fg-3 font-bold hidden lg:block uppercase tracking-wider opacity-60">
             Monitoramento de Funis
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Toggle Ativos / Concluidos / Todos */}
-          <div className="flex bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex bg-bg-surface p-1 rounded-[10px] border border-border-1 shadow-[var(--shadow-1)]">
             {STATUS_OPTIONS.map(opt => (
               <button
                 key={opt.value}
                 onClick={() => setFilter('status', opt.value)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${
                   (filters.status ?? 'active') === opt.value
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-600'
+                    ? 'bg-accent-primary text-fg-on-brand shadow-[var(--shadow-1)]'
+                    : 'text-fg-4 hover:text-fg-2'
                 }`}
               >
                 {opt.label}
@@ -97,23 +97,23 @@ export default function OportunidadesPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex bg-bg-surface p-1 rounded-[10px] border border-border-1 shadow-[var(--shadow-1)]">
               <button
                 onClick={() => setView('list')}
-                className={`p-1.5 rounded-lg transition-all ${view === 'list' ? 'bg-slate-100 dark:bg-slate-800 text-primary' : 'text-slate-400'}`}
+                className={`p-1.5 rounded-md transition-all ${view === 'list' ? 'bg-bg-surface-2 text-accent-primary' : 'text-fg-4'}`}
               >
                 <List size={16} />
               </button>
               <button
                 onClick={() => setView('kanban')}
-                className={`p-1.5 rounded-lg transition-all ${view === 'kanban' ? 'bg-slate-100 dark:bg-slate-800 text-primary' : 'text-slate-400'}`}
+                className={`p-1.5 rounded-md transition-all ${view === 'kanban' ? 'bg-bg-surface-2 text-accent-primary' : 'text-fg-4'}`}
               >
                 <Kanban size={16} className="shrink-0" />
               </button>
             </div>
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-xs font-black hover:opacity-90 transition-all shadow-lg shadow-primary/30"
+              className="flex items-center gap-2 px-4 py-2 bg-accent-primary text-fg-on-brand rounded-full text-xs font-black hover:bg-accent-primary-hover transition-all shadow-[var(--shadow-brand)]"
             >
               <Plus size={16} />
               Nova Oportunidade
@@ -123,39 +123,39 @@ export default function OportunidadesPage() {
       </div>
 
       {/* Barra de Busca e Filtros Compacta */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm mb-4">
+      <div className="bg-bg-surface border border-border-1 rounded-[14px] shadow-[var(--shadow-1)] mb-4">
         <div className="p-3 flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[200px]">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
             <input
               type="text"
               placeholder="Buscar oportunidade..."
               value={filters.search ?? ''}
               onChange={(e) => setFilter('search', e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/50 border-none rounded-lg text-xs focus:ring-2 focus:ring-primary/20 transition-all font-bold text-slate-600 dark:text-slate-300"
+              className="w-full pl-9 pr-4 py-2 bg-bg-surface-2 border-none rounded-[10px] text-xs focus:ring-2 focus:ring-accent-primary/30 transition-all font-bold text-fg-2 placeholder:text-fg-4"
             />
           </div>
 
           <button
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-xs font-bold transition-all ${
               showAdvanced
-              ? 'bg-primary/10 text-primary'
-              : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+              ? 'bg-accent-primary-soft text-accent-primary'
+              : 'bg-bg-surface-2 text-fg-3 hover:bg-bg-surface-3'
             }`}
           >
             <Filter size={14} />
             Filtros
           </button>
 
-          <div className="h-6 w-[1px] bg-slate-100 dark:bg-slate-800" />
+          <div className="h-6 w-[1px] bg-border-1" />
 
           {!showAdvanced && (
             <div className="hidden xl:flex items-center gap-2">
               <select
                 value={filters.ramo ?? ''}
                 onChange={(e) => setFilter('ramo', e.target.value)}
-                className="bg-transparent border-none text-[11px] font-bold text-slate-400 focus:ring-0 cursor-pointer hover:text-slate-600"
+                className="bg-transparent border-none text-[11px] font-bold text-fg-4 focus:ring-0 cursor-pointer hover:text-fg-2"
               >
                 <option value="">Todos os Ramos</option>
                 {ramosQuery.data?.map(r => (
@@ -165,7 +165,7 @@ export default function OportunidadesPage() {
               <select
                 value={filters.origem ?? ''}
                 onChange={(e) => setFilter('origem', e.target.value)}
-                className="bg-transparent border-none text-[11px] font-bold text-slate-400 focus:ring-0 cursor-pointer hover:text-slate-600"
+                className="bg-transparent border-none text-[11px] font-bold text-fg-4 focus:ring-0 cursor-pointer hover:text-fg-2"
               >
                 <option value="">Todas as Origens</option>
                 {origensQuery.data?.map(o => (
@@ -177,13 +177,13 @@ export default function OportunidadesPage() {
         </div>
 
         {showAdvanced && (
-          <div className="p-3 pt-0 border-t border-slate-50 dark:border-slate-800 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 animate-in slide-in-from-top-1 duration-200">
+          <div className="p-3 pt-0 border-t border-border-1 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 animate-in slide-in-from-top-1 duration-200">
             <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Ramo</label>
+              <label className="text-[9px] font-black text-fg-4 uppercase ml-1">Ramo</label>
               <select
                 value={filters.ramo ?? ''}
                 onChange={(e) => setFilter('ramo', e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800/50 border-none text-[11px] font-bold rounded-lg focus:ring-primary/20 py-1.5 px-2"
+                className="w-full bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] focus:ring-2 focus:ring-accent-primary/30 py-1.5 px-2"
               >
                 <option value="">Todos</option>
                 {ramosQuery.data?.map(r => (
@@ -193,11 +193,11 @@ export default function OportunidadesPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Origem</label>
+              <label className="text-[9px] font-black text-fg-4 uppercase ml-1">Origem</label>
               <select
                 value={filters.origem ?? ''}
                 onChange={(e) => setFilter('origem', e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800/50 border-none text-[11px] font-bold rounded-lg focus:ring-primary/20 py-1.5 px-2"
+                className="w-full bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] focus:ring-2 focus:ring-accent-primary/30 py-1.5 px-2"
               >
                 <option value="">Todas</option>
                 {origensQuery.data?.map(o => (
@@ -207,11 +207,11 @@ export default function OportunidadesPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Tipo de Negocio</label>
+              <label className="text-[9px] font-black text-fg-4 uppercase ml-1">Tipo de Negocio</label>
               <select
                 value={filters.tipoNegocio ?? ''}
                 onChange={(e) => setFilter('tipoNegocio', e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800/50 border-none text-[11px] font-bold rounded-lg focus:ring-primary/20 py-1.5 px-2"
+                className="w-full bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] focus:ring-2 focus:ring-accent-primary/30 py-1.5 px-2"
               >
                 <option value="">Todos</option>
                 <option value="novo">Novo</option>
@@ -221,45 +221,45 @@ export default function OportunidadesPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Vigencia Inicio</label>
+              <label className="text-[9px] font-black text-fg-4 uppercase ml-1">Vigencia Inicio</label>
               <DateField
                 value={filters.dataVigencia?.start ?? ''}
                 onChange={(v) => handleDateRangeChange('dataVigencia', 'start', v)}
-                inputClassName="bg-slate-50 dark:bg-slate-800/50 border-none text-[11px] font-bold rounded-lg py-1.5 px-2"
+                inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] py-1.5 px-2"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Vigencia Fim</label>
+              <label className="text-[9px] font-black text-fg-4 uppercase ml-1">Vigencia Fim</label>
               <DateField
                 value={filters.dataVigencia?.end ?? ''}
                 onChange={(v) => handleDateRangeChange('dataVigencia', 'end', v)}
-                inputClassName="bg-slate-50 dark:bg-slate-800/50 border-none text-[11px] font-bold rounded-lg py-1.5 px-2"
+                inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] py-1.5 px-2"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Retorno Inicio</label>
+              <label className="text-[9px] font-black text-fg-4 uppercase ml-1">Retorno Inicio</label>
               <DateField
                 value={filters.dataRetorno?.start ?? ''}
                 onChange={(v) => handleDateRangeChange('dataRetorno', 'start', v)}
-                inputClassName="bg-slate-50 dark:bg-slate-800/50 border-none text-[11px] font-bold rounded-lg py-1.5 px-2"
+                inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] py-1.5 px-2"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Retorno Fim</label>
+              <label className="text-[9px] font-black text-fg-4 uppercase ml-1">Retorno Fim</label>
               <DateField
                 value={filters.dataRetorno?.end ?? ''}
                 onChange={(v) => handleDateRangeChange('dataRetorno', 'end', v)}
-                inputClassName="bg-slate-50 dark:bg-slate-800/50 border-none text-[11px] font-bold rounded-lg py-1.5 px-2"
+                inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] py-1.5 px-2"
               />
             </div>
 
             <div className="flex items-end">
               <button
                 onClick={clearFilters}
-                className="w-full px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 hover:text-rose-500 transition-all"
+                className="w-full px-3 py-1.5 bg-bg-surface-2 text-fg-3 rounded-[10px] text-[10px] font-black uppercase tracking-widest hover:bg-signal-danger/10 hover:text-signal-danger transition-all"
               >
                 Limpar
               </button>

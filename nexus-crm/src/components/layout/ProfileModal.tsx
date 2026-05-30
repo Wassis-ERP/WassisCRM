@@ -41,18 +41,18 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+      <div
+        className="absolute inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-slate-200 dark:border-slate-800">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Meu Perfil</h2>
-          <button 
+      <div className="relative w-full max-w-md bg-bg-surface rounded-[20px] shadow-[var(--shadow-3)] overflow-hidden animate-fade-in border border-border-1">
+        <div className="p-6 border-b border-border-1 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-fg-1">Meu Perfil</h2>
+          <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full transition-colors"
+            className="p-2 text-fg-4 hover:text-fg-2 rounded-full transition-colors"
           >
             <X size={20} />
           </button>
@@ -62,7 +62,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           {/* Avatar Section */}
           <div className="flex flex-col items-center mb-8">
             <div className="relative group">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary-light flex items-center justify-center text-white text-3xl font-bold overflow-hidden shadow-lg border-4 border-white dark:border-slate-800">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-accent-primary to-brand-primary-deep flex items-center justify-center text-fg-on-brand text-3xl font-bold overflow-hidden shadow-[var(--shadow-2)] border-4 border-bg-surface">
                 {avatar ? (
                   <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
@@ -83,20 +83,20 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 onChange={handleFileChange}
               />
             </div>
-            <p className="mt-3 text-sm text-slate-500 font-medium">Clique para alterar a foto</p>
+            <p className="mt-3 text-sm text-fg-3 font-medium">Clique para alterar a foto</p>
           </div>
 
           <div className="space-y-4">
             {/* Nome */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Nome Completo</label>
+              <label className="text-xs font-bold text-fg-4 uppercase tracking-widest px-1">Nome Completo</label>
               <div className="relative">
-                <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-4" />
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:border-primary focus:outline-none transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[14px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all"
                   placeholder="Seu nome"
                   required
                 />
@@ -105,14 +105,14 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
             {/* Nova Senha */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Alterar Senha</label>
+              <label className="text-xs font-bold text-fg-4 uppercase tracking-widest px-1">Alterar Senha</label>
               <div className="relative">
-                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-4" />
                 <input
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:border-primary focus:outline-none transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[14px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all"
                   placeholder="Nova senha (deixe em branco para não alterar)"
                 />
               </div>
@@ -121,14 +121,14 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             {/* Confirmar Senha */}
             {formData.password && (
               <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Confirmar Senha</label>
+                <label className="text-xs font-bold text-fg-4 uppercase tracking-widest px-1">Confirmar Senha</label>
                 <div className="relative">
-                  <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-4" />
                   <input
                     type="password"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:border-primary focus:outline-none transition-all"
+                    className="w-full pl-12 pr-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[14px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all"
                     placeholder="Repita a nova senha"
                     required
                   />
@@ -141,13 +141,13 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="flex-1 px-6 py-3 bg-bg-surface-2 text-fg-2 rounded-full text-sm font-bold hover:bg-bg-surface-3 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl text-sm font-bold hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-accent-primary text-fg-on-brand rounded-full text-sm font-bold hover:bg-accent-primary-hover transition-colors shadow-[var(--shadow-brand)]"
             >
               <Save size={18} /> Salvar
             </button>

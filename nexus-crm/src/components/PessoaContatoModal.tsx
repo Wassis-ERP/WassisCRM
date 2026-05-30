@@ -87,21 +87,21 @@ export default function PessoaContatoModal({
       : 'Vincular pessoa a uma empresa'
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-bg-surface w-full max-w-lg rounded-[20px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="px-6 py-5 border-b border-border-1 flex items-center justify-between bg-bg-surface-2">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-xl text-primary">
+            <div className="p-2 bg-accent-primary-soft rounded-[10px] text-accent-primary">
               <Link2 size={18} />
             </div>
-            <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">
+            <h2 className="text-lg font-black text-fg-1 uppercase tracking-tight">
               {titulo}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400"
+            className="p-2 hover:bg-bg-surface-3 rounded-full transition-colors text-fg-4"
           >
             <X size={18} />
           </button>
@@ -110,14 +110,14 @@ export default function PessoaContatoModal({
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+              <label className="text-[10px] font-black text-fg-4 uppercase tracking-widest ml-1">
                 {tipoContraparte === 'PF' ? 'Pessoa física' : 'Empresa'}
               </label>
               <select
                 value={contatoId}
                 onChange={(e) => setContatoId(e.target.value)}
                 disabled={!!vinculo}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl text-sm focus:border-primary focus:outline-none font-medium disabled:opacity-60"
+                className="w-full px-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium disabled:opacity-60"
               >
                 <option value="">Selecione…</option>
                 {opcoes.map((o) => (
@@ -128,14 +128,14 @@ export default function PessoaContatoModal({
                 ))}
               </select>
               {opcoes.length === 0 && (
-                <p className="text-[11px] text-slate-400 ml-1">
+                <p className="text-[11px] text-fg-4 ml-1">
                   Nenhum cadastro disponível. Crie um {tipoContraparte === 'PF' ? 'PF' : 'PJ'} primeiro.
                 </p>
               )}
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+              <label className="text-[10px] font-black text-fg-4 uppercase tracking-widest ml-1">
                 Cargo
               </label>
               <input
@@ -143,40 +143,40 @@ export default function PessoaContatoModal({
                 value={cargo}
                 onChange={(e) => setCargo(e.target.value)}
                 placeholder="Ex: Diretor Financeiro"
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl text-sm focus:border-primary focus:outline-none font-medium"
+                className="w-full px-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium"
               />
             </div>
 
-            <label className="flex items-start gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl cursor-pointer">
+            <label className="flex items-start gap-3 px-4 py-3 bg-bg-surface-2 border border-border-1 rounded-[10px] cursor-pointer">
               <input
                 type="checkbox"
                 checked={principal}
                 onChange={(e) => setPrincipal(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                className="mt-0.5 h-4 w-4 rounded border-border-2 text-accent-primary focus:ring-accent-primary"
               />
-              <span className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              <span className="text-xs text-fg-2 leading-relaxed">
                 Definir como contato principal. Apenas um contato pode ser
                 principal por empresa — marcar este removerá a flag dos demais.
               </span>
             </label>
 
             {error && (
-              <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+              <p className="text-xs text-signal-danger">{error}</p>
             )}
           </div>
 
-          <div className="px-6 py-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-end gap-3">
+          <div className="px-6 py-5 border-t border-border-1 bg-bg-surface-2 flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-xl transition-all"
+              className="px-5 py-2 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[10px] transition-all"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2 bg-primary text-white rounded-xl text-sm font-black hover:opacity-90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+              className="px-6 py-2 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black hover:bg-accent-primary-hover transition-all shadow-[var(--shadow-brand)] disabled:opacity-50"
             >
               {submitting ? 'Salvando…' : vinculo ? 'Atualizar vínculo' : 'Vincular'}
             </button>

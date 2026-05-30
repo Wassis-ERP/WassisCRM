@@ -32,9 +32,9 @@ const historico = [
 ]
 
 const STATUS_BADGE: Record<Segurado['status'], string> = {
-  Ativo: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-  Inativo: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
-  Prospecto: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  Ativo: 'bg-signal-success/15 text-signal-success',
+  Inativo: 'bg-bg-surface-3 text-fg-3',
+  Prospecto: 'bg-signal-warning/15 text-signal-warning',
 }
 
 const ESTADO_CIVIL_LABEL: Record<NonNullable<Segurado['estadoCivil']>, string> = {
@@ -91,9 +91,9 @@ export default function SeguradoDetalhePage() {
 
   if (!id) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-slate-500">
+      <div className="flex flex-col items-center justify-center h-full text-fg-3">
         <p>Identificador inválido.</p>
-        <button type="button" onClick={() => navigate('/segurados')} className="mt-4 text-primary font-bold">
+        <button type="button" onClick={() => navigate('/segurados')} className="mt-4 text-accent-primary font-bold">
           Voltar para a lista
         </button>
       </div>
@@ -102,7 +102,7 @@ export default function SeguradoDetalhePage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh] text-slate-500 gap-2">
+      <div className="flex flex-col items-center justify-center min-h-[40vh] text-fg-3 gap-2">
         <p className="text-sm">Carregando cadastro…</p>
       </div>
     )
@@ -110,12 +110,12 @@ export default function SeguradoDetalhePage() {
 
   if (isError || !segurado) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-slate-500">
+      <div className="flex flex-col items-center justify-center h-full text-fg-3">
         <p>Segurado não encontrado ou sem permissão de acesso.</p>
-        <button type="button" onClick={() => refetch()} className="mt-2 text-sm text-primary font-semibold">
+        <button type="button" onClick={() => refetch()} className="mt-2 text-sm text-accent-primary font-semibold">
           Tentar novamente
         </button>
-        <button type="button" onClick={() => navigate('/segurados')} className="mt-4 text-primary font-bold">
+        <button type="button" onClick={() => navigate('/segurados')} className="mt-4 text-accent-primary font-bold">
           Voltar para a lista
         </button>
       </div>
@@ -179,7 +179,7 @@ export default function SeguradoDetalhePage() {
   return (
     <div className="animate-fade-in">
       {saveError && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+        <div className="mb-4 rounded-[10px] border border-signal-danger/30 bg-signal-danger/10 px-4 py-3 text-sm text-signal-danger">
           {saveError}
         </div>
       )}
@@ -187,43 +187,43 @@ export default function SeguradoDetalhePage() {
       <button
         type="button"
         onClick={() => navigate('/segurados')}
-        className="flex items-center gap-2 text-sm text-slate-500 hover:text-primary transition-colors mb-6"
+        className="flex items-center gap-2 text-sm text-fg-3 hover:text-accent-primary transition-colors mb-6"
       >
         <ArrowLeft size={16} />
         Voltar para Segurados
       </button>
 
       {/* Cabeçalho do perfil */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 mb-6">
+      <div className="bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1 p-8 mb-6">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div className="flex items-start gap-5">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary-light rounded-2xl flex items-center justify-center text-white shrink-0">
+            <div className="w-16 h-16 bg-gradient-to-br from-accent-primary to-brand-primary-deep rounded-[14px] flex items-center justify-center text-fg-on-brand shrink-0">
               {isPJ ? <Building2 size={26} /> : <User size={26} />}
             </div>
             <div>
               <h1 className="text-2xl font-bold mb-1">{segurado.nome}</h1>
               {isPJ && segurado.nomeFantasia && (
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+                <p className="text-sm text-fg-3 mb-2">
                   {segurado.nomeFantasia}
                 </p>
               )}
               <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-bold uppercase">
+                <span className="px-2.5 py-0.5 bg-bg-surface-3 text-fg-3 rounded font-bold uppercase">
                   {segurado.tipo}
                 </span>
                 <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide ${STATUS_BADGE[segurado.status]}`}>
                   {segurado.status}
                 </span>
                 {segurado.lgpdAutorizado && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-primary/10 text-primary rounded-full font-semibold">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-accent-primary-soft text-accent-primary rounded-full font-semibold">
                     <ShieldCheck size={12} /> LGPD autorizada
                   </span>
                 )}
-                <span className="text-slate-500 dark:text-slate-400">
+                <span className="text-fg-3">
                   {isPJ ? 'CNPJ' : 'CPF'}: {segurado.documento || '—'}
                 </span>
                 {segurado.chatwootId && (
-                  <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-semibold">
+                  <span className="px-2 py-0.5 bg-accent-primary-soft text-accent-primary rounded text-[10px] font-semibold">
                     ChatWoot ID: {segurado.chatwootId}
                   </span>
                 )}
@@ -232,41 +232,41 @@ export default function SeguradoDetalhePage() {
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
+            className="flex items-center gap-2 px-4 py-2.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-semibold hover:bg-accent-primary-hover transition-colors shadow-[var(--shadow-brand)]"
           >
             <Edit size={16} />
             Editar Cadastro
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-border-1">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Phone size={16} className="text-primary" />
+            <div className="p-2 bg-accent-primary-soft rounded-lg">
+              <Phone size={16} className="text-accent-primary" />
             </div>
             <div>
-              <p className="text-xs text-slate-400">Telefone</p>
+              <p className="text-xs text-fg-4">Telefone</p>
               <p className="text-sm font-medium">{segurado.telefone || 'Não informado'}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Mail size={16} className="text-primary" />
+            <div className="p-2 bg-accent-primary-soft rounded-lg">
+              <Mail size={16} className="text-accent-primary" />
             </div>
             <div>
-              <p className="text-xs text-slate-400">E-mail</p>
+              <p className="text-xs text-fg-4">E-mail</p>
               <p className="text-sm font-medium break-all">{segurado.email || 'Não informado'}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 md:col-span-2">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <MapPin size={16} className="text-primary" />
+            <div className="p-2 bg-accent-primary-soft rounded-lg">
+              <MapPin size={16} className="text-accent-primary" />
             </div>
             <div>
-              <p className="text-xs text-slate-400">Endereço</p>
+              <p className="text-xs text-fg-4">Endereço</p>
               <p className="text-sm font-medium">{enderecoLinha || 'Não informado'}</p>
               {segurado.cep && (
-                <p className="text-xs text-slate-400">CEP {segurado.cep}</p>
+                <p className="text-xs text-fg-4">CEP {segurado.cep}</p>
               )}
             </div>
           </div>
@@ -277,9 +277,9 @@ export default function SeguradoDetalhePage() {
         {/* Coluna principal */}
         <div className="xl:col-span-2 space-y-6">
           {/* Atribuição */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+          <div className="bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1 p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Users size={18} className="text-primary" />
+              <Users size={18} className="text-accent-primary" />
               <h2 className="font-bold">Atribuição</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -289,12 +289,12 @@ export default function SeguradoDetalhePage() {
           </div>
 
           {/* Dados específicos por tipo */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+          <div className="bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1 p-6">
             <div className="flex items-center gap-2 mb-4">
               {isPJ ? (
-                <Briefcase size={18} className="text-primary" />
+                <Briefcase size={18} className="text-accent-primary" />
               ) : (
-                <CalendarDays size={18} className="text-primary" />
+                <CalendarDays size={18} className="text-accent-primary" />
               )}
               <h2 className="font-bold">
                 {isPJ ? 'Dados da Empresa' : 'Dados Pessoais'}
@@ -326,13 +326,13 @@ export default function SeguradoDetalhePage() {
           </div>
 
           {/* Vínculos PJ↔PF */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1">
+            <div className="px-6 py-4 border-b border-border-1 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {isPJ ? (
-                  <Users size={18} className="text-primary" />
+                  <Users size={18} className="text-accent-primary" />
                 ) : (
-                  <Building2 size={18} className="text-primary" />
+                  <Building2 size={18} className="text-accent-primary" />
                 )}
                 <h2 className="font-bold">
                   {isPJ ? 'Contatos da empresa' : 'Empresas vinculadas'}
@@ -344,7 +344,7 @@ export default function SeguradoDetalhePage() {
                   setVinculoEdit(null)
                   setVinculoModalOpen(true)
                 }}
-                className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-semibold hover:bg-primary/20 transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary-soft text-accent-primary rounded-lg text-xs font-semibold hover:bg-accent-primary-soft transition-colors"
               >
                 <Plus size={14} />
                 {isPJ ? 'Adicionar contato' : 'Vincular empresa'}
@@ -353,7 +353,7 @@ export default function SeguradoDetalhePage() {
 
             <div className="p-6">
               {(isPJ ? contatosDaPJ : empresasDaPF).length === 0 ? (
-                <p className="text-sm text-slate-500 italic">
+                <p className="text-sm text-fg-3 italic">
                   {isPJ
                     ? 'Nenhum contato vinculado a esta empresa.'
                     : 'Esta pessoa não está vinculada a nenhuma empresa.'}
@@ -378,48 +378,48 @@ export default function SeguradoDetalhePage() {
           </div>
 
           {/* Oportunidades — placeholder mantido (fora do escopo do PRD) */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+          <div className="bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1 p-6">
             <div className="flex items-center gap-2 mb-4">
-              <TrendingUp size={18} className="text-primary" />
+              <TrendingUp size={18} className="text-accent-primary" />
               <h2 className="font-bold">Oportunidades de Venda</h2>
             </div>
-            <p className="text-sm text-slate-500 italic">
+            <p className="text-sm text-fg-3 italic">
               Não há oportunidades ativas para este segurado no momento.
             </p>
           </div>
 
           {/* Anexos — mockado (PRD próprio de Gestão de Documentos) */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1">
+            <div className="px-6 py-4 border-b border-border-1 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText size={18} className="text-primary" />
+                <FileText size={18} className="text-accent-primary" />
                 <h2 className="font-bold">Anexos</h2>
               </div>
-              <button className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-semibold hover:bg-primary/20 transition-colors">
+              <button className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary-soft text-accent-primary rounded-lg text-xs font-semibold hover:bg-accent-primary-soft transition-colors">
                 <Upload size={14} />
                 Upload
               </button>
             </div>
-            <div className="divide-y divide-slate-50 dark:divide-slate-800">
+            <div className="divide-y divide-border-1">
               {anexos.map((a, i) => (
                 <div
                   key={i}
-                  className="px-6 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  className="px-6 py-3 flex items-center justify-between hover:bg-bg-surface-2 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded flex items-center justify-center">
-                      <FileText size={14} className="text-slate-400" />
+                    <div className="w-8 h-8 bg-bg-surface-2 rounded flex items-center justify-center">
+                      <FileText size={14} className="text-fg-4" />
                     </div>
                     <div>
                       <p className="text-sm font-medium">{a.nome}</p>
-                      <p className="text-xs text-slate-400">{a.tamanho} · {a.data}</p>
+                      <p className="text-xs text-fg-4">{a.tamanho} · {a.data}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button className="p-1.5 text-slate-400 hover:text-primary transition-colors">
+                    <button className="p-1.5 text-fg-4 hover:text-accent-primary transition-colors">
                       <Eye size={14} />
                     </button>
-                    <button className="p-1.5 text-slate-400 hover:text-primary transition-colors">
+                    <button className="p-1.5 text-fg-4 hover:text-accent-primary transition-colors">
                       <Download size={14} />
                     </button>
                   </div>
@@ -430,20 +430,20 @@ export default function SeguradoDetalhePage() {
         </div>
 
         {/* Coluna lateral — Histórico */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 h-fit">
-          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
-            <Clock size={18} className="text-primary" />
+        <div className="bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1 h-fit">
+          <div className="px-6 py-4 border-b border-border-1 flex items-center gap-2">
+            <Clock size={18} className="text-accent-primary" />
             <h2 className="font-bold">Histórico</h2>
           </div>
           <div className="p-6">
             <div className="relative">
-              <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-slate-200 dark:bg-slate-800" />
+              <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-border-1" />
               <div className="space-y-6">
                 {historico.map((h, i) => (
                   <div key={i} className="relative pl-6">
-                    <div className="absolute left-0 top-1.5 w-3.5 h-3.5 rounded-full bg-primary border-2 border-white dark:border-slate-900" />
+                    <div className="absolute left-0 top-1.5 w-3.5 h-3.5 rounded-full bg-accent-primary border-2 border-bg-surface" />
                     <p className="text-sm font-medium">{h.acao}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-fg-4 mt-0.5">
                       {h.data} · {h.usuario}
                     </p>
                   </div>
@@ -478,13 +478,13 @@ export default function SeguradoDetalhePage() {
 
 function AtribuicaoItem({ label, nome }: { label: string; nome?: string | null }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-      <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+    <div className="flex items-center gap-3 px-4 py-3 bg-bg-surface-2 rounded-xl">
+      <div className="w-9 h-9 rounded-full bg-accent-primary-soft text-accent-primary flex items-center justify-center font-bold text-xs">
         {nome ? nome.slice(0, 2).toUpperCase() : '—'}
       </div>
       <div>
-        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{label}</p>
-        <p className="text-sm font-medium">{nome || <span className="italic text-slate-400">Não atribuído</span>}</p>
+        <p className="text-[10px] text-fg-4 uppercase tracking-widest font-bold">{label}</p>
+        <p className="text-sm font-medium">{nome || <span className="italic text-fg-4">Não atribuído</span>}</p>
       </div>
     </div>
   )
@@ -503,7 +503,7 @@ function DadoItem({
 }) {
   return (
     <div>
-      <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">{label}</p>
+      <p className="text-[10px] text-fg-4 uppercase tracking-widest font-bold mb-1">{label}</p>
       <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
         {valor ? (
           link ? (
@@ -511,7 +511,7 @@ function DadoItem({
               href={valor.startsWith('http') ? valor : `https://${valor}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-accent-primary hover:underline"
             >
               <Globe size={12} /> {valor}
             </a>
@@ -519,9 +519,9 @@ function DadoItem({
             <span>{valor}</span>
           )
         ) : (
-          <span className="italic text-slate-400">Não informado</span>
+          <span className="italic text-fg-4">Não informado</span>
         )}
-        {sufixo && <span className="text-xs text-slate-400">{sufixo}</span>}
+        {sufixo && <span className="text-xs text-fg-4">{sufixo}</span>}
       </div>
     </div>
   )
@@ -542,22 +542,22 @@ function VinculoCard({
     ? vinculo.pjNomeFantasia || vinculo.pjNome || 'Empresa'
     : vinculo.pfNome || 'Pessoa'
   return (
-    <div className="flex items-start justify-between gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+    <div className="flex items-start justify-between gap-3 p-4 bg-bg-surface-2 rounded-xl border border-border-1">
       <div className="flex items-start gap-3 min-w-0">
-        <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 rounded-lg bg-accent-primary-soft text-accent-primary flex items-center justify-center shrink-0">
           {lado === 'PJ' ? <Building2 size={18} /> : <User size={18} />}
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-bold truncate">{nome}</p>
             {vinculo.principal && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded-full text-[10px] font-bold uppercase">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-signal-warning/15 text-signal-warning rounded-full text-[10px] font-bold uppercase">
                 <Star size={10} /> Principal
               </span>
             )}
           </div>
           {vinculo.cargo && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{vinculo.cargo}</p>
+            <p className="text-xs text-fg-3 mt-0.5">{vinculo.cargo}</p>
           )}
         </div>
       </div>
@@ -565,7 +565,7 @@ function VinculoCard({
         <button
           type="button"
           onClick={onEdit}
-          className="p-1.5 text-slate-400 hover:text-primary transition-colors"
+          className="p-1.5 text-fg-4 hover:text-accent-primary transition-colors"
           title="Editar vínculo"
         >
           <Edit size={14} />
@@ -573,7 +573,7 @@ function VinculoCard({
         <button
           type="button"
           onClick={onRemove}
-          className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+          className="p-1.5 text-fg-4 hover:text-signal-danger transition-colors"
           title="Remover vínculo"
         >
           <Trash2 size={14} />

@@ -45,16 +45,16 @@ export function KanbanColumn({
   if (collapsed) {
     return (
       <div
-        className="w-10 shrink-0 flex flex-col items-center py-4 bg-slate-100/50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-800 cursor-pointer hover:bg-slate-200 transition-all"
+        className="w-10 shrink-0 flex flex-col items-center py-4 bg-bg-surface-2 rounded-[14px] border border-border-1 cursor-pointer hover:bg-bg-surface-3 transition-all"
         onClick={() => onToggleCollapse(stage.id)}
       >
         <div className={`w-2 h-2 rounded-full mb-4 ${stage.color}`} />
         <div className="flex-1 flex items-center justify-center">
-          <h3 className="font-black text-[9px] uppercase tracking-widest text-slate-500 whitespace-nowrap rotate-90 origin-center">
+          <h3 className="font-black text-[9px] uppercase tracking-widest text-fg-3 whitespace-nowrap rotate-90 origin-center">
             {stage.name}
           </h3>
         </div>
-        <span className="mt-4 text-[10px] font-black text-primary">{cards.length}</span>
+        <span className="mt-4 text-[10px] font-black text-accent-primary">{cards.length}</span>
       </div>
     );
   }
@@ -69,12 +69,12 @@ export function KanbanColumn({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <div className={`w-2 h-2 rounded-full shrink-0 ${stage.color}`} />
-            <h3 className="font-black text-[10px] uppercase tracking-wider text-slate-500 truncate">{stage.name}</h3>
-            <div className="bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 text-[9px] font-black text-slate-400 shrink-0">
+            <h3 className="font-black text-[10px] uppercase tracking-wider text-fg-3 truncate">{stage.name}</h3>
+            <div className="bg-bg-surface px-1.5 py-0.5 rounded-md border border-border-1 text-[9px] font-black text-fg-4 shrink-0">
               {cards.length}
             </div>
             {stage.is_win_eligible && (
-              <span title="Etapa elegivel para Ganho" className="text-[9px] font-black text-emerald-500 uppercase shrink-0">
+              <span title="Etapa elegivel para Ganho" className="text-[9px] font-black text-signal-success uppercase shrink-0">
                 ★
               </span>
             )}
@@ -82,19 +82,19 @@ export function KanbanColumn({
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => onToggleCollapse(stage.id)}
-              className="p-1 text-slate-400 hover:text-primary transition-all"
+              className="p-1 text-fg-4 hover:text-accent-primary transition-all"
               title="Colapsar"
             >
               <Maximize2 size={12} className="rotate-45" />
             </button>
-            <button className="p-1 text-slate-400 hover:text-slate-600">
+            <button className="p-1 text-fg-4 hover:text-fg-2">
               <MoreHorizontal size={14} />
             </button>
           </div>
         </div>
         {totalValue > 0 && (
-          <div className="mt-1 ml-4 text-[9px] font-black uppercase tracking-widest text-slate-400">
-            Total: <span className="text-primary">{formatCurrencyCompact(totalValue)}</span>
+          <div className="mt-1 ml-4 text-[9px] font-black uppercase tracking-widest text-fg-4">
+            Total: <span className="text-accent-primary">{formatCurrencyCompact(totalValue)}</span>
           </div>
         )}
       </div>
@@ -111,8 +111,8 @@ export function KanbanColumn({
         ))}
 
         {cards.length === 0 && (
-          <div className="h-20 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center bg-slate-50/20">
-            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">Vazio</span>
+          <div className="h-20 border border-dashed border-border-1 rounded-[14px] flex items-center justify-center bg-bg-surface-2/40">
+            <span className="text-[9px] font-black text-fg-4 uppercase tracking-widest italic">Vazio</span>
           </div>
         )}
       </div>

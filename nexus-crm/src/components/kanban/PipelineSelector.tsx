@@ -16,7 +16,7 @@ interface PipelineSelectorProps {
 export function PipelineSelector({ value, onChange, pipelines, isLoading, isError }: PipelineSelectorProps) {
   if (isError) {
     return (
-      <span className="text-[10px] font-black uppercase tracking-wider text-rose-500">
+      <span className="text-[10px] font-black uppercase tracking-wider text-signal-danger">
         Falha ao carregar funis
       </span>
     );
@@ -31,7 +31,7 @@ export function PipelineSelector({ value, onChange, pipelines, isLoading, isErro
           const p = pipelines.find((x) => x.id === e.target.value);
           if (p) onChange(p);
         }}
-        className="pl-4 pr-10 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-[11px] font-black text-slate-700 dark:text-slate-200 appearance-none focus:ring-2 focus:ring-primary/20 shadow-sm cursor-pointer hover:border-primary/30 transition-all uppercase tracking-wider disabled:opacity-50"
+        className="pl-4 pr-10 py-1.5 bg-bg-surface border border-border-1 rounded-[10px] text-[11px] font-black text-fg-2 appearance-none focus:ring-2 focus:ring-accent-primary/30 shadow-[var(--shadow-1)] cursor-pointer hover:border-accent-primary/40 transition-all uppercase tracking-wider disabled:opacity-50"
       >
         {isLoading && <option value="">Carregando...</option>}
         {!isLoading && pipelines.length === 0 && <option value="">Nenhum funil</option>}
@@ -41,7 +41,7 @@ export function PipelineSelector({ value, onChange, pipelines, isLoading, isErro
           </option>
         ))}
       </select>
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-fg-4">
         <ChevronRight size={14} className="rotate-90" />
       </div>
     </div>

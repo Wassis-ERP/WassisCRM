@@ -159,27 +159,27 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-10 px-4">
-      <div className="fixed inset-0 z-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 my-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-[720px] border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900 z-10">
+      <div className="fixed inset-0 z-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 my-auto bg-bg-surface rounded-[14px] shadow-[var(--shadow-3)] w-full max-w-[720px] border border-border-1 animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between p-5 border-b border-border-1 sticky top-0 bg-bg-surface z-10">
           <div>
-            <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Nova Cobranca</h2>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+            <h2 className="text-lg font-black text-fg-1 tracking-tight">Nova Cobranca</h2>
+            <p className="text-[10px] text-fg-4 font-bold uppercase tracking-widest mt-0.5">
               Controle de inadimplencia e cobrancas avulsas
             </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="p-2 hover:bg-bg-surface-2 rounded-[10px] transition-all text-fg-4 hover:text-fg-2">
             <X size={20} />
           </button>
         </div>
 
         <div className="p-5 space-y-4">
-          <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit">
+          <div className="flex p-1 bg-bg-surface-2 rounded-[10px] w-fit">
             <button
               type="button"
               onClick={() => setVinculaOportunidade(true)}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                vinculaOportunidade ? 'bg-white dark:bg-slate-700 shadow-sm text-primary' : 'text-slate-500'
+              className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${
+                vinculaOportunidade ? 'bg-bg-surface shadow-[var(--shadow-1)] text-accent-primary' : 'text-fg-3'
               }`}
             >
               Vinculada a Apolice
@@ -187,8 +187,8 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
             <button
               type="button"
               onClick={() => { setVinculaOportunidade(false); setSelectedOportunidade(null); }}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                !vinculaOportunidade ? 'bg-white dark:bg-slate-700 shadow-sm text-primary' : 'text-slate-500'
+              className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${
+                !vinculaOportunidade ? 'bg-bg-surface shadow-[var(--shadow-1)] text-accent-primary' : 'text-fg-3'
               }`}
             >
               Avulsa
@@ -197,11 +197,11 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
 
           {vinculaOportunidade && (
             <div ref={searchRef} className="relative z-[60]">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">
+              <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">
                 Oportunidade / Apolice *
               </label>
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                 <input
                   type="text"
                   placeholder="Buscar por titulo da oportunidade..."
@@ -212,29 +212,29 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
                     setShowSuggestions(true);
                   }}
                   onFocus={() => setShowSuggestions(true)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
                 />
               </div>
               {showSuggestions && !selectedOportunidade && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-[80] overflow-hidden max-h-[220px] overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-bg-surface border border-border-1 rounded-[10px] shadow-[var(--shadow-3)] z-[80] overflow-hidden max-h-[220px] overflow-y-auto">
                   {oportunidadesQuery.isError ? (
-                    <div className="p-3 text-center text-[10px] text-rose-500 font-bold">Erro ao carregar oportunidades</div>
+                    <div className="p-3 text-center text-[10px] text-signal-danger font-bold">Erro ao carregar oportunidades</div>
                   ) : oportunidadesQuery.isLoading ? (
-                    <div className="p-3 text-center text-[10px] text-slate-400 font-bold">Carregando...</div>
+                    <div className="p-3 text-center text-[10px] text-fg-4 font-bold">Carregando...</div>
                   ) : (oportunidadesQuery.data ?? []).length > 0 ? (
                     (oportunidadesQuery.data ?? []).map((op) => (
                       <button
                         key={op.id}
                         type="button"
                         onClick={() => { setSelectedOportunidade(op); setShowSuggestions(false); }}
-                        className="w-full text-left px-3 py-2 hover:bg-primary/5 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0"
+                        className="w-full text-left px-3 py-2 hover:bg-accent-primary-soft transition-colors border-b border-border-1 last:border-0"
                       >
-                        <p className="text-xs font-bold text-slate-900 dark:text-white">{op.nome}</p>
-                        <p className="text-[9px] text-slate-400">{op.segurado_nome ?? '-'}</p>
+                        <p className="text-xs font-bold text-fg-1">{op.nome}</p>
+                        <p className="text-[9px] text-fg-4">{op.segurado_nome ?? '-'}</p>
                       </button>
                     ))
                   ) : (
-                    <div className="p-3 text-center text-[10px] text-slate-400 font-bold">Nenhuma oportunidade encontrada</div>
+                    <div className="p-3 text-center text-[10px] text-fg-4 font-bold">Nenhuma oportunidade encontrada</div>
                   )}
                 </div>
               )}
@@ -242,45 +242,45 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
           )}
 
           {!vinculaOportunidade && (
-            <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-xl p-3">
-              <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+            <div className="bg-signal-warning/10 border border-signal-warning/30 rounded-[10px] p-3">
+              <p className="text-[10px] font-bold text-signal-warning uppercase tracking-wider">
                 Cobranca avulsa
               </p>
-              <p className="text-[11px] text-amber-600 dark:text-amber-300/80 mt-1">
-                Requer migracao <code className="font-mono bg-amber-100 dark:bg-amber-900/30 px-1 rounded">007_fase2_5_cobranca_oportunidade_nullable.sql</code> aplicada no banco. Caso nao esteja, o insert falhara com erro de constraint.
+              <p className="text-[11px] text-fg-3 mt-1">
+                Requer migracao <code className="font-mono bg-signal-warning/15 px-1 rounded">007_fase2_5_cobranca_oportunidade_nullable.sql</code> aplicada no banco. Caso nao esteja, o insert falhara com erro de constraint.
               </p>
             </div>
           )}
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Valor da Parcela</label>
+              <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">Valor da Parcela</label>
               <input
                 type="text"
                 placeholder="R$ 0,00"
                 value={valorParcelaStr}
                 onChange={(e) => setValorParcelaStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
               />
             </div>
             <div>
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Num. Parcela</label>
+              <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">Num. Parcela</label>
               <input
                 type="text"
                 placeholder="Ex: 3"
                 value={numeroParcelaStr}
                 onChange={(e) => setNumeroParcelaStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
               />
             </div>
             <div>
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Total Parcelas</label>
+              <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">Total Parcelas</label>
               <input
                 type="text"
                 placeholder="Ex: 12"
                 value={totalParcelasStr}
                 onChange={(e) => setTotalParcelasStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
               />
             </div>
           </div>
@@ -295,23 +295,23 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
               />
             </div>
             <div>
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Dias em Atraso</label>
+              <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">Dias em Atraso</label>
               <input
                 type="text"
                 placeholder="Ex: 15"
                 value={diasAtrasoStr}
                 onChange={(e) => setDiasAtrasoStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
               />
             </div>
             <div>
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Forma de Pagamento</label>
+              <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">Forma de Pagamento</label>
               <input
                 type="text"
                 placeholder="Boleto, PIX..."
                 value={formaPagamento}
                 onChange={(e) => setFormaPagamento(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
               />
             </div>
           </div>
@@ -326,18 +326,18 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
           </div>
 
           <div>
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Observacoes</label>
+            <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">Observacoes</label>
             <textarea
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
               rows={3}
               placeholder="Tratativas, contatos, promessas de pagamento..."
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold resize-none focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold resize-none focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
             />
           </div>
 
           {submitError && (
-            <div className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+            <div className="text-[11px] font-bold text-signal-danger bg-signal-danger/10 border border-signal-danger/30 rounded-[10px] px-3 py-2">
               {submitError}
             </div>
           )}
@@ -348,7 +348,7 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
             onClick={handleSubmit}
             disabled={!canSubmit}
             title={vinculaOportunidade && !selectedOportunidade ? 'Selecione a oportunidade ou marque como avulsa' : undefined}
-            className="w-full max-w-[300px] py-3 bg-primary text-white rounded-xl text-sm font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-xl shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full max-w-[300px] py-3 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black uppercase tracking-widest hover:bg-accent-primary-hover transition-all shadow-[var(--shadow-brand)] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {createCobranca.isPending ? 'Salvando...' : 'Registrar Cobranca'}
           </button>

@@ -83,7 +83,7 @@ export function KanbanBoard({
 
   if (stagesQuery.isLoading) {
     return (
-      <div className="flex items-center justify-center py-24 text-[11px] font-black uppercase tracking-widest text-slate-400">
+      <div className="flex items-center justify-center py-24 text-[11px] font-black uppercase tracking-widest text-fg-4">
         Carregando funil...
       </div>
     );
@@ -91,7 +91,7 @@ export function KanbanBoard({
 
   if (stagesQuery.isError) {
     return (
-      <div className="flex items-center justify-center py-24 text-[11px] font-black uppercase tracking-widest text-rose-500">
+      <div className="flex items-center justify-center py-24 text-[11px] font-black uppercase tracking-widest text-signal-danger">
         Erro ao carregar etapas do funil
       </div>
     );
@@ -123,14 +123,14 @@ export function KanbanBoard({
         })}
 
         {stages.length === 0 && !stagesQuery.isLoading && (
-          <div className="flex-1 flex items-center justify-center text-[11px] font-black uppercase tracking-widest text-slate-400">
+          <div className="flex-1 flex items-center justify-center text-[11px] font-black uppercase tracking-widest text-fg-4">
             Este funil ainda nao possui etapas
           </div>
         )}
       </div>
 
       {cardsQuery.isError && (
-        <div className="border border-rose-200 bg-rose-50 dark:bg-rose-950/20 text-rose-600 text-[10px] font-bold px-3 py-2 rounded-lg mx-4 mb-2">
+        <div className="border border-signal-danger/30 bg-signal-danger/10 text-signal-danger text-[10px] font-bold px-3 py-2 rounded-[10px] mx-4 mb-2">
           Falha ao carregar cards. Verifique conexao ou RLS.
         </div>
       )}

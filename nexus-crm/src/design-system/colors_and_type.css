@@ -1,0 +1,602 @@
+/* ============================================================
+ * W.Assis Design System — Tokens (Colors + Type)
+ * Fonte: Manual da Marca W.Assis (Apresentação_WAssis_LogoFinal.pdf)
+ * Última revisão: 2026-05 (v2 — suporte completo a dark mode)
+ * ============================================================
+ *
+ * Como usar no projeto nexus-crm (Tailwind v4):
+ *   1. Importe este arquivo no topo de `src/index.css`:
+ *        @import "../../wassis-design-system/colors_and_type.css";
+ *   2. Os blocos `@theme` expõem as variáveis para o Tailwind v4
+ *      (já viram utilitários: `text-brand-primary`, `bg-ramo-saude`, etc).
+ *   3. Use os tokens semânticos (`--fg-1`, `--bg-surface`, `--h1-size`)
+ *      em CSS custom, modais e componentes que vivem fora do Tailwind.
+ *
+ * Dark mode:
+ *   • Automático: respeita `prefers-color-scheme: dark` se nada for
+ *     marcado manualmente.
+ *   • Manual: adicione `class="dark"` ou `data-theme="dark"` em <html>
+ *     (ou em qualquer ancestral) para forçar.
+ *   • Force light explicitamente com `class="light"` ou
+ *     `data-theme="light"` para sobrescrever o sistema.
+ *
+ * Hierarquia:
+ *   Brand tokens (azul, vermelho…)  →  Semantic tokens (--fg-1, --bg-…)
+ *     ↘                                ↘
+ *      Module tokens (ramo / pipeline)   Type tokens (--h1-size, etc)
+ * ============================================================ */
+
+/* ---------- 1. Brand tokens — paleta oficial (manual p.8) ---------- */
+
+:root {
+  /* Primária — valores hex são a marca "oficial" do manual.
+     Em dark mode, os tokens semânticos `--accent-*` apontam para
+     variantes OKLCH mais claras para preservar contraste. */
+  --brand-blue:           #004FC2; /* Azul W.Assis — uso principal, headers, CTA */
+  --brand-blue-deep:      #053D96; /* Azul escuro — Moto, hover, ações pressionadas */
+  --brand-ink:            #303030; /* Cinza Portáteis — texto forte / fundos escuros */
+
+  /* Secundárias (cada uma representa um ramo de seguro) */
+  --brand-green:          #005938; /* Saúde */
+  --brand-orange:         #FF5400; /* Vida */
+  --brand-purple:         #5C4091; /* Residência */
+  --brand-red:            #AB120D; /* Empresarial */
+  --brand-peach:          #F09957; /* Previdência */
+
+  /* Variantes geradas em OKLCH a partir da paleta — mesma cromaticidade,
+     lightness deslocada para estados (hover, ativo, fundo suave). */
+  --brand-blue-12:        oklch(53% 0.18 258 / 0.12); /* fundo soft p/ chip ativo */
+  --brand-blue-08:        oklch(53% 0.18 258 / 0.08);
+  --brand-blue-hover:     oklch(48% 0.20 258);        /* hover de botão */
+  --brand-blue-press:     oklch(42% 0.20 258);        /* pressed */
+
+  /* Variantes "on-dark" — versões iluminadas para uso sobre fundo
+     escuro (cards dark, sidebars dark, etc). Lightness alvo ~68–72%
+     em OKLCH; chroma reduzida quando a cor original já é saturada. */
+  --brand-blue-on-dark:    oklch(70% 0.16 258);
+  --brand-blue-deep-on-dark: oklch(62% 0.18 262);
+  --brand-green-on-dark:   oklch(68% 0.14 158);
+  --brand-orange-on-dark:  oklch(74% 0.17 50);
+  --brand-purple-on-dark:  oklch(70% 0.15 295);
+  --brand-red-on-dark:     oklch(68% 0.18 27);
+  --brand-peach-on-dark:   oklch(78% 0.12 60);
+  --brand-ink-on-dark:     #E2E8F0; /* "portáteis" em dark vira cinza claro */
+
+  /* Neutros (escala tonal — cinzas levemente azulados, tom W.Assis) */
+  --neutral-0:    #FFFFFF;
+  --neutral-50:   #F8FAFC;
+  --neutral-100:  #F1F5F9;
+  --neutral-200:  #E2E8F0;
+  --neutral-300:  #CBD5E1;
+  --neutral-400:  #94A3B8;
+  --neutral-500:  #64748B;
+  --neutral-600:  #475569;
+  --neutral-700:  #334155;
+  --neutral-800:  #1E293B;
+  --neutral-900:  #0F172A;
+  --neutral-950:  #060B17;
+
+  /* Semânticas operacionais (não vêm do manual; derivadas para CRM) */
+  --signal-success: #16A34A;
+  --signal-warning: #F59E0B;
+  --signal-danger:  #DC2626;
+  --signal-info:    var(--brand-blue);
+
+  /* Variantes on-dark dos signals (mais claras + menos sangrantes) */
+  --signal-success-on-dark: oklch(72% 0.16 150);
+  --signal-warning-on-dark: oklch(80% 0.15 78);
+  --signal-danger-on-dark:  oklch(68% 0.19 25);
+  --signal-info-on-dark:    var(--brand-blue-on-dark);
+}
+
+/* ---------- 2. Module / Ramo tokens (manual p.8 + p.18) ----------
+   Os `--ramo-*` apontam, por padrão, para a variante "solid" — boa
+   para fundos coloridos e chips em light mode. Para usar em dark,
+   prefira `--ramo-*-fg` (texto) e `--ramo-*-soft` (fundo tintado). */
+
+:root {
+  --ramo-saude:        var(--brand-green);
+  --ramo-vida:         var(--brand-orange);
+  --ramo-auto:         var(--brand-blue);
+  --ramo-moto:         var(--brand-blue-deep);
+  --ramo-residencia:   var(--brand-purple);
+  --ramo-empresarial:  var(--brand-red);
+  --ramo-portateis:    var(--brand-ink);
+  --ramo-previdencia:  var(--brand-peach);
+
+  /* Texto da cor do ramo — adapta para dark. Use em badges/labels
+     onde o ramo precisa ser legível sobre fundo neutro. */
+  --ramo-saude-fg:       var(--brand-green);
+  --ramo-vida-fg:        var(--brand-orange);
+  --ramo-auto-fg:        var(--brand-blue);
+  --ramo-moto-fg:        var(--brand-blue-deep);
+  --ramo-residencia-fg:  var(--brand-purple);
+  --ramo-empresarial-fg: var(--brand-red);
+  --ramo-portateis-fg:   var(--brand-ink);
+  --ramo-previdencia-fg: var(--brand-peach);
+
+  /* Fundo soft do ramo — chip/pill com 12% de alpha sobre branco. */
+  --ramo-saude-soft:       oklch(40% 0.12 158 / 0.12);
+  --ramo-vida-soft:        oklch(68% 0.20 45 / 0.14);
+  --ramo-auto-soft:        oklch(53% 0.18 258 / 0.12);
+  --ramo-moto-soft:        oklch(45% 0.20 262 / 0.12);
+  --ramo-residencia-soft:  oklch(45% 0.15 295 / 0.14);
+  --ramo-empresarial-soft: oklch(45% 0.18 27 / 0.12);
+  --ramo-portateis-soft:   oklch(30% 0.01 260 / 0.10);
+  --ramo-previdencia-soft: oklch(75% 0.14 60 / 0.18);
+
+  /* Pipeline-level (telas Kanban por módulo) — segue o mapeamento já
+     presente em src/lib/moduleTheme.ts */
+  --pipeline-comercial:   var(--ramo-auto);
+  --pipeline-emissao:     var(--ramo-moto);
+  --pipeline-pos-venda:   var(--ramo-saude);
+  --pipeline-financeiro:  var(--ramo-previdencia);
+  --pipeline-sinistro:    var(--ramo-empresarial);
+}
+
+/* ---------- 3. Semantic surface tokens (LIGHT — default) ---------- */
+
+:root {
+  /* Foreground */
+  --fg-1: var(--neutral-900);  /* texto principal */
+  --fg-2: var(--neutral-700);  /* texto secundário */
+  --fg-3: var(--neutral-500);  /* texto terciário / labels */
+  --fg-4: var(--neutral-400);  /* placeholder, ícones leves */
+  --fg-on-brand: #FFFFFF;      /* texto sobre azul/verde/etc */
+
+  /* Background */
+  --bg-app:        var(--neutral-50);  /* canvas geral do app */
+  --bg-surface:    #FFFFFF;            /* card, modal, sidebar */
+  --bg-surface-2:  var(--neutral-100); /* surface elevada / linha de tabela */
+  --bg-surface-3:  var(--neutral-200); /* hover de linha, drop target */
+  --bg-overlay:    rgba(15, 23, 42, 0.48); /* overlay de modal */
+
+  /* Border */
+  --border-1: var(--neutral-200);
+  --border-2: var(--neutral-300);
+  --border-strong: var(--neutral-700);
+
+  /* Accent semântico — APONTA para a brand certa por modo.
+     Use estes em vez de --brand-blue direto sempre que o componente
+     viver em surfaces que podem ser claras OU escuras. */
+  --accent-primary:        var(--brand-blue);
+  --accent-primary-hover:  var(--brand-blue-hover);
+  --accent-primary-press:  var(--brand-blue-press);
+  --accent-primary-soft:   var(--brand-blue-12);
+  --accent-primary-fg:     #FFFFFF; /* texto sobre o accent */
+
+  /* Signals semânticos (adaptam-se em dark) */
+  --accent-success: var(--signal-success);
+  --accent-warning: var(--signal-warning);
+  --accent-danger:  var(--signal-danger);
+  --accent-info:    var(--signal-info);
+
+  /* Foco (acessibilidade) */
+  --focus-ring: 0 0 0 3px oklch(53% 0.18 258 / 0.35);
+
+  /* Elevação — sombras suaves, nunca pretas duras */
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-2: 0 4px 10px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-3: 0 12px 28px -6px rgba(15, 23, 42, 0.12), 0 4px 8px -2px rgba(15, 23, 42, 0.06);
+  --shadow-brand: 0 8px 24px -6px oklch(53% 0.18 258 / 0.35);
+
+  /* Esquema nativo (selects, scrollbars, form controls) */
+  color-scheme: light;
+}
+
+/* ---------- 3b. Semantic surface tokens (DARK) ----------
+   Aplicado em três cenários:
+     • <html class="dark"> ou <html data-theme="dark">   (toggle manual)
+     • qualquer ancestral com .dark / [data-theme="dark"] (escopo local)
+     • @media prefers-color-scheme: dark               (auto)
+   `[data-theme="light"]` força light mesmo no auto-mode. */
+
+.dark,
+[data-theme="dark"] {
+  /* Foreground */
+  --fg-1: #F8FAFC;
+  --fg-2: var(--neutral-300);
+  --fg-3: var(--neutral-400);
+  --fg-4: var(--neutral-500);
+  --fg-on-brand: #FFFFFF;
+
+  /* Background — escala invertida com um "step extra" no canvas
+     para criar profundidade (app < surface < surface-2 < surface-3). */
+  --bg-app:       var(--neutral-950);
+  --bg-surface:   var(--neutral-900);
+  --bg-surface-2: var(--neutral-800);
+  --bg-surface-3: var(--neutral-700);
+  --bg-overlay:   rgba(0, 0, 0, 0.66);
+
+  /* Border — em dark, borders muito claras "vibram"; usamos 700/600. */
+  --border-1: var(--neutral-700);
+  --border-2: var(--neutral-600);
+  --border-strong: var(--neutral-300);
+
+  /* Accent — remapeia para variantes on-dark */
+  --accent-primary:        var(--brand-blue-on-dark);
+  --accent-primary-hover:  oklch(76% 0.15 258);
+  --accent-primary-press:  oklch(64% 0.17 258);
+  --accent-primary-soft:   oklch(70% 0.16 258 / 0.18);
+  --accent-primary-fg:     var(--neutral-950); /* texto escuro sobre azul claro */
+
+  /* Signals em dark */
+  --accent-success: var(--signal-success-on-dark);
+  --accent-warning: var(--signal-warning-on-dark);
+  --accent-danger:  var(--signal-danger-on-dark);
+  --accent-info:    var(--signal-info-on-dark);
+
+  /* Ramos remapeados para suas variantes on-dark — qualquer componente
+     que use `var(--ramo-saude)` em texto/ícone segue legível. */
+  --ramo-saude:        var(--brand-green-on-dark);
+  --ramo-vida:         var(--brand-orange-on-dark);
+  --ramo-auto:         var(--brand-blue-on-dark);
+  --ramo-moto:         var(--brand-blue-deep-on-dark);
+  --ramo-residencia:   var(--brand-purple-on-dark);
+  --ramo-empresarial: var(--brand-red-on-dark);
+  --ramo-portateis:    var(--brand-ink-on-dark);
+  --ramo-previdencia:  var(--brand-peach-on-dark);
+
+  --ramo-saude-fg:       var(--brand-green-on-dark);
+  --ramo-vida-fg:        var(--brand-orange-on-dark);
+  --ramo-auto-fg:        var(--brand-blue-on-dark);
+  --ramo-moto-fg:        var(--brand-blue-deep-on-dark);
+  --ramo-residencia-fg:  var(--brand-purple-on-dark);
+  --ramo-empresarial-fg: var(--brand-red-on-dark);
+  --ramo-portateis-fg:   var(--brand-ink-on-dark);
+  --ramo-previdencia-fg: var(--brand-peach-on-dark);
+
+  /* Soft em dark: alpha um pouco maior, hue iluminado */
+  --ramo-saude-soft:       oklch(68% 0.14 158 / 0.18);
+  --ramo-vida-soft:        oklch(74% 0.17 50 / 0.18);
+  --ramo-auto-soft:        oklch(70% 0.16 258 / 0.18);
+  --ramo-moto-soft:        oklch(62% 0.18 262 / 0.20);
+  --ramo-residencia-soft:  oklch(70% 0.15 295 / 0.20);
+  --ramo-empresarial-soft: oklch(68% 0.18 27 / 0.20);
+  --ramo-portateis-soft:   oklch(80% 0.01 260 / 0.12);
+  --ramo-previdencia-soft: oklch(78% 0.12 60 / 0.20);
+
+  --pipeline-comercial:   var(--ramo-auto);
+  --pipeline-emissao:     var(--ramo-moto);
+  --pipeline-pos-venda:   var(--ramo-saude);
+  --pipeline-financeiro:  var(--ramo-previdencia);
+  --pipeline-sinistro:    var(--ramo-empresarial);
+
+  /* Foco — alpha maior pra "brilhar" sobre fundo escuro */
+  --focus-ring: 0 0 0 3px oklch(70% 0.16 258 / 0.55);
+
+  /* Sombras — em dark, sombras suaves desaparecem. Usamos preto sólido
+     mais opaco + uma "highlight" sutil (1px inset claro) na escala 2/3. */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-2: 0 4px 10px -2px rgba(0, 0, 0, 0.55), 0 2px 4px -2px rgba(0, 0, 0, 0.45),
+              inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  --shadow-3: 0 16px 32px -8px rgba(0, 0, 0, 0.65), 0 6px 12px -4px rgba(0, 0, 0, 0.45),
+              inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-brand: 0 10px 28px -6px oklch(70% 0.16 258 / 0.45);
+
+  color-scheme: dark;
+}
+
+/* ---------- 3c. Force-light override ----------
+   Necessário para dois casos:
+     • cancelar `prefers-color-scheme: dark` quando o produto quer ficar
+       em light por escolha do usuário (`<html class="light">`);
+     • permitir uma SUB-ÁRVORE light dentro de uma página dark (ex.: o
+       painel lado-a-lado do preview, ou um print layout embutido).
+   Reseta TODOS os tokens semânticos para a paleta light. */
+
+.light,
+[data-theme="light"] {
+  --fg-1: var(--neutral-900);
+  --fg-2: var(--neutral-700);
+  --fg-3: var(--neutral-500);
+  --fg-4: var(--neutral-400);
+  --fg-on-brand: #FFFFFF;
+
+  --bg-app:       var(--neutral-50);
+  --bg-surface:   #FFFFFF;
+  --bg-surface-2: var(--neutral-100);
+  --bg-surface-3: var(--neutral-200);
+  --bg-overlay:   rgba(15, 23, 42, 0.48);
+
+  --border-1: var(--neutral-200);
+  --border-2: var(--neutral-300);
+  --border-strong: var(--neutral-700);
+
+  --accent-primary:        var(--brand-blue);
+  --accent-primary-hover:  var(--brand-blue-hover);
+  --accent-primary-press:  var(--brand-blue-press);
+  --accent-primary-soft:   var(--brand-blue-12);
+  --accent-primary-fg:     #FFFFFF;
+
+  --accent-success: var(--signal-success);
+  --accent-warning: var(--signal-warning);
+  --accent-danger:  var(--signal-danger);
+  --accent-info:    var(--signal-info);
+
+  --ramo-saude:        var(--brand-green);
+  --ramo-vida:         var(--brand-orange);
+  --ramo-auto:         var(--brand-blue);
+  --ramo-moto:         var(--brand-blue-deep);
+  --ramo-residencia:   var(--brand-purple);
+  --ramo-empresarial:  var(--brand-red);
+  --ramo-portateis:    var(--brand-ink);
+  --ramo-previdencia:  var(--brand-peach);
+
+  --ramo-saude-fg:       var(--brand-green);
+  --ramo-vida-fg:        var(--brand-orange);
+  --ramo-auto-fg:        var(--brand-blue);
+  --ramo-moto-fg:        var(--brand-blue-deep);
+  --ramo-residencia-fg:  var(--brand-purple);
+  --ramo-empresarial-fg: var(--brand-red);
+  --ramo-portateis-fg:   var(--brand-ink);
+  --ramo-previdencia-fg: var(--brand-peach);
+
+  --ramo-saude-soft:       oklch(40% 0.12 158 / 0.12);
+  --ramo-vida-soft:        oklch(68% 0.20 45 / 0.14);
+  --ramo-auto-soft:        oklch(53% 0.18 258 / 0.12);
+  --ramo-moto-soft:        oklch(45% 0.20 262 / 0.12);
+  --ramo-residencia-soft:  oklch(45% 0.15 295 / 0.14);
+  --ramo-empresarial-soft: oklch(45% 0.18 27 / 0.12);
+  --ramo-portateis-soft:   oklch(30% 0.01 260 / 0.10);
+  --ramo-previdencia-soft: oklch(75% 0.14 60 / 0.18);
+
+  --pipeline-comercial:   var(--ramo-auto);
+  --pipeline-emissao:     var(--ramo-moto);
+  --pipeline-pos-venda:   var(--ramo-saude);
+  --pipeline-financeiro:  var(--ramo-previdencia);
+  --pipeline-sinistro:    var(--ramo-empresarial);
+
+  --focus-ring: 0 0 0 3px oklch(53% 0.18 258 / 0.35);
+
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-2: 0 4px 10px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-3: 0 12px 28px -6px rgba(15, 23, 42, 0.12), 0 4px 8px -2px rgba(15, 23, 42, 0.06);
+  --shadow-brand: 0 8px 24px -6px oklch(53% 0.18 258 / 0.35);
+
+  color-scheme: light;
+}
+
+/* Auto-mode: respeita preferência do SO quando não há override manual.
+   `[data-theme="light"]` / `.light` em algum ancestral cancela o auto. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light):not([data-theme="light"]) {
+    --fg-1: #F8FAFC;
+    --fg-2: var(--neutral-300);
+    --fg-3: var(--neutral-400);
+    --fg-4: var(--neutral-500);
+
+    --bg-app:       var(--neutral-950);
+    --bg-surface:   var(--neutral-900);
+    --bg-surface-2: var(--neutral-800);
+    --bg-surface-3: var(--neutral-700);
+    --bg-overlay:   rgba(0, 0, 0, 0.66);
+
+    --border-1: var(--neutral-700);
+    --border-2: var(--neutral-600);
+    --border-strong: var(--neutral-300);
+
+    --accent-primary:        var(--brand-blue-on-dark);
+    --accent-primary-hover:  oklch(76% 0.15 258);
+    --accent-primary-press:  oklch(64% 0.17 258);
+    --accent-primary-soft:   oklch(70% 0.16 258 / 0.18);
+    --accent-primary-fg:     var(--neutral-950);
+
+    --accent-success: var(--signal-success-on-dark);
+    --accent-warning: var(--signal-warning-on-dark);
+    --accent-danger:  var(--signal-danger-on-dark);
+    --accent-info:    var(--signal-info-on-dark);
+
+    --ramo-saude:        var(--brand-green-on-dark);
+    --ramo-vida:         var(--brand-orange-on-dark);
+    --ramo-auto:         var(--brand-blue-on-dark);
+    --ramo-moto:         var(--brand-blue-deep-on-dark);
+    --ramo-residencia:   var(--brand-purple-on-dark);
+    --ramo-empresarial:  var(--brand-red-on-dark);
+    --ramo-portateis:    var(--brand-ink-on-dark);
+    --ramo-previdencia:  var(--brand-peach-on-dark);
+
+    --focus-ring: 0 0 0 3px oklch(70% 0.16 258 / 0.55);
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+    --shadow-2: 0 4px 10px -2px rgba(0, 0, 0, 0.55), 0 2px 4px -2px rgba(0, 0, 0, 0.45),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    --shadow-3: 0 16px 32px -8px rgba(0, 0, 0, 0.65), 0 6px 12px -4px rgba(0, 0, 0, 0.45),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    --shadow-brand: 0 10px 28px -6px oklch(70% 0.16 258 / 0.45);
+
+    color-scheme: dark;
+  }
+}
+
+/* ---------- 4. Type tokens ---------- */
+
+:root {
+  /* Famílias — manual: Rubik (títulos) + Gilroy Sans (texto).
+     Gilroy é comercial → fallback Mulish (geometria muito próxima).
+     Sempre liste Rubik/Mulish ANTES do system stack. */
+  --font-display: "Rubik", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-text:    "Mulish", "Gilroy", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, "Cascadia Code", Menlo, monospace;
+
+  /* Escala (1.250 — Major Third). Base 16 = body. */
+  --t-xs:   12px;
+  --t-sm:   14px;
+  --t-base: 16px;
+  --t-md:   18px;
+  --t-lg:   20px;
+  --t-xl:   24px;
+  --t-2xl:  30px;
+  --t-3xl:  36px;
+  --t-4xl:  44px;
+  --t-5xl:  56px;
+
+  /* Pesos canônicos */
+  --w-regular:  400;
+  --w-medium:   500;
+  --w-semibold: 600;
+  --w-bold:     700;
+
+  /* Line heights */
+  --lh-tight:  1.15;
+  --lh-snug:   1.3;
+  --lh-normal: 1.5;
+  --lh-loose:  1.7;
+
+  /* Tracking */
+  --tr-tight:   -0.02em;
+  --tr-normal:   0;
+  --tr-caps:     0.06em;
+}
+
+/* ---------- 5. Spacing, radius, motion ---------- */
+
+:root {
+  /* Espaço (4-pt grid) */
+  --sp-0:  0;
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-8:  32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+
+  /* Raio */
+  --r-sm:    6px;
+  --r-md:   10px;
+  --r-lg:   14px;
+  --r-xl:   20px;
+  --r-2xl:  28px;
+  --r-pill: 9999px;
+
+  /* Motion */
+  --ease-out:   cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:    cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast:    120ms;
+  --dur-base:    200ms;
+  --dur-slow:    320ms;
+}
+
+/* ---------- 6. Tailwind v4 @theme exposure ----------
+   Variáveis aqui viram utilitários Tailwind automaticamente.
+   IMPORTANTE: os utilitários que devem reagir ao dark mode apontam
+   para os tokens SEMÂNTICOS (`var(--accent-primary)`, `var(--fg-1)`),
+   não para hex fixos. Assim `bg-accent-primary` muda sozinho quando
+   `.dark` é ativado, sem precisar de variantes `dark:` espalhadas. */
+
+@theme {
+  /* Brand "imutável" — referência fixa à marca (manual da marca) */
+  --color-brand-primary:      #004FC2;
+  --color-brand-primary-deep: #053D96;
+  --color-brand-ink:          #303030;
+
+  /* Accent semântico — adapta a light/dark via tokens raiz */
+  --color-accent-primary:        var(--accent-primary);
+  --color-accent-primary-hover:  var(--accent-primary-hover);
+  --color-accent-primary-press:  var(--accent-primary-press);
+  --color-accent-primary-soft:   var(--accent-primary-soft);
+  --color-accent-primary-fg:     var(--accent-primary-fg);
+
+  /* Ramos — viram `bg-ramo-saude`, `text-ramo-saude`, etc, e adaptam
+     em dark mode automaticamente (apontam para tokens semânticos). */
+  --color-ramo-saude:        var(--ramo-saude);
+  --color-ramo-vida:         var(--ramo-vida);
+  --color-ramo-auto:         var(--ramo-auto);
+  --color-ramo-moto:         var(--ramo-moto);
+  --color-ramo-residencia:   var(--ramo-residencia);
+  --color-ramo-empresarial:  var(--ramo-empresarial);
+  --color-ramo-portateis:    var(--ramo-portateis);
+  --color-ramo-previdencia:  var(--ramo-previdencia);
+
+  /* Sinais semânticos */
+  --color-signal-success: var(--accent-success);
+  --color-signal-warning: var(--accent-warning);
+  --color-signal-danger:  var(--accent-danger);
+  --color-signal-info:    var(--accent-info);
+
+  /* Surfaces — pra usar `bg-surface`, `bg-app`, `text-fg-1` etc */
+  --color-fg-1:        var(--fg-1);
+  --color-fg-2:        var(--fg-2);
+  --color-fg-3:        var(--fg-3);
+  --color-fg-4:        var(--fg-4);
+  --color-fg-on-brand: var(--fg-on-brand);
+  --color-bg-app:       var(--bg-app);
+  --color-bg-surface:   var(--bg-surface);
+  --color-bg-surface-2: var(--bg-surface-2);
+  --color-bg-surface-3: var(--bg-surface-3);
+  --color-border-1: var(--border-1);
+  --color-border-2: var(--border-2);
+  --color-border-strong: var(--border-strong);
+
+  /* Famílias */
+  --font-display: "Rubik", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-text:    "Mulish", "Gilroy", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* Raio */
+  --radius-pill: 9999px;
+  --radius-2xl: 28px;
+}
+
+/* Tailwind v4: faz `dark:` casar tanto com `.dark` quanto com
+   `[data-theme="dark"]`, mantendo compatibilidade com o toggle manual. */
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------- 7. Helpers prontos para uso ---------- */
+
+.h1, h1 {
+  font-family: var(--font-display);
+  font-weight: var(--w-bold);
+  font-size: var(--t-4xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tr-tight);
+  color: var(--fg-1);
+}
+.h2, h2 {
+  font-family: var(--font-display);
+  font-weight: var(--w-semibold);
+  font-size: var(--t-2xl);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tr-tight);
+  color: var(--fg-1);
+}
+.h3, h3 {
+  font-family: var(--font-display);
+  font-weight: var(--w-semibold);
+  font-size: var(--t-xl);
+  line-height: var(--lh-snug);
+  color: var(--fg-1);
+}
+.eyebrow {
+  font-family: var(--font-text);
+  font-weight: var(--w-semibold);
+  font-size: var(--t-xs);
+  letter-spacing: var(--tr-caps);
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+.lead {
+  font-family: var(--font-text);
+  font-size: var(--t-md);
+  line-height: var(--lh-loose);
+  color: var(--fg-2);
+}
+.body {
+  font-family: var(--font-text);
+  font-size: var(--t-base);
+  line-height: var(--lh-normal);
+  color: var(--fg-1);
+}
+.caption {
+  font-family: var(--font-text);
+  font-size: var(--t-xs);
+  color: var(--fg-3);
+}
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.94em;
+}

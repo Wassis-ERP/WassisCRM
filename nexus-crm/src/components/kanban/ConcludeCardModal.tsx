@@ -41,8 +41,8 @@ export default function ConcludeCardModal({ isOpen, onClose, card, module, pipel
 
   const title = useMemo(() => (isLost ? 'Marcar como Perdida' : 'Marcar como Ganha'), [isLost]);
   const accentClass = isLost
-    ? 'bg-rose-500 hover:bg-rose-500/90'
-    : 'bg-emerald-500 hover:bg-emerald-500/90';
+    ? 'bg-signal-danger hover:opacity-90'
+    : 'bg-signal-success hover:opacity-90';
 
   const handleSubmit = async () => {
     if (!card) return;
@@ -67,16 +67,16 @@ export default function ConcludeCardModal({ isOpen, onClose, card, module, pipel
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+      <div className="absolute inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-bg-surface rounded-[14px] shadow-[var(--shadow-3)] w-full max-w-md mx-4 border border-border-1 animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between p-5 border-b border-border-1">
           <div>
-            <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{title}</h2>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{card.title}</p>
+            <h2 className="text-lg font-black text-fg-1 tracking-tight">{title}</h2>
+            <p className="text-[10px] text-fg-4 font-bold uppercase tracking-widest mt-0.5">{card.title}</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-600"
+            className="p-2 hover:bg-bg-surface-2 rounded-[10px] transition-all text-fg-4 hover:text-fg-2"
           >
             <X size={20} />
           </button>
@@ -85,13 +85,13 @@ export default function ConcludeCardModal({ isOpen, onClose, card, module, pipel
         <div className="p-5 space-y-4">
           {isLost && (
             <div>
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">
+              <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">
                 Motivo da Perda {motivoRequired && '*'}
               </label>
               <select
                 value={motivoId}
                 onChange={(e) => setMotivoId(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold focus:ring-2 focus:ring-primary/20 transition-all appearance-none"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all appearance-none"
               >
                 <option value="">Selecione um motivo</option>
                 {(motivos.data ?? []).map((m) => (
@@ -99,26 +99,26 @@ export default function ConcludeCardModal({ isOpen, onClose, card, module, pipel
                 ))}
               </select>
               {motivos.data && motivos.data.length === 0 && (
-                <p className="text-[10px] text-slate-400 mt-1">Nenhum motivo cadastrado - continue sem motivo.</p>
+                <p className="text-[10px] text-fg-4 mt-1">Nenhum motivo cadastrado - continue sem motivo.</p>
               )}
             </div>
           )}
 
           <div>
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">
+            <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">
               Observacao (opcional)
             </label>
             <textarea
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold resize-none focus:ring-2 focus:ring-primary/20"
+              className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold resize-none focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
               placeholder="Contexto adicional..."
             />
           </div>
 
           {submitError && (
-            <div className="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+            <div className="text-[11px] font-bold text-signal-danger bg-signal-danger/10 border border-signal-danger/30 rounded-[10px] px-3 py-2">
               {submitError}
             </div>
           )}
@@ -127,14 +127,14 @@ export default function ConcludeCardModal({ isOpen, onClose, card, module, pipel
         <div className="p-5 pt-0 flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+            className="px-4 py-2 rounded-[10px] text-xs font-bold text-fg-3 hover:bg-bg-surface-2 transition-all"
           >
             Cancelar
           </button>
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className={`px-6 py-2.5 ${accentClass} text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`px-6 py-2.5 ${accentClass} text-fg-on-brand rounded-full text-xs font-black uppercase tracking-widest shadow-[var(--shadow-2)] transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {conclude.isPending ? 'Salvando...' : isLost ? 'Confirmar Perda' : 'Confirmar Ganho'}
           </button>

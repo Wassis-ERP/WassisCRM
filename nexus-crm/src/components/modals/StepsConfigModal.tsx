@@ -165,20 +165,20 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-3xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-bg-surface w-full max-w-3xl rounded-[20px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+        <div className="px-8 py-6 border-b border-border-1 flex items-center justify-between bg-bg-surface-2">
           <div>
-            <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
-              Etapas de "{pipeline.name}" 
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">{pipeline.module}</span>
+            <h2 className="text-xl font-black text-fg-1 uppercase tracking-tight flex items-center gap-2">
+              Etapas de "{pipeline.name}"
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent-primary-soft text-accent-primary border border-accent-primary/20">{pipeline.module}</span>
             </h2>
-            <p className="text-xs text-slate-500 font-bold mt-1">
+            <p className="text-xs text-fg-3 font-bold mt-1">
               Defina o fluxo, ordem, cores e regras de conclusão das etapas
             </p>
           </div>
-          <button onClick={onClose} disabled={isSavingStages} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 disabled:opacity-50">
+          <button onClick={onClose} disabled={isSavingStages} className="p-2 hover:bg-bg-surface-3 rounded-full transition-colors text-fg-4 disabled:opacity-50">
             <X size={20} />
           </button>
         </div>
@@ -186,25 +186,25 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
         {/* Content */}
         <div className="p-8 space-y-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+            <div className="rounded-[10px] border border-signal-danger/30 bg-signal-danger/10 px-4 py-3 text-sm text-signal-danger">
               {error}
             </div>
           )}
 
           {/* Add Step Input */}
-          <div className="flex gap-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+          <div className="flex gap-2 p-4 bg-bg-surface-2 rounded-[14px] border border-border-1">
             <input
               type="text"
               value={newStepName}
               onChange={(e) => setNewStepName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddStep()}
               placeholder="Nome da nova etapa..."
-              className="flex-1 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:border-primary focus:outline-none font-medium"
+              className="flex-1 px-4 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium"
             />
             <button
               onClick={handleAddStep}
               disabled={isSavingStages || !newStepName.trim()}
-              className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-xl text-sm font-black hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-2 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black hover:bg-accent-primary-hover transition-colors disabled:opacity-50"
             >
               <Plus size={18} /> Adicionar
             </button>
@@ -213,16 +213,16 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
           {/* Steps List */}
           <div className="space-y-3">
             <div className="flex items-center justify-between px-2 mb-2">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <span className="text-[10px] font-black text-fg-4 uppercase tracking-widest">
                 Etapas do Funil ({steps.length})
               </span>
-              <span className="text-[10px] font-bold text-slate-400 italic">
+              <span className="text-[10px] font-bold text-fg-4 italic">
                 Arraste pelo ícone <GripVertical size={10} className="inline" /> para reordenar
               </span>
             </div>
 
             {isLoading ? (
-              <div className="flex items-center justify-center gap-2 py-12 text-slate-500">
+              <div className="flex items-center justify-center gap-2 py-12 text-fg-3">
                 <Loader2 className="animate-spin" size={18} /> Carregando etapas...
               </div>
             ) : (
@@ -233,13 +233,13 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
-                  className={`flex items-center gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl group transition-all ${
+                  className={`flex items-center gap-3 p-4 bg-bg-surface border border-border-1 rounded-[14px] group transition-all ${
                     draggedIndex === index
-                      ? 'opacity-50 border-primary scale-95'
-                      : 'hover:border-primary/30 shadow-sm'
+                      ? 'opacity-50 border-accent-primary scale-95'
+                      : 'hover:border-accent-primary/30 shadow-[var(--shadow-1)]'
                   }`}
                 >
-                  <div className="cursor-grab active:cursor-grabbing p-1 text-slate-300 hover:text-slate-500">
+                  <div className="cursor-grab active:cursor-grabbing p-1 text-fg-4 hover:text-fg-2">
                     <GripVertical size={18} />
                   </div>
 
@@ -249,7 +249,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
                     type="text"
                     value={step.name}
                     onChange={(e) => handleUpdate(step.id, { name: e.target.value })}
-                    className="flex-1 min-w-0 bg-transparent border-none text-sm font-bold text-slate-700 dark:text-slate-200 focus:outline-none"
+                    className="flex-1 min-w-0 bg-transparent border-none text-sm font-bold text-fg-1 focus:outline-none"
                   />
 
                   {/* Flags */}
@@ -265,8 +265,8 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
                       }
                       className={`p-1.5 rounded-lg transition-all ${
                         step.is_win_eligible
-                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                          : 'bg-slate-100 text-slate-400 hover:text-slate-600 dark:bg-slate-800'
+                          ? 'bg-signal-success/15 text-signal-success'
+                          : 'bg-bg-surface-2 text-fg-4 hover:text-fg-2'
                       }`}
                     >
                       <Trophy size={13} />
@@ -282,8 +282,8 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
                       }
                       className={`p-1.5 rounded-lg transition-all ${
                         step.is_loss_eligible
-                          ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
-                          : 'bg-slate-100 text-slate-400 hover:text-slate-600 dark:bg-slate-800'
+                          ? 'bg-signal-danger/15 text-signal-danger'
+                          : 'bg-bg-surface-2 text-fg-4 hover:text-fg-2'
                       }`}
                     >
                       <ShieldOff size={13} />
@@ -298,7 +298,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
                         onClick={() => handleUpdate(step.id, { color: c })}
                         className={`w-3 h-3 rounded-full ${c} transition-all ${
                           step.color === c
-                            ? 'ring-2 ring-offset-2 ring-primary scale-125'
+                            ? 'ring-2 ring-offset-2 ring-accent-primary scale-125'
                             : 'opacity-40 hover:opacity-100'
                         }`}
                       />
@@ -307,7 +307,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
 
                   <button
                     onClick={() => handleRemoveStep(step.id)}
-                    className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-2 text-fg-4 hover:text-signal-danger hover:bg-signal-danger/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -316,7 +316,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
             )}
 
             {!isLoading && steps.length === 0 && (
-              <div className="text-center py-8 text-sm text-slate-400 italic">
+              <div className="text-center py-8 text-sm text-fg-4 italic">
                 Nenhuma etapa cadastrada. Adicione a primeira acima.
               </div>
             )}
@@ -324,18 +324,18 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
         </div>
 
         {/* Footer */}
-        <div className="px-8 py-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-end gap-3">
+        <div className="px-8 py-6 border-t border-border-1 bg-bg-surface-2 flex justify-end gap-3">
           <button
             onClick={onClose}
             disabled={isSavingStages}
-            className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-xl transition-all disabled:opacity-50"
+            className="px-6 py-2.5 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[10px] transition-all disabled:opacity-50"
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={isSavingStages || steps.length === 0}
-            className="flex items-center gap-2 px-8 py-2.5 bg-primary text-white rounded-xl text-sm font-black hover:opacity-90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+            className="flex items-center gap-2 px-8 py-2.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black hover:bg-accent-primary-hover transition-all shadow-[var(--shadow-brand)] disabled:opacity-50"
           >
             {isSavingStages ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
             {isSavingStages ? 'Salvando...' : 'Salvar Configuração'}

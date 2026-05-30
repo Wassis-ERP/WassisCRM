@@ -140,9 +140,9 @@ export default function OportunidadeDetalhePage() {
 
   const followUpStatus = getDateStatus(formData.proximoFollowup);
   const followUpBorderClass =
-    followUpStatus === 'today' ? 'border-blue-500/60 dark:border-blue-400/50'
-    : followUpStatus === 'overdue' ? 'border-red-500/70 dark:border-red-400/50'
-    : 'border-primary/20 dark:border-primary/10';
+    followUpStatus === 'today' ? 'border-accent-primary/50'
+    : followUpStatus === 'overdue' ? 'border-signal-danger/60'
+    : 'border-accent-primary/20';
 
   const tabs = [
     { id: 'orcamento', label: 'Orcamento', icon: FileText },
@@ -202,7 +202,7 @@ export default function OportunidadeDetalhePage() {
   if (detail.isLoading) {
     return (
       <div className="animate-fade-in flex items-center justify-center py-24">
-        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Carregando oportunidade...</p>
+        <p className="text-fg-4 font-bold uppercase tracking-widest text-xs">Carregando oportunidade…</p>
       </div>
     );
   }
@@ -210,10 +210,10 @@ export default function OportunidadeDetalhePage() {
   if (detail.isError || !rawRow) {
     return (
       <div className="animate-fade-in flex flex-col items-center justify-center py-24 gap-4">
-        <p className="text-rose-500 font-bold uppercase tracking-widest text-xs">Oportunidade nao encontrada</p>
+        <p className="text-signal-danger font-bold uppercase tracking-widest text-xs">Oportunidade nao encontrada</p>
         <button
           onClick={() => navigate(-1)}
-          className="px-5 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm font-bold"
+          className="px-5 py-2 bg-bg-surface-2 text-fg-1 rounded-[10px] text-sm font-bold"
         >
           Voltar
         </button>
@@ -230,22 +230,22 @@ export default function OportunidadeDetalhePage() {
 
   return (
     <div className="animate-fade-in max-w-7xl mx-auto pb-12">
-      <div className="relative z-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 -mx-4 px-4 md:-mx-8 md:px-8 mb-8 shadow-sm">
+      <div className="relative z-0 bg-bg-surface backdrop-blur-md border-b border-border-1 -mx-4 px-4 md:-mx-8 md:px-8 mb-8 shadow-[var(--shadow-1)]">
         <div className="max-w-[1440px] mx-auto">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate(-1)}
-                className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-500 transition-colors border border-transparent hover:border-slate-200"
+                className="p-2.5 hover:bg-bg-surface-2 rounded-[10px] text-fg-3 transition-colors border border-transparent hover:border-border-1"
               >
                 <ArrowLeft size={18} />
               </button>
               <div>
-                <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                <h1 className="text-xl font-black tracking-tight text-fg-1 flex items-center gap-2">
                   #{shortId}
-                  <span className="text-secondary text-base font-medium">| {clienteNome}</span>
+                  <span className="text-fg-3 text-base font-medium">| {clienteNome}</span>
                 </h1>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                <p className="text-[10px] text-fg-4 font-bold uppercase tracking-wider">
                   Originado via {origemLabel} - Por {criadoPor}
                 </p>
               </div>
@@ -253,8 +253,8 @@ export default function OportunidadeDetalhePage() {
 
             <div className="flex items-center gap-3">
               <div className="hidden lg:flex flex-col items-end mr-4">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right whitespace-nowrap">Comissao Estimada</span>
-                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(comissaoValor)}</span>
+                <span className="text-[10px] font-bold text-fg-4 uppercase tracking-widest text-right whitespace-nowrap">Comissao Estimada</span>
+                <span className="text-sm font-black text-signal-success">{formatCurrency(comissaoValor)}</span>
               </div>
 
               {!isConcluded && (
@@ -262,14 +262,14 @@ export default function OportunidadeDetalhePage() {
                   {canWin && (
                     <button
                       onClick={() => setConcludeMode('won')}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                      className="flex items-center gap-2 px-4 py-2.5 bg-signal-success/10 hover:bg-signal-success/20 border border-signal-success/20 text-signal-success rounded-full text-xs font-black uppercase tracking-widest transition-all"
                     >
                       <Check size={14} /> Ganho
                     </button>
                   )}
                   <button
                     onClick={() => setConcludeMode('lost')}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-signal-danger/10 hover:bg-signal-danger/20 border border-signal-danger/20 text-signal-danger rounded-full text-xs font-black uppercase tracking-widest transition-all"
                   >
                     <X size={14} /> Perdido
                   </button>
@@ -277,10 +277,10 @@ export default function OportunidadeDetalhePage() {
               )}
 
               {isConcluded && (
-                <span className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest ${
+                <span className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest ${
                   (rawRow.status as CardStatus) === 'won'
-                    ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
-                    : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                    ? 'bg-signal-success/10 text-signal-success border border-signal-success/20'
+                    : 'bg-signal-danger/10 text-signal-danger border border-signal-danger/20'
                 }`}>
                   {(rawRow.status as CardStatus) === 'won' ? 'Ganha' : 'Perdida'}
                 </span>
@@ -288,21 +288,21 @@ export default function OportunidadeDetalhePage() {
 
               <button
                 onClick={handleDiscard}
-                className="px-5 py-2.5 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all"
+                className="px-5 py-2.5 text-sm font-bold text-fg-3 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[10px] transition-all"
               >
                 Descartar
               </button>
               <button
                 onClick={handleSave}
                 disabled={saveStatus === 'saving'}
-                className="bg-primary hover:opacity-90 active:scale-95 text-white px-8 py-2.5 rounded-xl text-sm font-black shadow-lg shadow-primary/20 transition-all flex items-center gap-2 border border-primary/10 disabled:opacity-60"
+                className="bg-accent-primary hover:bg-accent-primary-hover active:scale-95 text-fg-on-brand px-8 py-2.5 rounded-full text-sm font-black shadow-[var(--shadow-brand)] transition-all flex items-center gap-2 disabled:opacity-60"
               >
                 {saveStatus === 'saving' ? 'Salvando...' : saveStatus === 'saved' ? 'Salvo!' : 'Salvar Alteracoes'}
               </button>
             </div>
           </div>
 
-          <div className="py-3 border-t border-slate-100 dark:border-slate-800/50 flex items-center gap-1 overflow-x-auto no-scrollbar">
+          <div className="py-3 border-t border-border-1 flex items-center gap-1 overflow-x-auto no-scrollbar">
             {funnelSteps.map((step, idx) => {
               const isActive = step.id === formData.stageId;
               const isPast = idx < safeCurrentIdx;
@@ -311,17 +311,17 @@ export default function OportunidadeDetalhePage() {
                   <button
                     onClick={() => setFormData({ ...formData, stageId: step.id })}
                     className={`relative h-8 px-4 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap ${
-                      isActive ? 'bg-primary text-white border-primary shadow-md shadow-primary/20'
-                      : isPast ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20'
-                      : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                      isActive ? 'bg-accent-primary text-fg-on-brand border-accent-primary shadow-[var(--shadow-brand)]'
+                      : isPast ? 'bg-signal-success/10 text-signal-success border-signal-success/20 hover:bg-signal-success/20'
+                      : 'bg-bg-surface-2 text-fg-4 border-border-1 hover:border-border-2'
                     }`}
                   >
-                    {isPast && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                    {isPast && <div className="w-1.5 h-1.5 rounded-full bg-signal-success" />}
+                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-fg-on-brand" />}
                     {step.name}
                   </button>
                   {idx < funnelSteps.length - 1 && (
-                    <div className={`h-[2px] w-4 ${isPast ? 'bg-emerald-300' : 'bg-slate-200 dark:bg-slate-800'}`} />
+                    <div className={`h-[2px] w-4 ${isPast ? 'bg-signal-success/40' : 'bg-border-1'}`} />
                   )}
                 </div>
               );
@@ -329,44 +329,44 @@ export default function OportunidadeDetalhePage() {
           </div>
 
           {saveError && (
-            <div className="pb-3 text-[11px] font-bold text-rose-600">{saveError}</div>
+            <div className="pb-3 text-[11px] font-bold text-signal-danger">{saveError}</div>
           )}
         </div>
       </div>
 
-      <div className="bg-primary/5 dark:bg-primary/10 border border-primary/10 dark:border-primary/20 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+      <div className="bg-accent-primary-soft border border-accent-primary/10 rounded-[14px] p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[var(--shadow-1)]">
         <div className="flex items-center gap-5">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center text-white text-2xl font-bold border-2 border-white dark:border-slate-800 shadow-xl shadow-primary/10">
+          <div className="w-16 h-16 rounded-[14px] bg-gradient-to-br from-accent-primary to-brand-primary-deep flex items-center justify-center text-fg-on-brand text-2xl font-bold shadow-[var(--shadow-2)]">
             {clienteNome.split(' ').map((n) => n[0]).join('').slice(0, 2)}
           </div>
           <div>
-            <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{clienteNome}</h2>
-            <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-slate-500 dark:text-slate-400 font-bold">
-              <span className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-3 py-1 rounded-full shadow-sm">
-                <Mail size={14} className="text-primary" /> {email || '-'}
+            <h2 className="text-xl font-black text-fg-1 uppercase tracking-tight">{clienteNome}</h2>
+            <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-fg-3 font-bold">
+              <span className="flex items-center gap-1.5 bg-bg-surface px-3 py-1 rounded-full shadow-[var(--shadow-1)]">
+                <Mail size={14} className="text-accent-primary" /> {email || '-'}
               </span>
-              <span className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-3 py-1 rounded-full shadow-sm">
-                <Phone size={14} className="text-primary" /> {telefone || '-'}
+              <span className="flex items-center gap-1.5 bg-bg-surface px-3 py-1 rounded-full shadow-[var(--shadow-1)]">
+                <Phone size={14} className="text-accent-primary" /> {telefone || '-'}
               </span>
             </div>
           </div>
         </div>
         <button
           onClick={() => segurado?.id && navigate(`/segurados/${segurado.id}`)}
-          className="px-6 py-2.5 bg-white dark:bg-slate-800 text-primary border border-primary/20 dark:border-primary/40 rounded-xl text-sm font-black shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2"
+          className="px-6 py-2.5 bg-bg-surface text-accent-primary border border-accent-primary/20 rounded-full text-sm font-black shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] hover:-translate-y-0.5 transition-all flex items-center gap-2"
         >
           <ExternalLink size={16} /> Detalhes do Segurado
         </button>
       </div>
 
-      <div className="mb-8 border-b border-slate-200 dark:border-slate-800">
+      <div className="mb-8 border-b border-border-1">
         <nav className="flex gap-8 overflow-x-auto custom-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`pb-4 px-1 text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-                activeTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                activeTab === tab.id ? 'border-accent-primary text-accent-primary' : 'border-transparent text-fg-3 hover:text-fg-1'
               }`}
             >
               <tab.icon size={18} /> {tab.label}
@@ -378,18 +378,18 @@ export default function OportunidadeDetalhePage() {
       {activeTab === 'orcamento' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12 animate-fade-in">
           <div className="lg:col-span-7 space-y-6">
-            <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <div className="flex items-center gap-2 mb-6 text-slate-400">
-                <Shield size={18} className="text-primary" />
+            <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+              <div className="flex items-center gap-2 mb-6 text-fg-4">
+                <Shield size={18} className="text-accent-primary" />
                 <h3 className="text-xs font-bold uppercase tracking-widest">Resumo do Orcamento</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Ramo do Seguro</label>
+                  <label className="text-[10px] font-bold text-fg-3 uppercase">Ramo do Seguro</label>
                   <select
                     value={formData.ramoId}
                     onChange={(e) => setFormData({ ...formData, ramoId: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-4 text-sm focus:ring-primary focus:border-primary"
+                    className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
                   >
                     <option value="">Selecione</option>
                     {(ramos.data ?? []).map((r) => (
@@ -398,14 +398,14 @@ export default function OportunidadeDetalhePage() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Tipo de Seguro</label>
-                  <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                  <label className="text-[10px] font-bold text-fg-3 uppercase">Tipo de Seguro</label>
+                  <div className="flex p-1 bg-bg-surface-2 rounded-xl">
                     {(['novo', 'renovacao', 'endosso'] as const).map((tipo) => (
                       <button
                         key={tipo}
                         onClick={() => setFormData({ ...formData, tipoNegocio: tipo })}
                         className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all capitalize ${
-                          formData.tipoNegocio === tipo ? 'bg-white dark:bg-slate-700 shadow-sm text-primary' : 'text-slate-500 hover:text-slate-700'
+                          formData.tipoNegocio === tipo ? 'bg-bg-surface shadow-[var(--shadow-1)] text-accent-primary' : 'text-fg-3 hover:text-fg-1'
                         }`}
                       >
                         {tipo}
@@ -414,13 +414,13 @@ export default function OportunidadeDetalhePage() {
                   </div>
                 </div>
                 <div className="md:col-span-2 space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Seguradora</label>
+                  <label className="text-[10px] font-bold text-fg-3 uppercase">Seguradora</label>
                   <div className="relative">
-                    <Briefcase size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Briefcase size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                     <select
                       value={formData.seguradoraId}
                       onChange={(e) => setFormData({ ...formData, seguradoraId: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-primary focus:border-primary"
+                      className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
                     >
                       <option value="">Selecione</option>
                       {(seguradoras.data ?? []).map((s) => (
@@ -430,36 +430,36 @@ export default function OportunidadeDetalhePage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Inicio de Vigencia</label>
+                  <label className="text-[10px] font-bold text-fg-3 uppercase">Inicio de Vigencia</label>
                   <DateField
                     value={formData.vigenciaInicio}
                     onChange={(v) => setFormData({ ...formData, vigenciaInicio: v })}
-                    inputClassName="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl"
+                    inputClassName="bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Termino de Vigencia</label>
+                  <label className="text-[10px] font-bold text-fg-3 uppercase">Termino de Vigencia</label>
                   <DateField
                     value={formData.vigenciaFim}
                     onChange={(v) => setFormData({ ...formData, vigenciaFim: v })}
-                    inputClassName="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl"
+                    inputClassName="bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <div className="flex items-center gap-2 mb-6 text-slate-400">
-                <TrendingUp size={18} className="text-primary" />
+            <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+              <div className="flex items-center gap-2 mb-6 text-fg-4">
+                <TrendingUp size={18} className="text-accent-primary" />
                 <h3 className="text-xs font-bold uppercase tracking-widest">Origem e Agendamento</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Origem do Lead</label>
+                  <label className="text-[10px] font-bold text-fg-3 uppercase">Origem do Lead</label>
                   <select
                     value={formData.origemId}
                     onChange={(e) => setFormData({ ...formData, origemId: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-4 text-sm focus:ring-primary focus:border-primary"
+                    className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
                   >
                     <option value="">Selecione</option>
                     {(origens.data ?? []).map((o) => (
@@ -468,11 +468,11 @@ export default function OportunidadeDetalhePage() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Proximo Follow-up</label>
+                  <label className="text-[10px] font-bold text-fg-3 uppercase">Proximo Follow-up</label>
                   <DateField
                     value={formData.proximoFollowup}
                     onChange={(v) => setFormData({ ...formData, proximoFollowup: v })}
-                    inputClassName={`bg-primary/5 dark:bg-primary/10 text-primary border ${followUpBorderClass}`}
+                    inputClassName={`bg-accent-primary-soft text-accent-primary border ${followUpBorderClass}`}
                   />
                 </div>
               </div>
@@ -480,61 +480,61 @@ export default function OportunidadeDetalhePage() {
           </div>
 
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <div className="flex items-center gap-2 mb-8 text-slate-400">
-                <DollarSign size={18} className="text-emerald-500" />
+            <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+              <div className="flex items-center gap-2 mb-8 text-fg-4">
+                <DollarSign size={18} className="text-signal-success" />
                 <h3 className="text-xs font-bold uppercase tracking-widest">Projecao Financeira</h3>
               </div>
               <div className="space-y-8">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Premio Liquido (R$)</label>
+                  <label className="text-[10px] font-bold text-fg-3 uppercase">Premio Liquido (R$)</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">R$</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-4 font-bold">R$</span>
                     <input
                       type="number"
                       value={formData.premioLiquido}
                       onChange={(e) => setFormData({ ...formData, premioLiquido: Number(e.target.value) })}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl py-5 pl-12 pr-6 text-3xl font-black text-slate-900 dark:text-white focus:ring-primary focus:border-primary transition-all shadow-inner"
+                      className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-2xl py-5 pl-12 pr-6 text-3xl font-black text-fg-1 focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none transition-all shadow-inner"
                     />
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-1">Valor base para o calculo da comissao.</p>
+                  <p className="text-[10px] text-fg-4 mt-1">Valor base para o calculo da comissao.</p>
                 </div>
 
-                <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-6">
+                <div className="p-6 bg-bg-surface-2 rounded-[14px] border border-border-1 space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase">Comissao (%)</label>
+                      <label className="text-[10px] font-bold text-fg-3 uppercase">Comissao (%)</label>
                       <div className="flex items-center gap-2">
                         <input
                           type="number"
                           value={formData.comissaoPercent}
                           onChange={(e) => setFormData({ ...formData, comissaoPercent: Number(e.target.value) })}
-                          className="w-16 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl py-2 px-3 text-lg font-bold focus:ring-primary"
+                          className="w-16 bg-bg-surface text-fg-1 border-border-1 rounded-xl py-2 px-3 text-lg font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
                         />
-                        <span className="text-slate-400 font-bold">%</span>
+                        <span className="text-fg-4 font-bold">%</span>
                       </div>
                     </div>
-                    <div className="h-10 w-px bg-slate-200 dark:border-slate-700"></div>
+                    <div className="h-10 w-px bg-border-1"></div>
                     <div className="space-y-1 text-right">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase">Valor Comissao</label>
-                      <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                      <label className="text-[10px] font-bold text-fg-3 uppercase">Valor Comissao</label>
+                      <div className="text-2xl font-black text-signal-success">
                         {formatCurrency(comissaoValor)}
                       </div>
                     </div>
                   </div>
-                  <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${formData.comissaoPercent}%` }} />
+                  <div className="h-1.5 w-full bg-bg-surface-3 rounded-full overflow-hidden">
+                    <div className="h-full bg-signal-success transition-all duration-500" style={{ width: `${formData.comissaoPercent}%` }} />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Notas da Oportunidade</h3>
+            <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-4">Notas da Oportunidade</h3>
               <textarea
                 value={formData.observacoes}
                 onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl p-4 text-sm h-32 resize-none focus:ring-primary focus:border-primary"
+                className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl p-4 text-sm h-32 resize-none focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
                 placeholder="Adicione observacoes importantes sobre a negociacao..."
               />
             </div>
@@ -545,49 +545,49 @@ export default function OportunidadeDetalhePage() {
       {activeTab === 'produtores' && (
         <div className="animate-fade-in space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary font-bold text-lg">
+            <div className="bg-bg-surface p-6 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)] flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-bg-surface-2 flex items-center justify-center text-accent-primary font-bold text-lg">
                 {(responsavel?.full_name ?? '?').split(' ').map((n) => n[0]).join('').slice(0, 2)}
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Responsavel</p>
-                <h4 className="font-bold text-slate-900 dark:text-white leading-tight">{responsavel?.full_name ?? '-'}</h4>
+                <p className="text-[10px] font-bold text-fg-4 uppercase tracking-wider">Responsavel</p>
+                <h4 className="font-bold text-fg-1 leading-tight">{responsavel?.full_name ?? '-'}</h4>
               </div>
             </div>
           </div>
-          <button className="flex items-center gap-2 text-primary font-bold text-sm hover:opacity-80 mx-2 transition-all">
+          <button className="flex items-center gap-2 text-accent-primary font-bold text-sm hover:opacity-80 mx-2 transition-all">
             <Plus size={16} /> Vincular Outro Produtor
           </button>
         </div>
       )}
 
       {activeTab === 'anexos_logs' && (
-        <div className="animate-fade-in bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-2 mb-6 text-slate-400">
-            <History size={18} className="text-primary" />
+        <div className="animate-fade-in bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+          <div className="flex items-center gap-2 mb-6 text-fg-4">
+            <History size={18} className="text-accent-primary" />
             <h3 className="text-xs font-bold uppercase tracking-widest">Anexos e Logs</h3>
           </div>
-          <p className="text-xs text-slate-400 italic">Modulo em construcao.</p>
+          <p className="text-xs text-fg-4 italic">Modulo em construcao.</p>
         </div>
       )}
 
       {activeTab === 'comentarios' && (
-        <div className="animate-fade-in bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-2 mb-6 text-slate-400">
-            <MessageSquare size={18} className="text-primary" />
+        <div className="animate-fade-in bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+          <div className="flex items-center gap-2 mb-6 text-fg-4">
+            <MessageSquare size={18} className="text-accent-primary" />
             <h3 className="text-xs font-bold uppercase tracking-widest">Comentarios Internos</h3>
           </div>
-          <p className="text-xs text-slate-400 italic">Modulo em construcao.</p>
+          <p className="text-xs text-fg-4 italic">Modulo em construcao.</p>
         </div>
       )}
 
       {activeTab === 'oportunidades' && (
-        <div className="animate-fade-in bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-2 mb-6 text-slate-400">
-            <LayoutGrid size={18} className="text-primary" />
+        <div className="animate-fade-in bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+          <div className="flex items-center gap-2 mb-6 text-fg-4">
+            <LayoutGrid size={18} className="text-accent-primary" />
             <h3 className="text-xs font-bold uppercase tracking-widest">Historico de Oportunidades do Cliente</h3>
           </div>
-          <p className="text-xs text-slate-400 italic">Modulo em construcao.</p>
+          <p className="text-xs text-fg-4 italic">Modulo em construcao.</p>
         </div>
       )}
 

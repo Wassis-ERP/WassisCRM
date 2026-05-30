@@ -11,7 +11,7 @@ interface Props {
 }
 
 const baseInput =
-  'w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl text-sm focus:border-primary focus:outline-none font-medium'
+  'w-full px-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium'
 
 /**
  * Modal de cadastro inicial — somente o essencial para identificar a pessoa.
@@ -89,18 +89,18 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-bg-surface w-full max-w-xl rounded-[20px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="px-6 py-5 border-b border-border-1 flex items-center justify-between bg-bg-surface-2">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-xl text-primary">
+            <div className="p-2 bg-accent-primary-soft rounded-[10px] text-accent-primary">
               <UserPlus size={18} />
             </div>
             <div>
-              <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">
+              <h2 className="text-lg font-black text-fg-1 uppercase tracking-tight">
                 Novo Segurado
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-fg-3 mt-0.5">
                 Cadastro inicial. Os demais dados podem ser preenchidos depois.
               </p>
             </div>
@@ -108,7 +108,7 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
           <button
             type="button"
             onClick={handleCancel}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400"
+            className="p-2 hover:bg-bg-surface-3 rounded-full transition-colors text-fg-4"
           >
             <X size={18} />
           </button>
@@ -123,8 +123,8 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
                 onClick={() => handleTipoChange('PF')}
                 className={`px-4 py-3 rounded-xl border text-sm font-bold transition-all ${
                   tipo === 'PF'
-                    ? 'bg-primary text-white border-primary shadow-md shadow-primary/20'
-                    : 'bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-primary/40'
+                    ? 'bg-accent-primary text-fg-on-brand border-accent-primary shadow-[var(--shadow-brand)]'
+                    : 'bg-bg-surface-2 border-border-1 text-fg-2 hover:border-accent-primary/40'
                 }`}
               >
                 Pessoa Física
@@ -134,8 +134,8 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
                 onClick={() => handleTipoChange('PJ')}
                 className={`px-4 py-3 rounded-xl border text-sm font-bold transition-all ${
                   tipo === 'PJ'
-                    ? 'bg-primary text-white border-primary shadow-md shadow-primary/20'
-                    : 'bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-primary/40'
+                    ? 'bg-accent-primary text-fg-on-brand border-accent-primary shadow-[var(--shadow-brand)]'
+                    : 'bg-bg-surface-2 border-border-1 text-fg-2 hover:border-accent-primary/40'
                 }`}
               >
                 Pessoa Jurídica
@@ -148,7 +148,7 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
               error={touched.nome ? nomeErro : null}
             >
               <div className="relative">
-                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                 <input
                   type="text"
                   required
@@ -168,7 +168,7 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
               error={touched.documento ? documentoErro : null}
             >
               <div className="relative">
-                <Shield size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Shield size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                 <input
                   type="text"
                   required
@@ -185,7 +185,7 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Field label="E-mail (opcional)">
                 <div className="relative">
-                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                   <input
                     type="email"
                     value={email}
@@ -198,7 +198,7 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
 
               <Field label="Telefone (opcional)">
                 <div className="relative">
-                  <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                   <input
                     type="text"
                     value={telefone}
@@ -212,7 +212,7 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
 
             {/* LGPD */}
             <Field error={touched.lgpd ? lgpdErro : null}>
-              <label className="flex items-start gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl cursor-pointer">
+              <label className="flex items-start gap-3 px-4 py-3 bg-bg-surface-2 border border-border-1 rounded-[10px] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={lgpdAutorizado}
@@ -220,9 +220,9 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
                     setLgpdAutorizado(e.target.checked)
                     setTouched((t) => ({ ...t, lgpd: true }))
                   }}
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                  className="mt-0.5 h-4 w-4 rounded border-border-2 text-accent-primary focus:ring-accent-primary"
                 />
-                <span className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                <span className="text-xs text-fg-2 leading-relaxed">
                   Confirmo que a pessoa autorizou previamente o uso de seus dados
                   pessoais conforme a LGPD.
                 </span>
@@ -230,23 +230,23 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
             </Field>
           </div>
 
-          <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-[11px] text-slate-500">
-              <ShieldCheck size={14} className="text-primary" />
+          <div className="px-6 py-4 border-t border-border-1 bg-bg-surface-2 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-[11px] text-fg-3">
+              <ShieldCheck size={14} className="text-accent-primary" />
               Você poderá completar o cadastro em seguida.
             </div>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-5 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-xl transition-all"
+                className="px-5 py-2 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[10px] transition-all"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-6 py-2 bg-primary text-white rounded-xl text-sm font-black hover:opacity-90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+                className="px-6 py-2 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black hover:bg-accent-primary-hover transition-all shadow-[var(--shadow-brand)] disabled:opacity-50"
               >
                 {submitting ? 'Salvando…' : 'Criar segurado'}
               </button>
@@ -270,13 +270,13 @@ function Field({
   return (
     <div className="space-y-1.5">
       {label && (
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+        <label className="text-[10px] font-black text-fg-4 uppercase tracking-widest ml-1">
           {label}
         </label>
       )}
       {children}
       {error && (
-        <p className="text-[11px] text-red-600 dark:text-red-400 flex items-center gap-1 ml-1">
+        <p className="text-[11px] text-signal-danger flex items-center gap-1 ml-1">
           <AlertCircle size={12} /> {error}
         </p>
       )}

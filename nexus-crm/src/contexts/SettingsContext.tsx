@@ -33,7 +33,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         type: 'venda',
         steps: [
           { id: '1', name: 'Prospecção', color: 'bg-slate-400' },
-          { id: '2', name: 'Cotação', color: 'bg-primary' },
+          { id: '2', name: 'Cotação', color: 'bg-accent-primary' },
           { id: '3', name: 'Negociação', color: 'bg-amber-500' },
           { id: '4', name: 'Fechamento', color: 'bg-emerald-500' },
         ]

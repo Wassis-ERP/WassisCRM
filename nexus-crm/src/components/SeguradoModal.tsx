@@ -63,7 +63,7 @@ function Section({
 }) {
   return (
     <section className="space-y-4">
-      <div className="flex items-center gap-2 text-primary">
+      <div className="flex items-center gap-2 text-accent-primary">
         <Icon size={16} />
         <h3 className="text-xs font-black uppercase tracking-widest">{title}</h3>
       </div>
@@ -87,23 +87,23 @@ function Field({
 }) {
   return (
     <div className={`space-y-1.5 ${span === 2 ? 'md:col-span-2' : ''}`}>
-      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+      <label className="text-[10px] font-black text-fg-4 uppercase tracking-widest ml-1">
         {label}
       </label>
       {children}
       {error ? (
-        <p className="text-[11px] text-red-600 dark:text-red-400 flex items-center gap-1 ml-1">
+        <p className="text-[11px] text-signal-danger flex items-center gap-1 ml-1">
           <AlertCircle size={12} /> {error}
         </p>
       ) : hint ? (
-        <p className="text-[11px] text-slate-400 ml-1">{hint}</p>
+        <p className="text-[11px] text-fg-4 ml-1">{hint}</p>
       ) : null}
     </div>
   )
 }
 
 const baseInput =
-  'w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl text-sm focus:border-primary focus:outline-none font-medium'
+  'w-full px-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium'
 
 function defaultForm(seg?: Segurado | null): Partial<Segurado> {
   if (seg) {
@@ -218,18 +218,18 @@ export default function SeguradoModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-3xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-bg-surface w-full max-w-3xl rounded-[20px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="px-8 py-6 border-b border-border-1 flex items-center justify-between bg-bg-surface-2">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-xl text-primary">
+            <div className="p-2 bg-accent-primary-soft rounded-[10px] text-accent-primary">
               <User size={20} />
             </div>
             <div>
-              <h2 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">
+              <h2 className="text-xl font-black text-fg-1 uppercase tracking-tight">
                 {segurado ? 'Editar Segurado' : 'Novo Segurado'}
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-fg-3 mt-0.5">
                 Cadastro unificado de pessoa (PF/PJ) — PRD v1.0
               </p>
             </div>
@@ -237,7 +237,7 @@ export default function SeguradoModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400"
+            className="p-2 hover:bg-bg-surface-3 rounded-full transition-colors text-fg-4"
           >
             <X size={20} />
           </button>
@@ -276,7 +276,7 @@ export default function SeguradoModal({
                 error={touched.nome ? nomeErro ?? undefined : undefined}
               >
                 <div className="relative">
-                  <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                   <input
                     type="text"
                     required
@@ -292,7 +292,7 @@ export default function SeguradoModal({
               {tipo === 'PJ' && (
                 <Field label="Nome fantasia" span={2}>
                   <div className="relative">
-                    <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                     <input
                       type="text"
                       value={formData.nomeFantasia ?? ''}
@@ -309,7 +309,7 @@ export default function SeguradoModal({
                 error={touched.documento ? documentoErro ?? undefined : undefined}
               >
                 <div className="relative">
-                  <Shield size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Shield size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                   <input
                     type="text"
                     required
@@ -327,7 +327,7 @@ export default function SeguradoModal({
 
               <Field label="ChatWoot ID">
                 <div className="relative">
-                  <Hash size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Hash size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                   <input
                     type="text"
                     value={formData.chatwootId ?? ''}
@@ -343,7 +343,7 @@ export default function SeguradoModal({
                 span={2}
                 error={touched.lgpd ? lgpdErro ?? undefined : undefined}
               >
-                <label className="flex items-start gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl cursor-pointer">
+                <label className="flex items-start gap-3 px-4 py-3 bg-bg-surface-2 border border-border-1 rounded-[10px] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={!!formData.lgpdAutorizado}
@@ -351,9 +351,9 @@ export default function SeguradoModal({
                       update('lgpdAutorizado', e.target.checked)
                       markTouched('lgpd')
                     }}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                    className="mt-0.5 h-4 w-4 rounded border-border-2 text-accent-primary focus:ring-accent-primary"
                   />
-                  <span className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  <span className="text-xs text-fg-2 leading-relaxed">
                     A pessoa autorizou previamente o uso de seus dados pessoais
                     conforme a LGPD. A data da autorização é registrada
                     automaticamente no momento do cadastro.
@@ -366,7 +366,7 @@ export default function SeguradoModal({
             <Section title="Contato" icon={Phone}>
               <Field label="E-mail">
                 <div className="relative">
-                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                   <input
                     type="email"
                     value={formData.email ?? ''}
@@ -379,7 +379,7 @@ export default function SeguradoModal({
 
               <Field label="Telefone / WhatsApp">
                 <div className="relative">
-                  <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                   <input
                     type="text"
                     value={formData.telefone ?? ''}
@@ -563,7 +563,7 @@ export default function SeguradoModal({
                 </Field>
                 <Field label="Site" span={2}>
                   <div className="relative">
-                    <Globe size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Globe size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                     <input
                       type="url"
                       value={formData.site ?? ''}
@@ -577,23 +577,23 @@ export default function SeguradoModal({
             )}
           </div>
 
-          <div className="px-8 py-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-[11px] text-slate-500">
-              <ShieldCheck size={14} className="text-primary" />
+          <div className="px-8 py-6 border-t border-border-1 bg-bg-surface-2 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-[11px] text-fg-3">
+              <ShieldCheck size={14} className="text-accent-primary" />
               Dados sensíveis tratados conforme LGPD.
             </div>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-xl transition-all"
+                className="px-6 py-2.5 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[10px] transition-all"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-8 py-2.5 bg-primary text-white rounded-xl text-sm font-black hover:opacity-90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+                className="px-8 py-2.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black hover:bg-accent-primary-hover transition-all shadow-[var(--shadow-brand)] disabled:opacity-50"
               >
                 {submitting ? 'Salvando…' : 'Salvar Alterações'}
               </button>
