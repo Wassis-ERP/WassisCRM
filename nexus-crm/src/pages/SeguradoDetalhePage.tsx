@@ -14,6 +14,12 @@ import {
   useDeletePessoaContato,
 } from '../hooks/useSegurados'
 import type { PessoaContato, Segurado } from '../contexts/seguradosCore'
+import {
+  useOportunidadesBySegurado,
+  useApolicesBySegurado,
+  type OportunidadeResumo,
+  type ApoliceResumo,
+} from '../hooks/useSeguradoNegocios'
 import { mapSeguradoRowToView, partialSeguradoToUpdate } from '../lib/seguradoMapper'
 import SeguradoModal from '../components/SeguradoModal'
 import PessoaContatoModal, { type PessoaContatoFormValue } from '../components/PessoaContatoModal'
@@ -83,6 +89,8 @@ export default function SeguradoDetalhePage() {
   const deleteVinculo = useDeletePessoaContato()
 
   const tabsState = useEntityTabsState(id)
+  const { data: oportunidades = [] } = useOportunidadesBySegurado(id)
+  const { data: apolices = [] } = useApolicesBySegurado(id)
 
   if (!id) {
     return (
@@ -285,6 +293,9 @@ export default function SeguradoDetalhePage() {
             tarefas={tabsState.tarefas}
             observacoes={tabsState.observacoes}
             logs={tabsState.logs}
+            oportunidades={oportunidades}
+            apolices={apolices}
+            onOpenOportunidade={(oppId) => navigate(`/oportunidades/${oppId}`)}
             onGoTab={setTab}
           />
         )}
@@ -354,6 +365,9 @@ function TabVisaoGeral({
   tarefas,
   observacoes,
   logs,
+  oportunidades,
+  apolices,
+  onOpenOportunidade,
   onGoTab,
 }: {
   s: Segurado
@@ -361,6 +375,9 @@ function TabVisaoGeral({
   tarefas: import('../components/detail/types').Tarefa[]
   observacoes: import('../components/detail/types').Observacao[]
   logs: import('../components/detail/types').LogEntry[]
+  oportunidades: OportunidadeResumo[]
+  apolices: ApoliceResumo[]
+  onOpenOportunidade: (id: string) => void
   onGoTab: (t: TabId) => void
 }) {
   const isPJ = s.tipo === 'PJ'
@@ -401,10 +418,48 @@ function TabVisaoGeral({
           </DetailCard>
         )}
 
-        <DetailCard title="Oportunidades de venda" icon={TrendingUp}>
-          <p className="text-sm text-fg-3 italic">
-            Não há oportunidades ativas para este segurado no momento.
-          </p>
+        <DetailCard
+          title="Apólices & oportunidades"
+          icon={TrendingUp}
+          action={
+            oportunidades.length + apolices.length > 0 ? (
+              <span className="text-xs font-semibold text-fg-4">
+                {oportunidades.length + apolices.length} vínculo(s)
+              </span>
+            ) : undefined
+          }
+        >
+          {oportunidades.length === 0 && apolices.length === 0 ? (
+            <p className="text-sm text-fg-3 italic">
+              Não há apólices ou oportunidades vinculadas a este segurado no momento.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {apolices.map((a) => (
+                <NegocioRow
+                  key={`ap-${a.id}`}
+                  titulo={a.numero ? `Apólice ${a.numero}` : 'Apólice'}
+                  ramo={a.ramo}
+                  seguradora={a.seguradora}
+                  premio={a.premio}
+                  badge={{ texto: a.status ?? 'Vigente', tone: 'success' }}
+                  vencimento={a.vigenciaFim}
+                />
+              ))}
+              {oportunidades.map((o) => (
+                <NegocioRow
+                  key={`op-${o.id}`}
+                  titulo={o.ramo ? `${o.ramo} — ${o.nome}` : o.nome}
+                  ramo={o.ramo}
+                  seguradora={o.seguradora}
+                  premio={o.premio}
+                  badge={OPP_BADGE[o.status]}
+                  vencimento={o.vigenciaFim}
+                  onClick={() => onOpenOportunidade(o.id)}
+                />
+              ))}
+            </div>
+          )}
         </DetailCard>
 
         <DetailCard
@@ -535,6 +590,67 @@ function TabVisaoGeral({
       </div>
     </div>
   )
+}
+
+const OPP_BADGE: Record<OportunidadeResumo['status'], { texto: string; tone: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }> = {
+  pending: { texto: 'Em andamento', tone: 'info' },
+  won: { texto: 'Ganha', tone: 'success' },
+  lost: { texto: 'Perdida', tone: 'neutral' },
+}
+
+function formatBRL(value?: number | null): string | null {
+  if (value == null) return null
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+}
+
+function NegocioRow({
+  titulo,
+  ramo,
+  seguradora,
+  premio,
+  badge,
+  vencimento,
+  onClick,
+}: {
+  titulo: string
+  ramo?: string | null
+  seguradora?: string | null
+  premio?: number | null
+  badge: { texto: string; tone: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }
+  vencimento?: string | null
+  onClick?: () => void
+}) {
+  const premioFmt = formatBRL(premio)
+  const inner = (
+    <>
+      <span className="w-9 h-9 rounded-lg bg-accent-primary-soft text-accent-primary flex items-center justify-center shrink-0">
+        <ShieldCheck size={18} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-fg-1 truncate">{titulo}</p>
+        <p className="text-xs text-fg-4 truncate">
+          {[seguradora, ramo].filter(Boolean).join(' · ') || '—'}
+        </p>
+      </div>
+      <div className="text-right shrink-0">
+        {premioFmt && <p className="text-sm font-semibold text-fg-1">{premioFmt}</p>}
+        {vencimento ? (
+          <p className="text-xs text-fg-4">vence {fmtDate(vencimento)}</p>
+        ) : (
+          <StatusBadge status={badge.texto} tone={badge.tone} dot={false} />
+        )}
+      </div>
+    </>
+  )
+  const base = 'w-full flex items-center gap-3 px-4 py-3 bg-bg-surface-2 rounded-xl text-left'
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={`${base} hover:bg-bg-surface-3 transition-colors cursor-pointer`}>
+        {inner}
+      </button>
+    )
+  }
+  return <div className={base}>{inner}</div>
 }
 
 function ContatoLinha({
