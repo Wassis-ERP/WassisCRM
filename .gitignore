@@ -20,3 +20,5 @@ pnpm-debug.log*
 .context/
 .cursor/
 __pycache__/
+.planos/
+.screens/
