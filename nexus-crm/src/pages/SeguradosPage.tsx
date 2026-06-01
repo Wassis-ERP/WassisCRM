@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, UserPlus, Edit, Loader2, Building2, User } from 'lucide-react'
+import { Search, UserPlus, Edit, Eye, Loader2, Building2, User, Users } from 'lucide-react'
 import { useSegurados, useCreateSegurado, useUpdateSegurado } from '../hooks/useSegurados'
 import type { Segurado, StatusPessoa } from '../contexts/seguradosCore'
 import {
@@ -10,16 +10,10 @@ import {
 } from '../lib/seguradoMapper'
 import SeguradoModal from '../components/SeguradoModal'
 import NovoSeguradoModal from '../components/NovoSeguradoModal'
+import { StatusBadge } from '../components/detail/primitives'
 
 type TipoFilter = 'Todos' | 'PF' | 'PJ'
 type StatusFilter = 'Todos' | StatusPessoa
-
-// Status sempre via tokens --signal-* (nunca cor de ramo).
-const STATUS_BADGE: Record<StatusPessoa, string> = {
-  Ativo: 'bg-signal-success/15 text-signal-success',
-  Inativo: 'bg-bg-surface-3 text-fg-3',
-  Prospecto: 'bg-signal-warning/15 text-signal-warning',
-}
 
 /**
  * Página de listagem de Segurados (entidade unificada PF/PJ, PRD v1.0).
@@ -102,6 +96,9 @@ export default function SeguradosPage() {
     <div className="animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
         <div>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-accent-primary mb-1">
+            Cadastro unificado
+          </p>
           <h1 className="text-3xl font-bold mb-2">Segurados</h1>
           <p className="text-fg-3">
             Cadastro unificado de pessoas (PF/PJ). Gerencie clientes, prospects e contatos.
@@ -193,10 +190,20 @@ export default function SeguradosPage() {
               <tbody className="divide-y divide-border-1">
                 {filteredSegurados.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-sm text-fg-3">
-                      {total === 0
-                        ? 'Nenhum segurado cadastrado. Use «Novo Segurado» para incluir o primeiro.'
-                        : 'Nenhum resultado para os filtros aplicados.'}
+                    <td colSpan={7} className="px-6 py-14 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-12 h-12 rounded-[12px] bg-bg-surface-2 text-fg-4 flex items-center justify-center">
+                          <Users size={24} />
+                        </div>
+                        <p className="text-sm font-semibold text-fg-2">
+                          {total === 0 ? 'Nenhum segurado cadastrado' : 'Nenhum resultado encontrado'}
+                        </p>
+                        <p className="text-xs text-fg-4">
+                          {total === 0
+                            ? 'Use «Novo Segurado» para incluir o primeiro cadastro.'
+                            : 'Ajuste a busca ou os filtros para ver outros cadastros.'}
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -228,11 +235,7 @@ export default function SeguradosPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`px-2.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-wide ${STATUS_BADGE[s.status]}`}
-                        >
-                          {s.status}
-                        </span>
+                        <StatusBadge status={s.status} />
                       </td>
                       <td className="px-6 py-4 text-xs text-fg-2">
                         <p>{s.email || <span className="italic text-fg-4">sem e-mail</span>}</p>
@@ -266,16 +269,30 @@ export default function SeguradosPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button
-                          type="button"
-                          className="p-2 text-fg-4 hover:text-accent-primary transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleOpenEdit(s)
-                          }}
-                        >
-                          <Edit size={16} />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            title="Ver detalhes"
+                            className="p-2 text-fg-4 hover:text-accent-primary transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              navigate(`/segurados/${s.id}`)
+                            }}
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            title="Editar cadastro"
+                            className="p-2 text-fg-4 hover:text-accent-primary transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleOpenEdit(s)
+                            }}
+                          >
+                            <Edit size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))

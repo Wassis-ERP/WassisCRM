@@ -7,6 +7,7 @@ import './index.css'
 import App from './App'
 import { AuthProvider } from './contexts/AuthContext'
 import { SettingsProvider } from './contexts/SettingsContext'
+import { PropostasProvider } from './contexts/PropostasContext'
 import { queryClient } from './lib/queryClient'
 
 // Modo "frontend puro": estado em memória, sem backend.
@@ -18,7 +19,9 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <AuthProvider>
           <SettingsProvider>
-            <App />
+            <PropostasProvider>
+              <App />
+            </PropostasProvider>
           </SettingsProvider>
         </AuthProvider>
       </BrowserRouter>

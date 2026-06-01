@@ -81,6 +81,38 @@ export function getDateStatus(value: unknown): DateStatus | null {
   return 'future'
 }
 
+/** Apresentação curta pt-BR: `dd/mm/aaaa`. Vazio → '—'. */
+export function fmtDate(value: unknown): string {
+  const d = parseDateAny(value)
+  if (!d) return '—'
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+/**
+ * Apresentação data + hora pt-BR: `12 mai 2026 · 14:30`.
+ * Usa o valor original (não normalizado à meia-noite) para preservar a hora.
+ */
+export function fmtDateTime(value: unknown): string {
+  if (!value) return '—'
+  const raw = typeof value === 'string' ? value.trim() : value
+  const d = raw instanceof Date ? raw : new Date(raw as string)
+  if (Number.isNaN(d.getTime())) return '—'
+  return (
+    d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) +
+    ' · ' +
+    d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  )
+}
+
+/** Dias (cheios) até a data informada. Negativo = no passado. Null se inválida. */
+export function relativeDays(value: unknown): number | null {
+  const d = parseDateAny(value)
+  if (!d) return null
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return Math.round((d.getTime() - today.getTime()) / 86_400_000)
+}
+
 export function isWithinRange(dateValue: unknown, startIso: unknown, endIso: unknown): boolean {
   const ts = startOfDayTs(dateValue)
   if (ts == null) return false
