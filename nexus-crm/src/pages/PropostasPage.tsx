@@ -8,46 +8,18 @@ import {
   Shield,
   RefreshCcw,
   Calendar,
-  ChevronDown,
-  ChevronRight,
-  Edit,
   List,
   Kanban,
   X,
 } from 'lucide-react'
+import type { Proposal, ProposalStatus, ProposalType } from '../types/proposta'
+import { usePropostas } from '../contexts/usePropostas'
+import { PropostasListView } from '../components/propostas/PropostasListView'
+import { initials } from '../components/propostas/propostaFormat'
 
 /* =========================================================================
  * Tipos
  * ========================================================================= */
-
-type ProposalStatus =
-  | 'Em Análise'
-  | 'Pendente'
-  | 'Pendência Resolvida'
-  | 'Proposta Emitida'
-  | 'Vigente'
-  | 'Renovada'
-  | 'Endossada'
-  | 'Cancelada'
-  | 'Recusada'
-  | 'Não renovada'
-
-type ProposalType = 'Proposta' | 'Renovação' | 'Endosso'
-
-interface Proposal {
-  id: string
-  insured: string
-  branch: string
-  status: ProposalStatus
-  currentStatus?: ProposalStatus
-  proposalType: ProposalType
-  producer: { name: string; avatarUrl?: string }
-  insurer: string
-  policyNumber?: string
-  vigenciaInicial?: string // ISO
-  vigenciaFinal?: string // ISO
-  details?: { model?: string; brand?: string; year?: string; plate?: string; chassis?: string }
-}
 
 interface CustomProposalStatus {
   id: string
@@ -59,127 +31,11 @@ interface CustomProposalStatus {
 type CardKey = 'emAndamento' | 'vigentes' | 'renovacoesPendentes' | 'renovacoes30d' | null
 
 /* =========================================================================
- * Dados mock (modo frontend puro)
+ * Constantes
  * ========================================================================= */
 
+// Referência "hoje" para os cálculos de vigência/contagem dos cards.
 const today = new Date()
-const iso = (offsetDays: number) => {
-  const d = new Date(today)
-  d.setDate(d.getDate() + offsetDays)
-  return d.toISOString().slice(0, 10)
-}
-
-const MOCK_PROPOSALS: Proposal[] = [
-  {
-    id: 'P-0001',
-    insured: 'Leonardo Perboni',
-    branch: 'Auto',
-    status: 'Em Análise',
-    proposalType: 'Proposta',
-    producer: { name: 'Vinícius Assis' },
-    insurer: 'Porto Seguro',
-    vigenciaInicial: iso(10),
-    vigenciaFinal: iso(375),
-    details: { model: 'Corolla XEi', brand: 'Toyota', year: '2024', plate: 'ABC-1D23', chassis: '9BR53ZEC...' },
-  },
-  {
-    id: 'P-0002',
-    insured: 'Mario Sgarbi',
-    branch: 'Vida',
-    status: 'Pendente',
-    proposalType: 'Proposta',
-    producer: { name: 'Hicila Fernandes' },
-    insurer: 'Bradesco Seguros',
-    vigenciaInicial: iso(2),
-    vigenciaFinal: iso(367),
-  },
-  {
-    id: 'P-0003',
-    insured: '1001 Indústria Ltda.',
-    branch: 'Empresarial',
-    status: 'Pendência Resolvida',
-    proposalType: 'Renovação',
-    producer: { name: 'Carlos Santos' },
-    insurer: 'Allianz',
-    vigenciaInicial: iso(-360),
-    vigenciaFinal: iso(5),
-  },
-  {
-    id: 'P-0004',
-    insured: 'Ana Silva',
-    branch: 'Residencial',
-    status: 'Proposta Emitida',
-    currentStatus: 'Vigente',
-    proposalType: 'Proposta',
-    producer: { name: 'Marina Costa' },
-    insurer: 'Tokio Marine',
-    policyNumber: 'AP-77821',
-    vigenciaInicial: iso(-30),
-    vigenciaFinal: iso(335),
-  },
-  {
-    id: 'P-0005',
-    insured: 'Edmilson Giovani',
-    branch: 'Auto',
-    status: 'Vigente',
-    currentStatus: 'Vigente',
-    proposalType: 'Proposta',
-    producer: { name: 'Roberto Lima' },
-    insurer: 'Porto Seguro',
-    policyNumber: 'AP-77900',
-    vigenciaInicial: iso(-200),
-    vigenciaFinal: iso(165),
-    details: { model: 'HB20', brand: 'Hyundai', year: '2022', plate: 'XYZ-9K11' },
-  },
-  {
-    id: 'P-0006',
-    insured: 'Construtora Beta S/A',
-    branch: 'RC Profissional',
-    status: 'Renovada',
-    currentStatus: 'Vigente',
-    proposalType: 'Renovação',
-    producer: { name: 'Vinícius Assis' },
-    insurer: 'Mapfre',
-    policyNumber: 'AP-77450',
-    vigenciaInicial: iso(-10),
-    vigenciaFinal: iso(355),
-  },
-  {
-    id: 'P-0007',
-    insured: 'Joana Pereira',
-    branch: 'Auto',
-    status: 'Pendente',
-    proposalType: 'Renovação',
-    producer: { name: 'Hicila Fernandes' },
-    insurer: 'Liberty',
-    vigenciaInicial: iso(-355),
-    vigenciaFinal: iso(15),
-  },
-  {
-    id: 'P-0008',
-    insured: 'Mecânica Central Ltda.',
-    branch: 'Empresarial',
-    status: 'Endossada',
-    currentStatus: 'Vigente',
-    proposalType: 'Endosso',
-    producer: { name: 'Marina Costa' },
-    insurer: 'Allianz',
-    policyNumber: 'AP-77001',
-    vigenciaInicial: iso(-150),
-    vigenciaFinal: iso(28),
-  },
-  {
-    id: 'P-0009',
-    insured: 'Café & Cia ME',
-    branch: 'Empresarial',
-    status: 'Cancelada',
-    proposalType: 'Proposta',
-    producer: { name: 'Carlos Santos' },
-    insurer: 'Tokio Marine',
-    vigenciaInicial: iso(-90),
-    vigenciaFinal: iso(275),
-  },
-]
 
 // Status do funil de propostas — sempre via tokens --signal-* / accent (nunca ramo).
 const CUSTOM_STATUSES: CustomProposalStatus[] = [
@@ -189,18 +45,6 @@ const CUSTOM_STATUSES: CustomProposalStatus[] = [
   { id: 's4', name: 'Proposta Emitida', color: 'bg-signal-success', order: 4 },
 ]
 
-const STATUS_BADGE: Record<string, string> = {
-  Vigente: 'bg-signal-success/15 text-signal-success',
-  Renovada: 'bg-signal-success/15 text-signal-success',
-  Endossada: 'bg-signal-success/15 text-signal-success',
-  Cancelada: 'bg-signal-danger/15 text-signal-danger',
-  Recusada: 'bg-signal-danger/15 text-signal-danger',
-  'Não renovada': 'bg-bg-surface-3 text-fg-3',
-  'Em Análise': 'bg-signal-warning/15 text-signal-warning',
-  Pendente: 'bg-signal-warning/15 text-signal-warning',
-  'Pendência Resolvida': 'bg-accent-primary-soft text-accent-primary',
-  'Proposta Emitida': 'bg-accent-primary-soft text-accent-primary',
-}
 
 /* =========================================================================
  * Página
@@ -235,7 +79,7 @@ const INITIAL_FILTERS: FilterValues = {
 }
 
 export default function PropostasPage() {
-  const [proposals, setProposals] = useState<Proposal[]>(MOCK_PROPOSALS)
+  const { proposals, setProposalStatus } = usePropostas()
   const [filters, setFilters] = useState<FilterValues>(INITIAL_FILTERS)
   const [viewMode, setViewMode] = useState<'Lista' | 'Kanban'>('Lista')
   const [activeCard, setActiveCard] = useState<CardKey>(null)
@@ -321,7 +165,7 @@ export default function PropostasPage() {
 
   /* ---- Kanban: drop ---- */
   const onCardDrop = (proposalId: string, newStatus: ProposalStatus) => {
-    setProposals(prev => prev.map(p => (p.id === proposalId ? { ...p, status: newStatus } : p)))
+    setProposalStatus(proposalId, newStatus)
   }
 
   /* ---- Cards definição ---- */
@@ -490,7 +334,7 @@ export default function PropostasPage() {
         </div>
 
         {viewMode === 'Lista' ? (
-          <ListView
+          <PropostasListView
             proposals={filtered}
             expanded={expanded}
             onToggleExpand={id => {
@@ -517,124 +361,6 @@ export default function PropostasPage() {
           options={{ branches, insurers, insureds, producers, statuses, proposalTypes }}
         />
       )}
-    </div>
-  )
-}
-
-/* =========================================================================
- * Lista
- * ========================================================================= */
-
-function ListView({
-  proposals,
-  expanded,
-  onToggleExpand,
-}: {
-  proposals: Proposal[]
-  expanded: Set<string>
-  onToggleExpand: (id: string) => void
-}) {
-  if (proposals.length === 0) {
-    return <div className="p-12 text-center text-sm text-fg-4">Nenhuma proposta encontrada com os filtros atuais.</div>
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      {/* Cabeçalho */}
-      <div className="grid grid-cols-12 gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-fg-4 border-b border-border-1">
-        <div className="col-span-3">Segurado</div>
-        <div className="col-span-2">Ramo</div>
-        <div className="col-span-2">Status</div>
-        <div className="col-span-2">Produtor</div>
-        <div className="col-span-2">Seguradora</div>
-        <div className="col-span-1 text-right">Ações</div>
-      </div>
-      {proposals.map(p => {
-        const isOpen = expanded.has(p.id)
-        const effectiveStatus = p.currentStatus ?? p.status
-        return (
-          <div key={p.id} className="border-b border-border-1 last:border-b-0">
-            <div className="grid grid-cols-12 gap-3 px-4 py-3 items-center text-sm hover:bg-bg-surface-2">
-              <div className="col-span-3">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => onToggleExpand(p.id)}
-                    className="text-fg-4 hover:text-fg-2"
-                    aria-label="Expandir"
-                  >
-                    {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                  </button>
-                  <div>
-                    <a className="font-semibold text-fg-1 hover:text-accent-primary cursor-pointer">
-                      {p.insured}
-                    </a>
-                    <p className="text-xs text-fg-4">
-                      {p.vigenciaInicial && p.vigenciaFinal
-                        ? `Vigência: ${fmtDate(p.vigenciaInicial)} → ${fmtDate(p.vigenciaFinal)}`
-                        : '—'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="col-span-2 text-fg-2">{p.branch}</div>
-              <div className="col-span-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-fg-3">{p.proposalType}</span>
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold w-fit ${
-                      STATUS_BADGE[effectiveStatus] ?? 'bg-bg-surface-3 text-fg-3'
-                    }`}
-                  >
-                    {effectiveStatus}
-                  </span>
-                </div>
-              </div>
-              <div className="col-span-2 flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-accent-primary-soft text-accent-primary text-xs font-bold flex items-center justify-center">
-                  {initials(p.producer.name)}
-                </div>
-                <span className="text-fg-2 text-sm truncate">{p.producer.name}</span>
-              </div>
-              <div className="col-span-2 flex items-center gap-2">
-                <div className="w-7 h-7 rounded bg-bg-surface-2 text-fg-3 text-[10px] font-bold flex items-center justify-center">
-                  {initials(p.insurer)}
-                </div>
-                <span className="text-fg-2 text-sm truncate">{p.insurer}</span>
-              </div>
-              <div className="col-span-1 flex justify-end">
-                <button
-                  onClick={() => alert(`Abrir ProposalDetails: ${p.id}`)}
-                  className="p-1.5 rounded-[10px] hover:bg-bg-surface-2 text-fg-3"
-                  aria-label="Editar"
-                >
-                  <Edit size={16} />
-                </button>
-              </div>
-            </div>
-            {isOpen && (
-              <div className="px-12 pb-4 grid grid-cols-2 md:grid-cols-3 gap-3 text-xs text-fg-2">
-                <Detail label="Modelo" value={p.details?.model} />
-                <Detail label="Marca" value={p.details?.brand} />
-                <Detail label="Ano" value={p.details?.year} />
-                <Detail label="Placa" value={p.details?.plate} />
-                <Detail label="Chassi" value={p.details?.chassis} />
-                <Detail label="Apólice" value={p.policyNumber} />
-                <Detail label="Vigência Inicial" value={p.vigenciaInicial && fmtDate(p.vigenciaInicial)} />
-                <Detail label="Vigência Final" value={p.vigenciaFinal && fmtDate(p.vigenciaFinal)} />
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function Detail({ label, value }: { label: string; value?: string }) {
-  return (
-    <div>
-      <p className="text-[10px] font-bold uppercase text-fg-4 tracking-wider">{label}</p>
-      <p>{value || '—'}</p>
     </div>
   )
 }
@@ -862,23 +588,4 @@ function NumberField({ label, value, onChange }: { label: string; value: string;
       />
     </div>
   )
-}
-
-/* =========================================================================
- * Utils
- * ========================================================================= */
-
-function initials(name: string) {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(s => s[0]?.toUpperCase())
-    .join('')
-}
-
-function fmtDate(iso: string) {
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return iso
-  return d.toLocaleDateString('pt-BR')
 }

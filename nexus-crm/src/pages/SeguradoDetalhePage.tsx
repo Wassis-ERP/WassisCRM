@@ -32,6 +32,8 @@ import TarefasTab from '../components/detail/tabs/TarefasTab'
 import CamposPersonalizadosTab from '../components/detail/tabs/CamposPersonalizadosTab'
 import AnexosLogsTab from '../components/detail/tabs/AnexosLogsTab'
 import ObservacoesTab from '../components/detail/tabs/ObservacoesTab'
+import ApolicesTab from '../components/detail/tabs/ApolicesTab'
+import { usePropostas } from '../contexts/usePropostas'
 
 const ESTADO_CIVIL_LABEL: Record<NonNullable<Segurado['estadoCivil']>, string> = {
   Solteiro: 'Solteiro(a)',
@@ -53,7 +55,7 @@ const SEXO_LABEL: Record<NonNullable<Segurado['sexo']>, string> = {
   Outro: 'Outro',
 }
 
-type TabId = 'visao' | 'cadastrais' | 'corretora' | 'tarefas' | 'personalizados' | 'anexos' | 'observacoes'
+type TabId = 'visao' | 'apolices' | 'cadastrais' | 'corretora' | 'tarefas' | 'personalizados' | 'anexos' | 'observacoes'
 
 function enderecoFormatado(s: Segurado): string {
   const linha1 = [s.logradouro, s.numero].filter(Boolean).join(', ')
@@ -91,6 +93,8 @@ export default function SeguradoDetalhePage() {
   const tabsState = useEntityTabsState(id)
   const { data: oportunidades = [] } = useOportunidadesBySegurado(id)
   const { data: apolices = [] } = useApolicesBySegurado(id)
+  const { proposals } = usePropostas()
+  const apolicesCount = useMemo(() => proposals.filter((p) => p.seguradoId === id).length, [proposals, id])
 
   if (!id) {
     return (
@@ -171,6 +175,7 @@ export default function SeguradoDetalhePage() {
   const pendentes = tabsState.tarefas.filter((t) => t.status !== 'Concluída').length
   const tabs: EntityTab<TabId>[] = [
     { id: 'visao', label: 'Visão geral' },
+    { id: 'apolices', label: 'Apólices', badge: apolicesCount || undefined },
     { id: 'cadastrais', label: 'Dados cadastrais' },
     { id: 'corretora', label: 'Controle da corretora' },
     { id: 'tarefas', label: 'Tarefas', badge: pendentes || undefined },
@@ -299,6 +304,7 @@ export default function SeguradoDetalhePage() {
             onGoTab={setTab}
           />
         )}
+        {tab === 'apolices' && <ApolicesTab seguradoId={id} />}
         {tab === 'cadastrais' && (
           <TabCadastrais
             s={segurado}
