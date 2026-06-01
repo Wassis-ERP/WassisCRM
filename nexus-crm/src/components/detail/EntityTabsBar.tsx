@@ -24,7 +24,7 @@ export function EntityTabsBar<Id extends string = string>({
     <div
       role="tablist"
       aria-label="Seções do cadastro"
-      className="flex items-center gap-1 overflow-x-auto border-b border-border-1 mb-6"
+      className="flex items-center gap-1 overflow-x-auto overflow-y-hidden border-b border-border-1 mb-6"
     >
       {tabs.map((t) => {
         const isActive = t.id === active
