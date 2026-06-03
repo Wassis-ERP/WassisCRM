@@ -1,0 +1,66 @@
+name: Publish CRM Image
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Container image tag"
+        required: true
+        default: "hml"
+      api_base_url:
+        description: "WAssisBE API base URL baked into the CRM build"
+        required: true
+        default: "https://api20-hml.wassis.com.br"
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/wassis-erp/wassis-crm
+  HML_API_BASE_URL: https://api20-hml.wassis.com.br
+
+jobs:
+  publish:
+    name: Build and Push CRM Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image metadata
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+            echo "api_base_url=${{ inputs.api_base_url }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=hml" >> "$GITHUB_OUTPUT"
+            echo "api_base_url=${{ env.HML_API_BASE_URL }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./nexus-crm/Dockerfile
+          push: true
+          build-args: |
+            VITE_API_BASE_URL=${{ steps.meta.outputs.api_base_url }}
+            VITE_AUTH_MODE=backend
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
