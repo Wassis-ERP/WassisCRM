@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  app:
+    image: ghcr.io/wassis-erp/wassis-crm:latest
+    networks:
+      - WassisNet
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=WassisNet"
+        - "traefik.http.routers.crm20.rule=Host(`crm20.wassis.com.br`)"
+        - "traefik.http.routers.crm20.entrypoints=websecure"
+        - "traefik.http.routers.crm20.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.crm20.service=crm20"
+        - "traefik.http.services.crm20.loadbalancer.passHostHeader=true"
+        - "traefik.http.services.crm20.loadbalancer.server.port=80"
+
+networks:
+  WassisNet:
+    external: true

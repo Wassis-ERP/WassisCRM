@@ -5,10 +5,14 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Container image tag"
+      environment:
+        description: "Target environment"
         required: true
         default: "hml"
+        type: choice
+        options:
+          - hml
+          - prod
       api_base_url:
         description: "WAssisBE API base URL baked into the CRM build"
         required: true
@@ -21,10 +25,11 @@ permissions:
 env:
   IMAGE_NAME: ghcr.io/wassis-erp/wassis-crm
   HML_API_BASE_URL: https://api20-hml.wassis.com.br
+  PROD_API_BASE_URL: https://api20.wassis.com.br
 
 jobs:
   publish:
-    name: Build and Push CRM Image
+    name: Build, Push and Redeploy CRM Image
     runs-on: ubuntu-latest
 
     steps:
@@ -33,13 +38,23 @@ jobs:
 
       - name: Set image metadata
         id: meta
+        env:
+          HML_WEBHOOK_URL: ${{ secrets.PORTAINER_CRM_HML_WEBHOOK_URL }}
+          PROD_WEBHOOK_URL: ${{ secrets.PORTAINER_CRM_PROD_WEBHOOK_URL }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
             echo "api_base_url=${{ inputs.api_base_url }}" >> "$GITHUB_OUTPUT"
+            if [ "${{ inputs.environment }}" = "prod" ]; then
+              echo "tag=latest" >> "$GITHUB_OUTPUT"
+              echo "webhook_url=${PROD_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
+            else
+              echo "tag=hml" >> "$GITHUB_OUTPUT"
+              echo "webhook_url=${HML_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "tag=hml" >> "$GITHUB_OUTPUT"
             echo "api_base_url=${{ env.HML_API_BASE_URL }}" >> "$GITHUB_OUTPUT"
+            echo "webhook_url=${HML_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set up Docker Buildx
@@ -64,3 +79,7 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Trigger Portainer redeploy
+        if: steps.meta.outputs.webhook_url != ''
+        run: curl -fsSL -X POST "${{ steps.meta.outputs.webhook_url }}"
