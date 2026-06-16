@@ -1,7 +1,14 @@
 const BACKEND_ACCESS_TOKEN_KEY = 'wassis.backend.accessToken';
 const BACKEND_SESSION_KEY = 'wassis.backend.session';
+const BACKEND_LAST_ACTIVITY_KEY = 'wassis.backend.lastActivityAt';
+const DEFAULT_IDLE_TIMEOUT_MINUTES = 120;
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '');
+const configuredIdleTimeoutMinutes = Number(import.meta.env.VITE_BACKEND_IDLE_TIMEOUT_MINUTES);
+const BACKEND_IDLE_TIMEOUT_MINUTES = Number.isFinite(configuredIdleTimeoutMinutes)
+  ? configuredIdleTimeoutMinutes
+  : DEFAULT_IDLE_TIMEOUT_MINUTES;
+const BACKEND_IDLE_TIMEOUT_MS = BACKEND_IDLE_TIMEOUT_MINUTES * 60 * 1000;
 
 type BackendRoles = string[];
 
@@ -52,6 +59,16 @@ function readJson<T>(key: string): T | null {
     localStorage.removeItem(key);
     return null;
   }
+}
+
+function isExpired(expiresAtUtc: string) {
+  const expiresAt = Date.parse(expiresAtUtc);
+  return Number.isNaN(expiresAt) || expiresAt <= Date.now();
+}
+
+function isIdleTimedOut() {
+  const lastActivityAt = Number(localStorage.getItem(BACKEND_LAST_ACTIVITY_KEY));
+  return !Number.isFinite(lastActivityAt) || Date.now() - lastActivityAt > BACKEND_IDLE_TIMEOUT_MS;
 }
 
 function asRecord(raw: unknown): Record<string, unknown> {
@@ -137,6 +154,7 @@ export async function loginToBackend(username: string, password: string): Promis
   const snapshot: BackendSessionSnapshot = { ...result, username };
   localStorage.setItem(BACKEND_ACCESS_TOKEN_KEY, result.accessToken);
   localStorage.setItem(BACKEND_SESSION_KEY, JSON.stringify(snapshot));
+  markBackendActivity();
 
   return result;
 }
@@ -146,7 +164,15 @@ export function getBackendAccessToken(): string | null {
 }
 
 export function getBackendSessionSnapshot(): BackendSessionSnapshot | null {
-  return readJson<BackendSessionSnapshot>(BACKEND_SESSION_KEY);
+  const snapshot = readJson<BackendSessionSnapshot>(BACKEND_SESSION_KEY);
+  if (!snapshot) return null;
+
+  if (isExpired(snapshot.expiresAtUtc) || isIdleTimedOut()) {
+    clearBackendSession();
+    return null;
+  }
+
+  return snapshot;
 }
 
 export async function getBackendCurrentUser(): Promise<BackendCurrentUser | null> {
@@ -165,4 +191,11 @@ export async function getBackendCurrentUser(): Promise<BackendCurrentUser | null
 export function clearBackendSession() {
   localStorage.removeItem(BACKEND_ACCESS_TOKEN_KEY);
   localStorage.removeItem(BACKEND_SESSION_KEY);
+  localStorage.removeItem(BACKEND_LAST_ACTIVITY_KEY);
+}
+
+export function markBackendActivity() {
+  if (localStorage.getItem(BACKEND_ACCESS_TOKEN_KEY)) {
+    localStorage.setItem(BACKEND_LAST_ACTIVITY_KEY, Date.now().toString());
+  }
 }

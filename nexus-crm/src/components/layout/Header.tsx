@@ -1,4 +1,4 @@
-import { LogOut, Search } from 'lucide-react'
+import { Building2, LogOut, Search } from 'lucide-react'
 import { useState } from 'react'
 import ProfileModal from './ProfileModal'
 import { useAuth } from '../../hooks/useAuth'
@@ -9,7 +9,7 @@ import { useAuth } from '../../hooks/useAuth'
  */
 export default function Header() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
-  const { user, signOut } = useAuth()
+  const { activeBranchId, setActiveBranchId, user, signOut } = useAuth()
   const displayName = user?.fullName || user?.email || 'Usuario'
   const initials = displayName
     .split(/\s+|@/)
@@ -18,6 +18,10 @@ export default function Header() {
     .map((part) => part[0]?.toUpperCase())
     .join('')
   const roleLabel = user?.role === 'admin' ? 'Administrador' : user?.role === 'vendedor' ? 'Vendedor' : 'Visualizador'
+  const branchIds = Array.from(new Set([user?.branchId, ...(user?.branchIds ?? [])].filter(Boolean))) as string[]
+  const canSelectAllBranches = user?.hasAllBranchesAccess === true
+  const canSwitchBranch = canSelectAllBranches || branchIds.length > 1
+  const activeBranchLabel = activeBranchId ? formatBranchLabel(activeBranchId) : 'Todas as filiais'
 
   return (
     <>
@@ -34,6 +38,33 @@ export default function Header() {
 
         {/* Ações do Usuário */}
         <div className="flex items-center gap-4 ml-8">
+          {canSwitchBranch ? (
+            <label className="hidden md:flex items-center gap-2 h-10 px-3 bg-bg-surface-2 border border-border-1 rounded-full text-sm text-fg-2">
+              <Building2 size={16} className="text-fg-4 shrink-0" />
+              <select
+                value={activeBranchId ?? '__all__'}
+                onChange={(event) => setActiveBranchId(event.target.value === '__all__' ? null : event.target.value)}
+                className="max-w-44 bg-transparent text-fg-1 text-sm font-semibold focus:outline-none"
+                aria-label="Filial ativa"
+                title="Filial ativa"
+              >
+                {canSelectAllBranches ? <option value="__all__">Todas as filiais</option> : null}
+                {branchIds.map((branchId) => (
+                  <option key={branchId} value={branchId}>
+                    {formatBranchLabel(branchId)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <div
+              className="hidden md:flex items-center gap-2 h-10 px-3 bg-bg-surface-2 border border-border-1 rounded-full text-sm text-fg-2"
+              title="Filial ativa"
+            >
+              <Building2 size={16} className="text-fg-4 shrink-0" />
+              <span className="max-w-44 truncate text-fg-1 font-semibold">{activeBranchLabel}</span>
+            </div>
+          )}
           <button
             onClick={() => setIsProfileModalOpen(true)}
             className="flex items-center gap-3 p-1.5 pr-3 hover:bg-bg-surface-2 rounded-full transition-all group"
@@ -64,5 +95,16 @@ export default function Header() {
         onClose={() => setIsProfileModalOpen(false)} 
       />
     </>
+  )
+}
+
+function formatBranchLabel(branchId: string) {
+  return (
+    branchId
+      .replace(/^filial[-_]/i, '')
+      .split(/[-_]/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ') || branchId
   )
 }

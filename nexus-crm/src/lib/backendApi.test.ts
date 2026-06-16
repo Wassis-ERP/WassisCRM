@@ -24,6 +24,7 @@ async function importBackendApi() {
 describe('backendApi', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
     vi.unstubAllEnvs();
     installLocalStorage();
   });
@@ -33,7 +34,7 @@ describe('backendApi', () => {
       ok: true,
       json: async () => ({
         AccessToken: 'token-123',
-        ExpiresAtUtc: '2026-05-23T18:00:00Z',
+        ExpiresAtUtc: '2026-07-23T18:00:00Z',
         UserId: 'user-1',
         TenantId: 'tenant-1',
         BrokerageId: 'brokerage-1',
@@ -103,5 +104,50 @@ describe('backendApi', () => {
       hasAllBranchesAccess: true,
       roles: ['brokerage_admin'],
     });
+  });
+
+  it('limpa sessao local quando token absoluto expirou', async () => {
+    vi.useFakeTimers();
+    storage.set('wassis.backend.accessToken', 'token-expired');
+    storage.set(
+      'wassis.backend.session',
+      JSON.stringify({
+        accessToken: 'token-expired',
+        expiresAtUtc: '2026-05-23T18:00:00Z',
+        username: 'user@test.local',
+      }),
+    );
+    storage.set('wassis.backend.lastActivityAt', Date.parse('2026-05-23T17:30:00Z').toString());
+    vi.setSystemTime(new Date('2026-05-23T18:00:01Z'));
+
+    const { getBackendSessionSnapshot } = await importBackendApi();
+
+    expect(getBackendSessionSnapshot()).toBeNull();
+    expect(storage.has('wassis.backend.accessToken')).toBe(false);
+    expect(storage.has('wassis.backend.session')).toBe(false);
+    expect(storage.has('wassis.backend.lastActivityAt')).toBe(false);
+
+    vi.useRealTimers();
+  });
+
+  it('limpa sessao local apos duas horas sem atividade', async () => {
+    vi.useFakeTimers();
+    storage.set('wassis.backend.accessToken', 'token-idle');
+    storage.set(
+      'wassis.backend.session',
+      JSON.stringify({
+        accessToken: 'token-idle',
+        expiresAtUtc: '2026-05-24T02:00:00Z',
+        username: 'user@test.local',
+      }),
+    );
+    storage.set('wassis.backend.lastActivityAt', Date.parse('2026-05-23T18:00:00Z').toString());
+    vi.setSystemTime(new Date('2026-05-23T20:00:01Z'));
+
+    const { getBackendSessionSnapshot } = await importBackendApi();
+
+    expect(getBackendSessionSnapshot()).toBeNull();
+
+    vi.useRealTimers();
   });
 });
