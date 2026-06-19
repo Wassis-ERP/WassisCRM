@@ -189,7 +189,7 @@ export default function SeguradoDetalhePage() {
   return (
     <div className="animate-fade-in">
       {saveError && (
-        <div className="mb-4 rounded-[10px] border border-signal-danger/30 bg-signal-danger/10 px-4 py-3 text-sm text-signal-danger">
+        <div className="mb-4 rounded-[6px] border border-signal-danger/30 bg-signal-danger/10 px-4 py-3 text-sm text-signal-danger">
           {saveError}
         </div>
       )}
@@ -208,10 +208,10 @@ export default function SeguradoDetalhePage() {
       </div>
 
       {/* Hero */}
-      <div className="bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1 p-6 mb-6">
+      <div className="bg-bg-surface rounded-[8px] shadow-[var(--shadow-1)] border border-border-1 p-6 mb-6">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-5">
           <div className="flex items-start gap-4 min-w-0">
-            <div className="w-16 h-16 bg-gradient-to-br from-accent-primary to-brand-primary-deep rounded-[14px] flex items-center justify-center text-fg-on-brand shrink-0">
+            <div className="w-16 h-16 bg-gradient-to-br from-accent-primary to-brand-primary-deep rounded-[8px] flex items-center justify-center text-fg-on-brand shrink-0">
               {isPJ ? <Building2 size={26} /> : <User size={26} />}
             </div>
             <div className="min-w-0">

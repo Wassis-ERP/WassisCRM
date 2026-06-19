@@ -201,25 +201,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = useCallback(
     async (username: string, password: string) => {
+      // Modo frontend puro: aceita qualquer credencial e entra com o usuário
+      // mock (mantendo o e-mail digitado), sem chamar o backend.
+      if (!REQUIRE_BACKEND_AUTH) {
+        const email = username || MOCK_USER.email;
+        setAuthState({
+          session: { ...MOCK_SESSION, user: { id: MOCK_USER.id, email } },
+          user: applyActiveBranch({ ...MOCK_USER, email }, mockActiveBranchId),
+          activeBranchId: mockActiveBranchId,
+          loading: false,
+        });
+        return;
+      }
+
       await loginToBackend(username, password);
       await refreshSession();
     },
-    [refreshSession],
+    [mockActiveBranchId, refreshSession],
   );
 
   const signOut = useCallback(async () => {
+    // Sempre encerra a sessão de fato — inclusive no modo mock, para que o
+    // botão "Sair" leve de volta à tela de login.
     clearBackendSession();
-    setAuthState(
-      REQUIRE_BACKEND_AUTH
-        ? { session: null, user: null, activeBranchId: null, loading: false }
-        : {
-            session: MOCK_SESSION,
-            user: applyActiveBranch(MOCK_USER, mockActiveBranchId),
-            activeBranchId: mockActiveBranchId,
-            loading: false,
-          },
-    );
-  }, [mockActiveBranchId]);
+    setAuthState({ session: null, user: null, activeBranchId: null, loading: false });
+  }, []);
 
   const setActiveBranchId = useCallback((branchId: string | null) => {
     setAuthState((current) => {

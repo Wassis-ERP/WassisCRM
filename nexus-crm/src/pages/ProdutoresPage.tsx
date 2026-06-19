@@ -36,10 +36,10 @@ const ProdutorModal = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-bg-surface w-full max-w-2xl rounded-[20px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-bg-surface w-full max-w-2xl rounded-[12px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="px-8 py-6 border-b border-border-1 flex items-center justify-between bg-bg-surface-2">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-accent-primary-soft rounded-[10px] text-accent-primary">
+            <div className="p-2 bg-accent-primary-soft rounded-[6px] text-accent-primary">
               {produtor ? <Edit size={20} /> : <UserPlus size={20} />}
             </div>
             <h2 className="text-xl font-black text-fg-1 uppercase tracking-tight">
@@ -60,7 +60,7 @@ const ProdutorModal = ({
                 value={formData.full_name}
                 onChange={e => setFormData({...formData, full_name: e.target.value})}
                 placeholder="Ex: João Silva"
-                className="w-full px-4 py-3 bg-bg-surface-2 text-fg-1 placeholder:text-fg-4 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium"
+                className="w-full px-4 py-3 bg-bg-surface-2 text-fg-1 placeholder:text-fg-4 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium"
               />
             </div>
             <div className="space-y-1.5">
@@ -71,7 +71,7 @@ const ProdutorModal = ({
                 value={formData.email}
                 onChange={e => setFormData({...formData, email: e.target.value})}
                 placeholder="email@exemplo.com"
-                className="w-full px-4 py-3 bg-bg-surface-2 text-fg-1 placeholder:text-fg-4 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium disabled:opacity-50"
+                className="w-full px-4 py-3 bg-bg-surface-2 text-fg-1 placeholder:text-fg-4 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium disabled:opacity-50"
               />
             </div>
             <div className="space-y-1.5">
@@ -79,7 +79,7 @@ const ProdutorModal = ({
               <select
                 value={formData.role}
                 onChange={e => setFormData({...formData, role: e.target.value as Role})}
-                className="w-full px-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium"
+                className="w-full px-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium"
               >
                 <option value="vendedor">Vendedor</option>
                 <option value="admin">Administrador</option>
@@ -93,7 +93,7 @@ const ProdutorModal = ({
               <Shield size={16} className="text-accent-primary" />
               <h3 className="text-sm font-black text-fg-1 uppercase tracking-widest">Resumo do Perfil</h3>
             </div>
-            <div className="bg-bg-surface-2 rounded-[14px] p-6 border border-border-1">
+            <div className="bg-bg-surface-2 rounded-[8px] p-6 border border-border-1">
               <p className="text-xs text-fg-3 leading-relaxed">
                 {formData.role === 'admin' ? (
                   'Administradores possuem acesso total a todas as configurações, pipelines, financeiros e gestão de equipe.'
@@ -111,7 +111,7 @@ const ProdutorModal = ({
         </div>
 
         <div className="px-8 py-6 border-t border-border-1 bg-bg-surface-2 flex justify-end gap-3">
-          <button onClick={onClose} className="px-6 py-2.5 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[10px] transition-all">
+          <button onClick={onClose} className="px-6 py-2.5 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[6px] transition-all">
             Cancelar
           </button>
           <button
@@ -182,12 +182,12 @@ export default function ProdutoresPage() {
           placeholder="Buscar membro por nome ou email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 bg-bg-surface text-fg-1 placeholder:text-fg-4 border border-border-1 rounded-[14px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all shadow-[var(--shadow-1)]"
+          className="w-full pl-10 pr-4 py-3 bg-bg-surface text-fg-1 placeholder:text-fg-4 border border-border-1 rounded-[8px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all shadow-[var(--shadow-1)]"
         />
       </div>
 
       {/* Tabela de Produtores */}
-      <div className="bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1 overflow-hidden">
+      <div className="bg-bg-surface rounded-[8px] shadow-[var(--shadow-1)] border border-border-1 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -212,9 +212,9 @@ export default function ProdutoresPage() {
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
                       {p.avatar_url ? (
-                        <img src={p.avatar_url} alt={p.full_name} className="w-9 h-9 rounded-[10px] object-cover" />
+                        <img src={p.avatar_url} alt={p.full_name} className="w-9 h-9 rounded-[6px] object-cover" />
                       ) : (
-                        <div className="w-9 h-9 bg-accent-primary-soft rounded-[10px] flex items-center justify-center text-accent-primary font-black text-xs">
+                        <div className="w-9 h-9 bg-accent-primary-soft rounded-[6px] flex items-center justify-center text-accent-primary font-black text-xs">
                           {p.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
                         </div>
                       )}
@@ -233,7 +233,7 @@ export default function ProdutoresPage() {
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => handleOpenModal(p)}
-                        className="p-2 text-fg-4 hover:text-accent-primary hover:bg-accent-primary-soft rounded-[10px] transition-all"
+                        className="p-2 text-fg-4 hover:text-accent-primary hover:bg-accent-primary-soft rounded-[6px] transition-all"
                         title="Ver Detalhes / Editar Cargo"
                       >
                         <Edit size={18} />

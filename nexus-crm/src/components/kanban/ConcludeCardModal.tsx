@@ -68,7 +68,7 @@ export default function ConcludeCardModal({ isOpen, onClose, card, module, pipel
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-bg-surface rounded-[14px] shadow-[var(--shadow-3)] w-full max-w-md mx-4 border border-border-1 animate-in zoom-in-95 duration-200">
+      <div className="relative bg-bg-surface rounded-[8px] shadow-[var(--shadow-3)] w-full max-w-md mx-4 border border-border-1 animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between p-5 border-b border-border-1">
           <div>
             <h2 className="text-lg font-black text-fg-1 tracking-tight">{title}</h2>
@@ -76,7 +76,7 @@ export default function ConcludeCardModal({ isOpen, onClose, card, module, pipel
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-bg-surface-2 rounded-[10px] transition-all text-fg-4 hover:text-fg-2"
+            className="p-2 hover:bg-bg-surface-2 rounded-[6px] transition-all text-fg-4 hover:text-fg-2"
           >
             <X size={20} />
           </button>
@@ -91,7 +91,7 @@ export default function ConcludeCardModal({ isOpen, onClose, card, module, pipel
               <select
                 value={motivoId}
                 onChange={(e) => setMotivoId(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all appearance-none"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all appearance-none"
               >
                 <option value="">Selecione um motivo</option>
                 {(motivos.data ?? []).map((m) => (
@@ -112,13 +112,13 @@ export default function ConcludeCardModal({ isOpen, onClose, card, module, pipel
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold resize-none focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
+              className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold resize-none focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
               placeholder="Contexto adicional..."
             />
           </div>
 
           {submitError && (
-            <div className="text-[11px] font-bold text-signal-danger bg-signal-danger/10 border border-signal-danger/30 rounded-[10px] px-3 py-2">
+            <div className="text-[11px] font-bold text-signal-danger bg-signal-danger/10 border border-signal-danger/30 rounded-[6px] px-3 py-2">
               {submitError}
             </div>
           )}
@@ -127,7 +127,7 @@ export default function ConcludeCardModal({ isOpen, onClose, card, module, pipel
         <div className="p-5 pt-0 flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-[10px] text-xs font-bold text-fg-3 hover:bg-bg-surface-2 transition-all"
+            className="px-4 py-2 rounded-[6px] text-xs font-bold text-fg-3 hover:bg-bg-surface-2 transition-all"
           >
             Cancelar
           </button>

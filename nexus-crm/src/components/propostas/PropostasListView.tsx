@@ -88,7 +88,7 @@ export function PropostasListView({
               <div className="col-span-1 flex justify-end">
                 <button
                   onClick={() => alert(`Abrir ProposalDetails: ${p.id}`)}
-                  className="p-1.5 rounded-[10px] hover:bg-bg-surface-2 text-fg-3"
+                  className="p-1.5 rounded-[6px] hover:bg-bg-surface-2 text-fg-3"
                   aria-label="Editar"
                 >
                   <Edit size={16} />

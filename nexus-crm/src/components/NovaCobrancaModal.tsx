@@ -160,7 +160,7 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-10 px-4">
       <div className="fixed inset-0 z-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 my-auto bg-bg-surface rounded-[14px] shadow-[var(--shadow-3)] w-full max-w-[720px] border border-border-1 animate-in zoom-in-95 duration-200">
+      <div className="relative z-10 my-auto bg-bg-surface rounded-[8px] shadow-[var(--shadow-3)] w-full max-w-[720px] border border-border-1 animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between p-5 border-b border-border-1 sticky top-0 bg-bg-surface z-10">
           <div>
             <h2 className="text-lg font-black text-fg-1 tracking-tight">Nova Cobranca</h2>
@@ -168,13 +168,13 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
               Controle de inadimplencia e cobrancas avulsas
             </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-bg-surface-2 rounded-[10px] transition-all text-fg-4 hover:text-fg-2">
+          <button onClick={onClose} className="p-2 hover:bg-bg-surface-2 rounded-[6px] transition-all text-fg-4 hover:text-fg-2">
             <X size={20} />
           </button>
         </div>
 
         <div className="p-5 space-y-4">
-          <div className="flex p-1 bg-bg-surface-2 rounded-[10px] w-fit">
+          <div className="flex p-1 bg-bg-surface-2 rounded-[6px] w-fit">
             <button
               type="button"
               onClick={() => setVinculaOportunidade(true)}
@@ -212,11 +212,11 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
                     setShowSuggestions(true);
                   }}
                   onFocus={() => setShowSuggestions(true)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
+                  className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
                 />
               </div>
               {showSuggestions && !selectedOportunidade && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-bg-surface border border-border-1 rounded-[10px] shadow-[var(--shadow-3)] z-[80] overflow-hidden max-h-[220px] overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-bg-surface border border-border-1 rounded-[6px] shadow-[var(--shadow-3)] z-[80] overflow-hidden max-h-[220px] overflow-y-auto">
                   {oportunidadesQuery.isError ? (
                     <div className="p-3 text-center text-[10px] text-signal-danger font-bold">Erro ao carregar oportunidades</div>
                   ) : oportunidadesQuery.isLoading ? (
@@ -242,7 +242,7 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
           )}
 
           {!vinculaOportunidade && (
-            <div className="bg-signal-warning/10 border border-signal-warning/30 rounded-[10px] p-3">
+            <div className="bg-signal-warning/10 border border-signal-warning/30 rounded-[6px] p-3">
               <p className="text-[10px] font-bold text-signal-warning uppercase tracking-wider">
                 Cobranca avulsa
               </p>
@@ -260,7 +260,7 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
                 placeholder="R$ 0,00"
                 value={valorParcelaStr}
                 onChange={(e) => setValorParcelaStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
               />
             </div>
             <div>
@@ -270,7 +270,7 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
                 placeholder="Ex: 3"
                 value={numeroParcelaStr}
                 onChange={(e) => setNumeroParcelaStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
               />
             </div>
             <div>
@@ -280,7 +280,7 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
                 placeholder="Ex: 12"
                 value={totalParcelasStr}
                 onChange={(e) => setTotalParcelasStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
               />
             </div>
           </div>
@@ -301,7 +301,7 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
                 placeholder="Ex: 15"
                 value={diasAtrasoStr}
                 onChange={(e) => setDiasAtrasoStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
               />
             </div>
             <div>
@@ -311,7 +311,7 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
                 placeholder="Boleto, PIX..."
                 value={formaPagamento}
                 onChange={(e) => setFormaPagamento(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
               />
             </div>
           </div>
@@ -332,12 +332,12 @@ export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreat
               onChange={(e) => setObservacoes(e.target.value)}
               rows={3}
               placeholder="Tratativas, contatos, promessas de pagamento..."
-              className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold resize-none focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
+              className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold resize-none focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
             />
           </div>
 
           {submitError && (
-            <div className="text-[11px] font-bold text-signal-danger bg-signal-danger/10 border border-signal-danger/30 rounded-[10px] px-3 py-2">
+            <div className="text-[11px] font-bold text-signal-danger bg-signal-danger/10 border border-signal-danger/30 rounded-[6px] px-3 py-2">
               {submitError}
             </div>
           )}

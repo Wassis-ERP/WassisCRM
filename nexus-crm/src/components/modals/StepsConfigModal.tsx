@@ -166,7 +166,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-bg-surface w-full max-w-3xl rounded-[20px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-bg-surface w-full max-w-3xl rounded-[12px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="px-8 py-6 border-b border-border-1 flex items-center justify-between bg-bg-surface-2">
           <div>
@@ -186,20 +186,20 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
         {/* Content */}
         <div className="p-8 space-y-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
           {error && (
-            <div className="rounded-[10px] border border-signal-danger/30 bg-signal-danger/10 px-4 py-3 text-sm text-signal-danger">
+            <div className="rounded-[6px] border border-signal-danger/30 bg-signal-danger/10 px-4 py-3 text-sm text-signal-danger">
               {error}
             </div>
           )}
 
           {/* Add Step Input */}
-          <div className="flex gap-2 p-4 bg-bg-surface-2 rounded-[14px] border border-border-1">
+          <div className="flex gap-2 p-4 bg-bg-surface-2 rounded-[8px] border border-border-1">
             <input
               type="text"
               value={newStepName}
               onChange={(e) => setNewStepName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddStep()}
               placeholder="Nome da nova etapa..."
-              className="flex-1 px-4 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium"
+              className="flex-1 px-4 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium"
             />
             <button
               onClick={handleAddStep}
@@ -233,7 +233,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
-                  className={`flex items-center gap-3 p-4 bg-bg-surface border border-border-1 rounded-[14px] group transition-all ${
+                  className={`flex items-center gap-3 p-4 bg-bg-surface border border-border-1 rounded-[8px] group transition-all ${
                     draggedIndex === index
                       ? 'opacity-50 border-accent-primary scale-95'
                       : 'hover:border-accent-primary/30 shadow-[var(--shadow-1)]'
@@ -328,7 +328,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
           <button
             onClick={onClose}
             disabled={isSavingStages}
-            className="px-6 py-2.5 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[10px] transition-all disabled:opacity-50"
+            className="px-6 py-2.5 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[6px] transition-all disabled:opacity-50"
           >
             Cancelar
           </button>
