@@ -68,6 +68,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -80,6 +81,44 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Trigger Portainer redeploy
-        if: steps.meta.outputs.webhook_url != ''
-        run: curl -fsSL -X POST "${{ steps.meta.outputs.webhook_url }}"
+      - name: Trigger Portainer service redeploy
+        env:
+          WEBHOOK_URL: ${{ steps.meta.outputs.webhook_url }}
+          IMAGE_TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::error::Portainer webhook secret is not configured for the selected environment."
+            exit 1
+          fi
+
+          separator='?'
+          case "$WEBHOOK_URL" in
+            *\?*) separator='&' ;;
+          esac
+
+          response_file="$(mktemp)"
+          status_code="$(curl \
+            --silent \
+            --show-error \
+            --location \
+            --request POST \
+            --retry 3 \
+            --retry-all-errors \
+            --connect-timeout 10 \
+            --max-time 90 \
+            --output "$response_file" \
+            --write-out '%{http_code}' \
+            "${WEBHOOK_URL}${separator}tag=${IMAGE_TAG}")"
+
+          cat "$response_file"
+          if [ "$status_code" != "202" ]; then
+            echo "::error::Expected HTTP 202 from a Portainer service webhook, received ${status_code}. Configure a service webhook instead of a stack GitOps webhook."
+            exit 1
+          fi
+
+          {
+            echo "### Portainer redeploy"
+            echo "- Image: \`${IMAGE_NAME}:${IMAGE_TAG}\`"
+            echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
+            echo "- Webhook response: HTTP ${status_code}"
+          } >> "$GITHUB_STEP_SUMMARY"
