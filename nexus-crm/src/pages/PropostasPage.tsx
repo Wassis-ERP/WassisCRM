@@ -247,7 +247,7 @@ export default function PropostasPage() {
             <button
               key={c.key}
               onClick={() => handleCardClick(c.key)}
-              className={`text-left bg-bg-surface p-6 rounded-[10px] shadow-[var(--shadow-1)] border transition-all hover:shadow-[var(--shadow-2)] ${
+              className={`text-left bg-bg-surface p-6 rounded-[6px] shadow-[var(--shadow-1)] border transition-all hover:shadow-[var(--shadow-2)] ${
                 isActive
                   ? 'border-accent-primary ring-2 ring-accent-primary/20'
                   : 'border-border-1 hover:border-accent-primary/40'
@@ -268,19 +268,19 @@ export default function PropostasPage() {
       </div>
 
       {/* Busca + Filtro */}
-      <div className="bg-bg-surface border border-border-1 rounded-[14px] shadow-[var(--shadow-1)] p-3 flex items-center gap-3">
+      <div className="bg-bg-surface border border-border-1 rounded-[8px] shadow-[var(--shadow-1)] p-3 flex items-center gap-3">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
           <input
             value={filters.searchTerm}
             onChange={e => setFilters(f => ({ ...f, searchTerm: e.target.value }))}
             placeholder="Buscar por segurado, ramo, seguradora, produtor, apólice..."
-            className="w-full pl-9 pr-4 py-2 bg-bg-surface-2 text-fg-1 placeholder:text-fg-4 border-none rounded-[10px] text-sm focus:ring-2 focus:ring-accent-primary/30"
+            className="w-full pl-9 pr-4 py-2 bg-bg-surface-2 text-fg-1 placeholder:text-fg-4 border-none rounded-[6px] text-sm focus:ring-2 focus:ring-accent-primary/30"
           />
         </div>
         <button
           onClick={() => setShowFilterPanel(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-[10px] text-sm font-semibold bg-bg-surface-2 text-fg-3 hover:bg-bg-surface-3"
+          className="flex items-center gap-2 px-3 py-2 rounded-[6px] text-sm font-semibold bg-bg-surface-2 text-fg-3 hover:bg-bg-surface-3"
         >
           <Filter size={16} />
           Filtros
@@ -291,7 +291,7 @@ export default function PropostasPage() {
               setActiveCard(null)
               setViewMode('Lista')
             }}
-            className="flex items-center gap-1 px-3 py-2 rounded-[10px] text-xs font-semibold bg-accent-primary-soft text-accent-primary hover:bg-accent-primary-soft"
+            className="flex items-center gap-1 px-3 py-2 rounded-[6px] text-xs font-semibold bg-accent-primary-soft text-accent-primary hover:bg-accent-primary-soft"
           >
             <X size={14} />
             Limpar filtro do card
@@ -300,11 +300,11 @@ export default function PropostasPage() {
       </div>
 
       {/* Tabela / Kanban */}
-      <div className="bg-bg-surface border border-border-1 rounded-[14px] shadow-[var(--shadow-1)]">
+      <div className="bg-bg-surface border border-border-1 rounded-[8px] shadow-[var(--shadow-1)]">
         <div className="flex items-center justify-between p-4 border-b border-border-1">
           <h2 className="text-lg font-bold">Acompanhamento de Propostas</h2>
           <div
-            className={`flex bg-bg-surface-2 p-1 rounded-[10px] ${
+            className={`flex bg-bg-surface-2 p-1 rounded-[6px] ${
               activeCard === 'emAndamento' ? '' : 'invisible'
             }`}
           >
@@ -396,7 +396,7 @@ function KanbanView({
                   const id = e.dataTransfer.getData('text/plain')
                   if (id) onDrop(id, s.name)
                 }}
-                className="w-72 shrink-0 bg-bg-surface-2 rounded-[14px] p-3 border border-border-1"
+                className="w-72 shrink-0 bg-bg-surface-2 rounded-[8px] p-3 border border-border-1"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -414,7 +414,7 @@ function KanbanView({
                       draggable
                       onDragStart={e => e.dataTransfer.setData('text/plain', p.id)}
                       onClick={() => alert(`Abrir ProposalDetails: ${p.id}`)}
-                      className="bg-bg-surface rounded-[10px] p-3 shadow-[var(--shadow-1)] border border-border-1 cursor-grab active:cursor-grabbing hover:shadow-[var(--shadow-2)] transition-all"
+                      className="bg-bg-surface rounded-[6px] p-3 shadow-[var(--shadow-1)] border border-border-1 cursor-grab active:cursor-grabbing hover:shadow-[var(--shadow-2)] transition-all"
                     >
                       <p className="font-semibold text-sm text-fg-1 truncate">{p.insured}</p>
                       <p className="text-xs text-fg-3 mt-0.5">{p.branch}</p>
@@ -507,7 +507,7 @@ function FilterPanel({
         <div className="p-4 border-t border-border-1 flex gap-2">
           <button
             onClick={onClear}
-            className="flex-1 px-3 py-2 bg-bg-surface-2 text-fg-2 rounded-[10px] text-sm font-semibold hover:bg-bg-surface-3"
+            className="flex-1 px-3 py-2 bg-bg-surface-2 text-fg-2 rounded-[6px] text-sm font-semibold hover:bg-bg-surface-3"
           >
             Limpar Filtros
           </button>
@@ -549,7 +549,7 @@ function SelectField({
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] px-2 py-1.5 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
+        className="w-full bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] px-2 py-1.5 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
       >
         <option value="">Todos</option>
         {options.map(o => (
@@ -570,7 +570,7 @@ function DateRow({ label, value, onChange }: { label: string; value: string; onC
         type="date"
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] px-2 py-1.5 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
+        className="w-full bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] px-2 py-1.5 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
       />
     </div>
   )
@@ -584,7 +584,7 @@ function NumberField({ label, value, onChange }: { label: string; value: string;
         type="number"
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] px-2 py-1.5 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
+        className="w-full bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] px-2 py-1.5 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
       />
     </div>
   )

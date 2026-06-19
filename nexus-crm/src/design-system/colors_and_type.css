@@ -200,17 +200,18 @@
   --fg-4: var(--neutral-500);
   --fg-on-brand: #FFFFFF;
 
-  /* Background — escala invertida com um "step extra" no canvas
-     para criar profundidade (app < surface < surface-2 < surface-3). */
-  --bg-app:       var(--neutral-950);
-  --bg-surface:   var(--neutral-900);
-  --bg-surface-2: var(--neutral-800);
-  --bg-surface-3: var(--neutral-700);
+  /* Background — grade cinza neutro (estilo Discord), ancorada em
+     #292B2F (canvas) e #36393F (superfície). Escala app < surface <
+     surface-2 < surface-3 preserva profundidade. */
+  --bg-app:       #292B2F;
+  --bg-surface:   #36393F;
+  --bg-surface-2: #40444B;
+  --bg-surface-3: #4A4E54;
   --bg-overlay:   rgba(0, 0, 0, 0.66);
 
-  /* Border — em dark, borders muito claras "vibram"; usamos 700/600. */
-  --border-1: var(--neutral-700);
-  --border-2: var(--neutral-600);
+  /* Border — cinza neutro coerente com as superfícies. */
+  --border-1: #3A3D44;
+  --border-2: #4A4E54;
   --border-strong: var(--neutral-300);
 
   /* Accent — remapeia para variantes on-dark */
@@ -366,14 +367,16 @@
     --fg-3: var(--neutral-400);
     --fg-4: var(--neutral-500);
 
-    --bg-app:       var(--neutral-950);
-    --bg-surface:   var(--neutral-900);
-    --bg-surface-2: var(--neutral-800);
-    --bg-surface-3: var(--neutral-700);
+    /* Grade cinza neutro — mantida em sincronia com o bloco .dark.
+       Âncoras: #292B2F (canvas) e #36393F (superfície). */
+    --bg-app:       #292B2F;
+    --bg-surface:   #36393F;
+    --bg-surface-2: #40444B;
+    --bg-surface-3: #4A4E54;
     --bg-overlay:   rgba(0, 0, 0, 0.66);
 
-    --border-1: var(--neutral-700);
-    --border-2: var(--neutral-600);
+    --border-1: #3A3D44;
+    --border-2: #4A4E54;
     --border-strong: var(--neutral-300);
 
     --accent-primary:        var(--brand-blue-on-dark);
@@ -465,12 +468,12 @@
   --sp-12: 48px;
   --sp-16: 64px;
 
-  /* Raio */
-  --r-sm:    6px;
-  --r-md:   10px;
-  --r-lg:   14px;
-  --r-xl:   20px;
-  --r-2xl:  28px;
+  /* Raio — escala compacta (cantos mais retos) */
+  --r-sm:    4px;
+  --r-md:    6px;
+  --r-lg:    8px;
+  --r-xl:   12px;
+  --r-2xl:  12px;
   --r-pill: 9999px;
 
   /* Motion */
@@ -537,9 +540,11 @@
   --font-display: "Rubik", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-text:    "Mulish", "Gilroy", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
-  /* Raio */
+  /* Raio — escala compacta (cantos mais retos) */
   --radius-pill: 9999px;
-  --radius-2xl: 28px;
+  --radius-lg:   6px;
+  --radius-xl:   6px;
+  --radius-2xl: 12px;
 }
 
 /* Tailwind v4: faz `dark:` casar tanto com `.dark` quanto com

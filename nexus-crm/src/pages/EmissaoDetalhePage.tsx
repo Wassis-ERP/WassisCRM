@@ -141,7 +141,7 @@ export default function EmissaoDetalhePage() {
     return (
       <div className="animate-fade-in flex flex-col items-center justify-center py-24 gap-4">
         <p className="text-signal-danger font-bold uppercase tracking-widest text-xs">Emissao nao encontrada</p>
-        <button onClick={() => navigate(-1)} className="px-5 py-2 bg-bg-surface-2 text-fg-1 rounded-[10px] text-sm font-bold">
+        <button onClick={() => navigate(-1)} className="px-5 py-2 bg-bg-surface-2 text-fg-1 rounded-[6px] text-sm font-bold">
           Voltar
         </button>
       </div>
@@ -161,7 +161,7 @@ export default function EmissaoDetalhePage() {
         <div className="max-w-[1440px] mx-auto">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4">
             <div className="flex items-center gap-4">
-              <button onClick={() => navigate(-1)} className="p-2.5 hover:bg-bg-surface-2 rounded-[10px] text-fg-3 transition-colors border border-transparent hover:border-border-1">
+              <button onClick={() => navigate(-1)} className="p-2.5 hover:bg-bg-surface-2 rounded-[6px] text-fg-3 transition-colors border border-transparent hover:border-border-1">
                 <ArrowLeft size={18} />
               </button>
               <div>
@@ -199,7 +199,7 @@ export default function EmissaoDetalhePage() {
                 </span>
               )}
 
-              <button onClick={handleDiscard} className="px-5 py-2.5 text-sm font-bold text-fg-3 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[10px] transition-all">
+              <button onClick={handleDiscard} className="px-5 py-2.5 text-sm font-bold text-fg-3 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[6px] transition-all">
                 Descartar
               </button>
               <button onClick={handleSave} disabled={saveStatus === 'saving'} className="bg-accent-primary hover:bg-accent-primary-hover active:scale-95 text-fg-on-brand px-8 py-2.5 rounded-full text-sm font-black shadow-[var(--shadow-brand)] transition-all flex items-center gap-2 disabled:opacity-60">
@@ -237,9 +237,9 @@ export default function EmissaoDetalhePage() {
       </div>
 
       {oportunidade && (
-        <div className="bg-accent-primary-soft border border-accent-primary/10 rounded-[14px] p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[var(--shadow-1)]">
+        <div className="bg-accent-primary-soft border border-accent-primary/10 rounded-[8px] p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[var(--shadow-1)]">
           <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-[14px] bg-gradient-to-br from-accent-primary to-brand-primary-deep flex items-center justify-center text-fg-on-brand text-2xl font-bold shadow-[var(--shadow-2)]">
+            <div className="w-16 h-16 rounded-[8px] bg-gradient-to-br from-accent-primary to-brand-primary-deep flex items-center justify-center text-fg-on-brand text-2xl font-bold shadow-[var(--shadow-2)]">
               {clienteNome.split(' ').map((n) => n[0]).join('').slice(0, 2)}
             </div>
             <div>
@@ -262,7 +262,7 @@ export default function EmissaoDetalhePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12 animate-fade-in">
         <div className="lg:col-span-7 space-y-6">
-          <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
             <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-6">Dados da Emissao</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {EMISSAO_METADATA.map((field) => (
@@ -292,7 +292,7 @@ export default function EmissaoDetalhePage() {
             </div>
           </div>
 
-          <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
             <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-4">Observacoes</h3>
             <textarea
               value={formData.observacoes}
@@ -304,7 +304,7 @@ export default function EmissaoDetalhePage() {
         </div>
 
         <div className="lg:col-span-5 space-y-6">
-          <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
             <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-6">Agendamento</h3>
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-fg-3 uppercase">Proximo Followup</label>

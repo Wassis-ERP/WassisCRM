@@ -20,7 +20,7 @@ function iniciais(nome?: string): string {
 }
 
 const inputCls =
-  'w-full px-3 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30'
+  'w-full px-3 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30'
 
 function NovaObservacaoForm({
   onSubmit,

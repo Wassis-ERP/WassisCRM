@@ -190,7 +190,7 @@ export default function OportunidadesListPage({
 
   return (
     <div className="animate-fade-in w-full">
-      <div className="bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1 overflow-hidden">
+      <div className="bg-bg-surface rounded-[8px] shadow-[var(--shadow-1)] border border-border-1 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead>
@@ -238,7 +238,7 @@ export default function OportunidadesListPage({
                   </td>
                   <td className="px-6 py-4 text-sm font-black text-accent-primary">{op.comissao}</td>
                   <td className="px-6 py-4">
-                    <span className="px-2.5 py-1 rounded-[10px] text-[10px] font-black bg-accent-primary-soft text-accent-primary border border-accent-primary/10 uppercase tracking-widest whitespace-nowrap">
+                    <span className="px-2.5 py-1 rounded-[6px] text-[10px] font-black bg-accent-primary-soft text-accent-primary border border-accent-primary/10 uppercase tracking-widest whitespace-nowrap">
                       {op.etapa}
                     </span>
                   </td>
@@ -257,7 +257,7 @@ export default function OportunidadesListPage({
                   </td>
                   <td className="px-6 py-4 text-xs font-bold text-fg-2 whitespace-nowrap">{op.vendedor}</td>
                   <td className="px-6 py-4 text-right">
-                    <button className="p-2 hover:bg-bg-surface-2 rounded-[10px] text-fg-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button className="p-2 hover:bg-bg-surface-2 rounded-[6px] text-fg-4 opacity-0 group-hover:opacity-100 transition-opacity">
                       <MoreVertical size={18} />
                     </button>
                   </td>
@@ -281,11 +281,11 @@ export default function OportunidadesListPage({
             Exibindo {rows.length} de {cardsQuery.data?.length ?? 0} registros
           </p>
           <div className="flex gap-1.5">
-            <button className="p-1.5 rounded-[10px] border border-border-1 text-fg-4 hover:bg-bg-surface shadow-[var(--shadow-1)] transition-all">
+            <button className="p-1.5 rounded-[6px] border border-border-1 text-fg-4 hover:bg-bg-surface shadow-[var(--shadow-1)] transition-all">
               <ChevronLeft size={16} />
             </button>
-            <button className="w-8 h-8 rounded-[10px] bg-accent-primary text-fg-on-brand font-black text-xs shadow-[var(--shadow-brand)]">1</button>
-            <button className="p-1.5 rounded-[10px] border border-border-1 text-fg-4 hover:bg-bg-surface shadow-[var(--shadow-1)] transition-all">
+            <button className="w-8 h-8 rounded-[6px] bg-accent-primary text-fg-on-brand font-black text-xs shadow-[var(--shadow-brand)]">1</button>
+            <button className="p-1.5 rounded-[6px] border border-border-1 text-fg-4 hover:bg-bg-surface shadow-[var(--shadow-1)] transition-all">
               <ChevronRight size={16} />
             </button>
           </div>

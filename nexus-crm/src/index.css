@@ -22,7 +22,7 @@ body {
   border-radius: 10px;
 }
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--neutral-700);
+  background: #4A4E54;
 }
 
 /* ===== Animações ===== */

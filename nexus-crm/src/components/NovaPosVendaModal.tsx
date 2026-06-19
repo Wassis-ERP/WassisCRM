@@ -120,19 +120,19 @@ export default function NovaPosVendaModal({ isOpen, onClose, pipelineId, onCreat
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-10 px-4">
       <div className="fixed inset-0 z-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 my-auto bg-bg-surface rounded-[14px] shadow-[var(--shadow-3)] w-full max-w-[640px] border border-border-1 animate-in zoom-in-95 duration-200">
+      <div className="relative z-10 my-auto bg-bg-surface rounded-[8px] shadow-[var(--shadow-3)] w-full max-w-[640px] border border-border-1 animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between p-5 border-b border-border-1 sticky top-0 bg-bg-surface z-10">
           <div>
             <h2 className="text-lg font-black text-fg-1 tracking-tight">Nova Demanda de Pos-Venda</h2>
             <p className="text-[10px] text-fg-4 font-bold uppercase tracking-widest mt-0.5">Endosso, renovacao ou cancelamento</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-bg-surface-2 rounded-[10px] transition-all text-fg-4 hover:text-fg-2">
+          <button onClick={onClose} className="p-2 hover:bg-bg-surface-2 rounded-[6px] transition-all text-fg-4 hover:text-fg-2">
             <X size={20} />
           </button>
         </div>
 
         <div className="p-5 space-y-4">
-          <div className="bg-accent-primary-soft border border-accent-primary/20 rounded-[10px] p-3 flex gap-3">
+          <div className="bg-accent-primary-soft border border-accent-primary/20 rounded-[6px] p-3 flex gap-3">
             <Info size={16} className="text-accent-primary flex-shrink-0 mt-0.5" />
             <p className="text-[11px] text-accent-primary leading-relaxed">
               <strong className="font-black uppercase tracking-wider">Fluxo automatizado:</strong> em producao, registros de pos-venda sao criados automaticamente apos emissao ou por trigger de renovacao (Fase 4 - n8n). Use este formulario apenas para casos excepcionais.
@@ -155,11 +155,11 @@ export default function NovaPosVendaModal({ isOpen, onClose, pipelineId, onCreat
                   setShowSuggestions(true);
                 }}
                 onFocus={() => setShowSuggestions(true)}
-                className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
+                className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
               />
             </div>
             {showSuggestions && !selectedOportunidade && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-bg-surface border border-border-1 rounded-[10px] shadow-[var(--shadow-3)] z-[80] overflow-hidden max-h-[220px] overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-bg-surface border border-border-1 rounded-[6px] shadow-[var(--shadow-3)] z-[80] overflow-hidden max-h-[220px] overflow-y-auto">
                 {oportunidadesQuery.isError ? (
                   <div className="p-3 text-center text-[10px] text-signal-danger font-bold">Erro ao carregar</div>
                 ) : oportunidadesQuery.isLoading ? (
@@ -195,7 +195,7 @@ export default function NovaPosVendaModal({ isOpen, onClose, pipelineId, onCreat
                   <select
                     value={String(metaFields[field.key] ?? '')}
                     onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold"
+                    className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold"
                   >
                     <option value="">Selecione</option>
                     {(field.options ?? []).map((opt) => (
@@ -213,7 +213,7 @@ export default function NovaPosVendaModal({ isOpen, onClose, pipelineId, onCreat
                     type="text"
                     value={String(metaFields[field.key] ?? '')}
                     onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold"
+                    className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold"
                   />
                 )}
               </div>
@@ -229,7 +229,7 @@ export default function NovaPosVendaModal({ isOpen, onClose, pipelineId, onCreat
                 value={String(metaFields[field.key] ?? '')}
                 onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
                 rows={2}
-                className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold resize-none focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
+                className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold resize-none focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
               />
             </div>
           ))}
@@ -247,12 +247,12 @@ export default function NovaPosVendaModal({ isOpen, onClose, pipelineId, onCreat
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold resize-none focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
+              className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold resize-none focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
             />
           </div>
 
           {submitError && (
-            <div className="text-[11px] font-bold text-signal-danger bg-signal-danger/10 border border-signal-danger/30 rounded-[10px] px-3 py-2">
+            <div className="text-[11px] font-bold text-signal-danger bg-signal-danger/10 border border-signal-danger/30 rounded-[6px] px-3 py-2">
               {submitError}
             </div>
           )}

@@ -103,7 +103,7 @@ const FunisEtapasTab = () => {
   return (
     <div className="animate-fade-in space-y-8">
       {/* Criação */}
-      <div className="bg-bg-surface p-6 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)] transition-all">
+      <div className="bg-bg-surface p-6 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)] transition-all">
         <h3 className="text-xs font-bold text-fg-3 uppercase tracking-wider mb-4">Novo Funil</h3>
         <div className="flex flex-col md:flex-row gap-3">
           <input
@@ -113,13 +113,13 @@ const FunisEtapasTab = () => {
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
             placeholder="Ex: Renovação Auto..."
             disabled={isCreatingPipeline}
-            className="flex-1 px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
           />
           <select
             value={newPipelineModule}
             onChange={(e) => setNewPipelineModule(e.target.value as PipelineModule)}
             disabled={isCreatingPipeline}
-            className="px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-sm font-bold focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all"
+            className="px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm font-bold focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all"
           >
             {MODULE_ORDER.map((m) => (
               <option key={m} value={m}>{MODULE_META[m].label}</option>
@@ -149,7 +149,7 @@ const FunisEtapasTab = () => {
         </div>
       )}
       {isError && (
-        <div className="rounded-[10px] border border-signal-danger/30 bg-signal-danger/10 px-4 py-3 text-sm text-signal-danger">
+        <div className="rounded-[6px] border border-signal-danger/30 bg-signal-danger/10 px-4 py-3 text-sm text-signal-danger">
           {error instanceof Error ? error.message : 'Erro ao carregar funis'}
         </div>
       )}
@@ -178,7 +178,7 @@ const FunisEtapasTab = () => {
                           setSelectedPipeline(p)
                           setIsModalOpen(true)
                         }}
-                        className="flex items-center gap-4 p-4 bg-bg-surface border border-border-1 rounded-[14px] group hover:border-accent-primary/50 cursor-pointer transition-all shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] hover:translate-x-1"
+                        className="flex items-center gap-4 p-4 bg-bg-surface border border-border-1 rounded-[8px] group hover:border-accent-primary/50 cursor-pointer transition-all shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] hover:translate-x-1"
                       >
                         <div className={`p-2 rounded-lg ${meta.tone}`}>
                           <Icon size={14} />
@@ -247,7 +247,7 @@ const DBLookupListTab = ({
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div className="bg-bg-surface p-6 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+      <div className="bg-bg-surface p-6 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
         <h3 className="text-xs font-bold text-fg-3 uppercase tracking-wider mb-4">Adicionar {title}</h3>
         <div className="flex gap-2">
           <input 
@@ -257,7 +257,7 @@ const DBLookupListTab = ({
             onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
             disabled={isAdding}
             placeholder={`Novo(a) ${title.toLowerCase()}...`} 
-            className="flex-1 px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
           />
           <button 
             onClick={handleAdd}
@@ -274,7 +274,7 @@ const DBLookupListTab = ({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {data?.map((item) => (
-            <div key={item.id} className="flex items-center justify-between p-4 bg-bg-surface border border-border-1 rounded-[14px] group hover:shadow-[var(--shadow-1)] transition-all">
+            <div key={item.id} className="flex items-center justify-between p-4 bg-bg-surface border border-border-1 rounded-[8px] group hover:shadow-[var(--shadow-1)] transition-all">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-bg-surface-2 rounded-lg text-fg-4 group-hover:text-accent-primary transition-colors">
                   <Icon size={16} />
@@ -332,14 +332,14 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="flex bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1 overflow-hidden min-h-[600px]">
+      <div className="flex bg-bg-surface rounded-[8px] shadow-[var(--shadow-1)] border border-border-1 overflow-hidden min-h-[600px]">
         {/* Sidebar Interna */}
         <div className="w-72 border-r border-border-1 bg-bg-surface flex flex-col p-4 gap-1.5 overflow-y-auto custom-scrollbar shrink-0">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center justify-between group px-4 py-3.5 rounded-[14px] text-sm font-bold transition-all ${
+              className={`flex items-center justify-between group px-4 py-3.5 rounded-[8px] text-sm font-bold transition-all ${
                 activeTab === tab.id
                   ? 'bg-accent-primary text-fg-on-brand shadow-[var(--shadow-brand)] translate-x-1'
                   : 'text-fg-3 hover:bg-bg-surface-2 hover:text-fg-1'

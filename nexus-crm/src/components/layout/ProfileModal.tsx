@@ -47,7 +47,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-bg-surface rounded-[20px] shadow-[var(--shadow-3)] overflow-hidden animate-fade-in border border-border-1">
+      <div className="relative w-full max-w-md bg-bg-surface rounded-[12px] shadow-[var(--shadow-3)] overflow-hidden animate-fade-in border border-border-1">
         <div className="p-6 border-b border-border-1 flex items-center justify-between">
           <h2 className="text-xl font-bold text-fg-1">Meu Perfil</h2>
           <button
@@ -96,7 +96,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[14px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[8px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all"
                   placeholder="Seu nome"
                   required
                 />
@@ -112,7 +112,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[14px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[8px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all"
                   placeholder="Nova senha (deixe em branco para não alterar)"
                 />
               </div>
@@ -128,7 +128,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                     type="password"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[14px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all"
+                    className="w-full pl-12 pr-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[8px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all"
                     placeholder="Repita a nova senha"
                     required
                   />

@@ -115,7 +115,7 @@ export default function SeguradosPage() {
       </div>
 
       {saveError && (
-        <div className="mb-4 rounded-[10px] border border-signal-danger/30 bg-signal-danger/10 px-4 py-3 text-sm text-signal-danger">
+        <div className="mb-4 rounded-[6px] border border-signal-danger/30 bg-signal-danger/10 px-4 py-3 text-sm text-signal-danger">
           {saveError}
         </div>
       )}
@@ -129,13 +129,13 @@ export default function SeguradosPage() {
             placeholder="Buscar por nome, razão social, documento, e-mail..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-bg-surface text-fg-1 placeholder:text-fg-4 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-colors"
+            className="w-full pl-10 pr-4 py-2 bg-bg-surface text-fg-1 placeholder:text-fg-4 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-colors"
           />
         </div>
         <select
           value={tipoFilter}
           onChange={(e) => setTipoFilter(e.target.value as TipoFilter)}
-          className="px-4 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[10px] text-sm font-medium focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
+          className="px-4 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[6px] text-sm font-medium focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
         >
           <option value="Todos">Todos os tipos</option>
           <option value="PF">Pessoa Física</option>
@@ -144,7 +144,7 @@ export default function SeguradosPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-          className="px-4 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[10px] text-sm font-medium focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
+          className="px-4 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[6px] text-sm font-medium focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
         >
           <option value="Todos">Todos os status</option>
           <option value="Ativo">Ativo</option>
@@ -153,7 +153,7 @@ export default function SeguradosPage() {
         </select>
       </div>
 
-      <div className="bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1 overflow-hidden">
+      <div className="bg-bg-surface rounded-[8px] shadow-[var(--shadow-1)] border border-border-1 overflow-hidden">
         <div className="overflow-x-auto">
           {isLoading ? (
             <div className="flex items-center justify-center gap-2 py-20 text-fg-3">
@@ -192,7 +192,7 @@ export default function SeguradosPage() {
                   <tr>
                     <td colSpan={7} className="px-6 py-14 text-center">
                       <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-12 rounded-[12px] bg-bg-surface-2 text-fg-4 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-[8px] bg-bg-surface-2 text-fg-4 flex items-center justify-center">
                           <Users size={24} />
                         </div>
                         <p className="text-sm font-semibold text-fg-2">
@@ -215,7 +215,7 @@ export default function SeguradosPage() {
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-accent-primary-soft text-accent-primary rounded-[10px] flex items-center justify-center shrink-0">
+                          <div className="w-8 h-8 bg-accent-primary-soft text-accent-primary rounded-[6px] flex items-center justify-center shrink-0">
                             {s.tipo === 'PJ' ? <Building2 size={16} /> : <User size={16} />}
                           </div>
                           <div>

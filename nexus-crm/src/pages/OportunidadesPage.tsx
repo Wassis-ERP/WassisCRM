@@ -80,7 +80,7 @@ export default function OportunidadesPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Toggle Ativos / Concluidos / Todos */}
-          <div className="flex bg-bg-surface p-1 rounded-[10px] border border-border-1 shadow-[var(--shadow-1)]">
+          <div className="flex bg-bg-surface p-1 rounded-[6px] border border-border-1 shadow-[var(--shadow-1)]">
             {STATUS_OPTIONS.map(opt => (
               <button
                 key={opt.value}
@@ -97,7 +97,7 @@ export default function OportunidadesPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex bg-bg-surface p-1 rounded-[10px] border border-border-1 shadow-[var(--shadow-1)]">
+            <div className="flex bg-bg-surface p-1 rounded-[6px] border border-border-1 shadow-[var(--shadow-1)]">
               <button
                 onClick={() => setView('list')}
                 className={`p-1.5 rounded-md transition-all ${view === 'list' ? 'bg-bg-surface-2 text-accent-primary' : 'text-fg-4'}`}
@@ -123,7 +123,7 @@ export default function OportunidadesPage() {
       </div>
 
       {/* Barra de Busca e Filtros Compacta */}
-      <div className="bg-bg-surface border border-border-1 rounded-[14px] shadow-[var(--shadow-1)] mb-4">
+      <div className="bg-bg-surface border border-border-1 rounded-[8px] shadow-[var(--shadow-1)] mb-4">
         <div className="p-3 flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[200px]">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
@@ -132,13 +132,13 @@ export default function OportunidadesPage() {
               placeholder="Buscar oportunidade..."
               value={filters.search ?? ''}
               onChange={(e) => setFilter('search', e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-bg-surface-2 border-none rounded-[10px] text-xs focus:ring-2 focus:ring-accent-primary/30 transition-all font-bold text-fg-2 placeholder:text-fg-4"
+              className="w-full pl-9 pr-4 py-2 bg-bg-surface-2 border-none rounded-[6px] text-xs focus:ring-2 focus:ring-accent-primary/30 transition-all font-bold text-fg-2 placeholder:text-fg-4"
             />
           </div>
 
           <button
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-[10px] text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-3 py-2 rounded-[6px] text-xs font-bold transition-all ${
               showAdvanced
               ? 'bg-accent-primary-soft text-accent-primary'
               : 'bg-bg-surface-2 text-fg-3 hover:bg-bg-surface-3'
@@ -183,7 +183,7 @@ export default function OportunidadesPage() {
               <select
                 value={filters.ramo ?? ''}
                 onChange={(e) => setFilter('ramo', e.target.value)}
-                className="w-full bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] focus:ring-2 focus:ring-accent-primary/30 py-1.5 px-2"
+                className="w-full bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[6px] focus:ring-2 focus:ring-accent-primary/30 py-1.5 px-2"
               >
                 <option value="">Todos</option>
                 {ramosQuery.data?.map(r => (
@@ -197,7 +197,7 @@ export default function OportunidadesPage() {
               <select
                 value={filters.origem ?? ''}
                 onChange={(e) => setFilter('origem', e.target.value)}
-                className="w-full bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] focus:ring-2 focus:ring-accent-primary/30 py-1.5 px-2"
+                className="w-full bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[6px] focus:ring-2 focus:ring-accent-primary/30 py-1.5 px-2"
               >
                 <option value="">Todas</option>
                 {origensQuery.data?.map(o => (
@@ -211,7 +211,7 @@ export default function OportunidadesPage() {
               <select
                 value={filters.tipoNegocio ?? ''}
                 onChange={(e) => setFilter('tipoNegocio', e.target.value)}
-                className="w-full bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] focus:ring-2 focus:ring-accent-primary/30 py-1.5 px-2"
+                className="w-full bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[6px] focus:ring-2 focus:ring-accent-primary/30 py-1.5 px-2"
               >
                 <option value="">Todos</option>
                 <option value="novo">Novo</option>
@@ -225,7 +225,7 @@ export default function OportunidadesPage() {
               <DateField
                 value={filters.dataVigencia?.start ?? ''}
                 onChange={(v) => handleDateRangeChange('dataVigencia', 'start', v)}
-                inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] py-1.5 px-2"
+                inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[6px] py-1.5 px-2"
               />
             </div>
 
@@ -234,7 +234,7 @@ export default function OportunidadesPage() {
               <DateField
                 value={filters.dataVigencia?.end ?? ''}
                 onChange={(v) => handleDateRangeChange('dataVigencia', 'end', v)}
-                inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] py-1.5 px-2"
+                inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[6px] py-1.5 px-2"
               />
             </div>
 
@@ -243,7 +243,7 @@ export default function OportunidadesPage() {
               <DateField
                 value={filters.dataRetorno?.start ?? ''}
                 onChange={(v) => handleDateRangeChange('dataRetorno', 'start', v)}
-                inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] py-1.5 px-2"
+                inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[6px] py-1.5 px-2"
               />
             </div>
 
@@ -252,14 +252,14 @@ export default function OportunidadesPage() {
               <DateField
                 value={filters.dataRetorno?.end ?? ''}
                 onChange={(v) => handleDateRangeChange('dataRetorno', 'end', v)}
-                inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] py-1.5 px-2"
+                inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[6px] py-1.5 px-2"
               />
             </div>
 
             <div className="flex items-end">
               <button
                 onClick={clearFilters}
-                className="w-full px-3 py-1.5 bg-bg-surface-2 text-fg-3 rounded-[10px] text-[10px] font-black uppercase tracking-widest hover:bg-signal-danger/10 hover:text-signal-danger transition-all"
+                className="w-full px-3 py-1.5 bg-bg-surface-2 text-fg-3 rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-signal-danger/10 hover:text-signal-danger transition-all"
               >
                 Limpar
               </button>

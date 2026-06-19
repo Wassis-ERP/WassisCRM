@@ -75,7 +75,7 @@ export function KanbanCardShell({
   return (
     <div
       onClick={() => onOpen?.(card)}
-      className={`group relative bg-bg-surface border rounded-[14px] shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] transition-all cursor-pointer p-3 overflow-hidden ${borderClass}`}
+      className={`group relative bg-bg-surface border rounded-[8px] shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] transition-all cursor-pointer p-3 overflow-hidden ${borderClass}`}
     >
       {accentBar && (
         <div className={`absolute left-0 top-0 bottom-0 w-1 ${ACCENT_BAR_CLASSES[accent]}`} />

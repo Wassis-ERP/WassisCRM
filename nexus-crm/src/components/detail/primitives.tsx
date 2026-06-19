@@ -29,7 +29,7 @@ export function DetailCard({
 }) {
   return (
     <section
-      className={`bg-bg-surface rounded-[14px] shadow-[var(--shadow-1)] border border-border-1 ${className}`}
+      className={`bg-bg-surface rounded-[8px] shadow-[var(--shadow-1)] border border-border-1 ${className}`}
     >
       {title && (
         <div className="px-6 py-4 border-b border-border-1 flex items-center justify-between gap-3">
@@ -139,7 +139,7 @@ export function EmptyState({
   return (
     <div className="flex flex-col items-center justify-center text-center py-10 px-6">
       {Icon && (
-        <div className="w-11 h-11 rounded-[12px] bg-bg-surface-2 text-fg-4 flex items-center justify-center mb-3">
+        <div className="w-11 h-11 rounded-[8px] bg-bg-surface-2 text-fg-4 flex items-center justify-center mb-3">
           <Icon size={22} />
         </div>
       )}

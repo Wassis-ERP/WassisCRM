@@ -175,7 +175,7 @@ export default function NovoSinistroModal({ isOpen, onClose, pipelineId, onCreat
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-10 px-4">
       <div className="fixed inset-0 z-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 my-auto bg-bg-surface rounded-[14px] shadow-[var(--shadow-3)] w-full max-w-[720px] border border-border-1 animate-in zoom-in-95 duration-200">
+      <div className="relative z-10 my-auto bg-bg-surface rounded-[8px] shadow-[var(--shadow-3)] w-full max-w-[720px] border border-border-1 animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between p-5 border-b border-border-1 sticky top-0 bg-bg-surface z-10">
           <div>
             <h2 className="text-lg font-black text-fg-1 tracking-tight">Novo Sinistro</h2>
@@ -183,7 +183,7 @@ export default function NovoSinistroModal({ isOpen, onClose, pipelineId, onCreat
               Aviso de sinistro vinculado a uma apolice
             </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-bg-surface-2 rounded-[10px] transition-all text-fg-4 hover:text-fg-2">
+          <button onClick={onClose} className="p-2 hover:bg-bg-surface-2 rounded-[6px] transition-all text-fg-4 hover:text-fg-2">
             <X size={20} />
           </button>
         </div>
@@ -205,11 +205,11 @@ export default function NovoSinistroModal({ isOpen, onClose, pipelineId, onCreat
                   setShowSuggestions(true);
                 }}
                 onFocus={() => setShowSuggestions(true)}
-                className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
+                className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
               />
             </div>
             {showSuggestions && !selectedOportunidade && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-bg-surface border border-border-1 rounded-[10px] shadow-[var(--shadow-3)] z-[80] overflow-hidden max-h-[220px] overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-bg-surface border border-border-1 rounded-[6px] shadow-[var(--shadow-3)] z-[80] overflow-hidden max-h-[220px] overflow-y-auto">
                 {oportunidadesQuery.isError ? (
                   <div className="p-3 text-center text-[10px] text-signal-danger font-bold">
                     Erro ao carregar oportunidades
@@ -253,7 +253,7 @@ export default function NovoSinistroModal({ isOpen, onClose, pipelineId, onCreat
                 placeholder="Ex: SIN-2025-001"
                 value={numeroSinistro}
                 onChange={(e) => setNumeroSinistro(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
               />
             </div>
 
@@ -264,7 +264,7 @@ export default function NovoSinistroModal({ isOpen, onClose, pipelineId, onCreat
               <select
                 value={tipoSinistro}
                 onChange={(e) => setTipoSinistro(e.target.value as TipoSinistro | '')}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all appearance-none"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all appearance-none"
               >
                 <option value="">Selecione</option>
                 {TIPO_SINISTRO_OPTIONS.map((opt) => (
@@ -302,7 +302,7 @@ export default function NovoSinistroModal({ isOpen, onClose, pipelineId, onCreat
                 placeholder="R$ 0,00"
                 value={valorPrejuizoStr}
                 onChange={(e) => setValorPrejuizoStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
               />
             </div>
 
@@ -315,13 +315,13 @@ export default function NovoSinistroModal({ isOpen, onClose, pipelineId, onCreat
                 placeholder="R$ 0,00"
                 value={valorIndenizacaoStr}
                 onChange={(e) => setValorIndenizacaoStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
               />
             </div>
           </div>
 
           {metaFieldsForRamo.length > 0 && (
-            <div className="bg-bg-surface-2 border border-border-1 rounded-[10px] p-3 space-y-3">
+            <div className="bg-bg-surface-2 border border-border-1 rounded-[6px] p-3 space-y-3">
               <p className="text-[9px] font-black text-fg-4 uppercase tracking-widest">
                 Campos de {selectedOportunidade?.ramo_nome}
               </p>
@@ -332,7 +332,7 @@ export default function NovoSinistroModal({ isOpen, onClose, pipelineId, onCreat
                       {field.label}
                     </label>
                     {field.type === 'boolean' ? (
-                      <label className="flex items-center gap-2 px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px]">
+                      <label className="flex items-center gap-2 px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px]">
                         <input
                           type="checkbox"
                           checked={!!metaFields[field.key]}
@@ -345,14 +345,14 @@ export default function NovoSinistroModal({ isOpen, onClose, pipelineId, onCreat
                         value={String(metaFields[field.key] ?? '')}
                         onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
                         rows={2}
-                        className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold resize-none"
+                        className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold resize-none"
                       />
                     ) : (
                       <input
                         type="text"
                         value={String(metaFields[field.key] ?? '')}
                         onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                        className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold"
+                        className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold"
                       />
                     )}
                   </div>
@@ -370,12 +370,12 @@ export default function NovoSinistroModal({ isOpen, onClose, pipelineId, onCreat
               onChange={(e) => setObservacoes(e.target.value)}
               rows={3}
               placeholder="Descreva o ocorrido..."
-              className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold resize-none focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
+              className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold resize-none focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
             />
           </div>
 
           {submitError && (
-            <div className="text-[11px] font-bold text-signal-danger bg-signal-danger/10 border border-signal-danger/30 rounded-[10px] px-3 py-2">
+            <div className="text-[11px] font-bold text-signal-danger bg-signal-danger/10 border border-signal-danger/30 rounded-[6px] px-3 py-2">
               {submitError}
             </div>
           )}

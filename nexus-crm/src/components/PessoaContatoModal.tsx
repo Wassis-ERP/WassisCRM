@@ -88,10 +88,10 @@ export default function PessoaContatoModal({
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-bg-surface w-full max-w-lg rounded-[20px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-bg-surface w-full max-w-lg rounded-[12px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="px-6 py-5 border-b border-border-1 flex items-center justify-between bg-bg-surface-2">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-accent-primary-soft rounded-[10px] text-accent-primary">
+            <div className="p-2 bg-accent-primary-soft rounded-[6px] text-accent-primary">
               <Link2 size={18} />
             </div>
             <h2 className="text-lg font-black text-fg-1 uppercase tracking-tight">
@@ -117,7 +117,7 @@ export default function PessoaContatoModal({
                 value={contatoId}
                 onChange={(e) => setContatoId(e.target.value)}
                 disabled={!!vinculo}
-                className="w-full px-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium disabled:opacity-60"
+                className="w-full px-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium disabled:opacity-60"
               >
                 <option value="">Selecione…</option>
                 {opcoes.map((o) => (
@@ -143,11 +143,11 @@ export default function PessoaContatoModal({
                 value={cargo}
                 onChange={(e) => setCargo(e.target.value)}
                 placeholder="Ex: Diretor Financeiro"
-                className="w-full px-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium"
+                className="w-full px-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium"
               />
             </div>
 
-            <label className="flex items-start gap-3 px-4 py-3 bg-bg-surface-2 border border-border-1 rounded-[10px] cursor-pointer">
+            <label className="flex items-start gap-3 px-4 py-3 bg-bg-surface-2 border border-border-1 rounded-[6px] cursor-pointer">
               <input
                 type="checkbox"
                 checked={principal}
@@ -169,7 +169,7 @@ export default function PessoaContatoModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[10px] transition-all"
+              className="px-5 py-2 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[6px] transition-all"
             >
               Cancelar
             </button>

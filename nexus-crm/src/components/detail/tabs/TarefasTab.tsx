@@ -34,7 +34,7 @@ const PRIO_CLASS: Record<TarefaPrioridade, string> = {
 }
 
 const inputCls =
-  'w-full px-3 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30'
+  'w-full px-3 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30'
 
 function TaskRow({ t, onToggle }: { t: Tarefa; onToggle: (id: string) => void }) {
   const TipoIcon = TIPO_ICON[t.tipo] ?? Clock
@@ -240,7 +240,7 @@ function SummaryStat({
         ? 'text-signal-success'
         : 'text-fg-1'
   return (
-    <div className="bg-bg-surface rounded-[14px] border border-border-1 shadow-[var(--shadow-1)] px-4 py-3 text-center">
+    <div className="bg-bg-surface rounded-[8px] border border-border-1 shadow-[var(--shadow-1)] px-4 py-3 text-center">
       <div className={`text-2xl font-bold ${numClass}`}>{value}</div>
       <div className="text-[11px] text-fg-4 uppercase tracking-wider font-bold mt-0.5">{label}</div>
     </div>
