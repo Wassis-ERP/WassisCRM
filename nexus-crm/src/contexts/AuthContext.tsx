@@ -155,7 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!REQUIRE_BACKEND_AUTH) {
         const email = username || MOCK_USER.email;
         setAuthState({
-          session: { ...MOCK_SESSION, user: { ...MOCK_SESSION.user, email } },
+          session: { ...MOCK_SESSION, user: { id: MOCK_USER.id, email } },
           user: { ...MOCK_USER, email },
           loading: false,
         });
