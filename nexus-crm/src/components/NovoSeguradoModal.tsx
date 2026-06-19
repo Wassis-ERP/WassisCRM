@@ -11,7 +11,7 @@ interface Props {
 }
 
 const baseInput =
-  'w-full px-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium'
+  'w-full px-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium'
 
 /**
  * Modal de cadastro inicial — somente o essencial para identificar a pessoa.
@@ -90,10 +90,10 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-bg-surface w-full max-w-xl rounded-[20px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-bg-surface w-full max-w-xl rounded-[12px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="px-6 py-5 border-b border-border-1 flex items-center justify-between bg-bg-surface-2">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-accent-primary-soft rounded-[10px] text-accent-primary">
+            <div className="p-2 bg-accent-primary-soft rounded-[6px] text-accent-primary">
               <UserPlus size={18} />
             </div>
             <div>
@@ -212,7 +212,7 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
 
             {/* LGPD */}
             <Field error={touched.lgpd ? lgpdErro : null}>
-              <label className="flex items-start gap-3 px-4 py-3 bg-bg-surface-2 border border-border-1 rounded-[10px] cursor-pointer">
+              <label className="flex items-start gap-3 px-4 py-3 bg-bg-surface-2 border border-border-1 rounded-[6px] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={lgpdAutorizado}
@@ -239,7 +239,7 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-5 py-2 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[10px] transition-all"
+                className="px-5 py-2 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[6px] transition-all"
               >
                 Cancelar
               </button>

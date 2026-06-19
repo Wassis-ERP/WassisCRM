@@ -155,7 +155,7 @@ export default function DateField({
             }
           }}
           className={[
-            'w-full bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] py-2.5 pl-10 pr-10 text-sm font-bold focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary transition-all',
+            'w-full bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] py-2.5 pl-10 pr-10 text-sm font-bold focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary transition-all',
             inputClassName ?? '',
           ].join(' ')}
         />
@@ -168,7 +168,7 @@ export default function DateField({
               onChange('')
               requestAnimationFrame(() => inputRef.current?.focus())
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-[10px] text-fg-4 hover:text-fg-2 hover:bg-bg-surface-3 transition-all"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-[6px] text-fg-4 hover:text-fg-2 hover:bg-bg-surface-3 transition-all"
             title="Limpar data"
           >
             <X size={14} />
@@ -176,12 +176,12 @@ export default function DateField({
         )}
 
         {open && !disabled && (
-          <div className="absolute z-50 mt-2 w-[320px] rounded-[14px] border border-border-1 bg-bg-surface backdrop-blur-md shadow-[var(--shadow-3)] p-3 animate-in fade-in zoom-in-95 duration-150">
+          <div className="absolute z-50 mt-2 w-[320px] rounded-[8px] border border-border-1 bg-bg-surface backdrop-blur-md shadow-[var(--shadow-3)] p-3 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between px-1.5 pb-2">
               <button
                 type="button"
                 onClick={() => setMonth((m) => subMonths(m, 1))}
-                className="p-2 rounded-[10px] hover:bg-bg-surface-2 text-fg-3 transition-colors"
+                className="p-2 rounded-[6px] hover:bg-bg-surface-2 text-fg-3 transition-colors"
                 title="Mês anterior"
               >
                 <ChevronLeft size={16} />
@@ -194,7 +194,7 @@ export default function DateField({
               <button
                 type="button"
                 onClick={() => setMonth((m) => addMonths(m, 1))}
-                className="p-2 rounded-[10px] hover:bg-bg-surface-2 text-fg-3 transition-colors"
+                className="p-2 rounded-[6px] hover:bg-bg-surface-2 text-fg-3 transition-colors"
                 title="Próximo mês"
               >
                 <ChevronRight size={16} />
@@ -221,7 +221,7 @@ export default function DateField({
                     type="button"
                     onClick={() => handleSelectDate(d)}
                     className={[
-                      'h-9 rounded-[10px] text-sm font-black transition-all',
+                      'h-9 rounded-[6px] text-sm font-black transition-all',
                       inMonth ? 'text-fg-1' : 'text-fg-4',
                       selected
                         ? 'bg-accent-primary text-fg-on-brand shadow-[var(--shadow-brand)]'

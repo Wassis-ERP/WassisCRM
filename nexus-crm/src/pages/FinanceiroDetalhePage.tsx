@@ -191,7 +191,7 @@ export default function FinanceiroDetalhePage() {
         <p className="text-signal-danger font-bold uppercase tracking-widest text-xs">Cobranca nao encontrada</p>
         <button
           onClick={() => navigate(-1)}
-          className="px-5 py-2 bg-bg-surface-2 text-fg-1 rounded-[10px] text-sm font-bold"
+          className="px-5 py-2 bg-bg-surface-2 text-fg-1 rounded-[6px] text-sm font-bold"
         >
           Voltar
         </button>
@@ -216,7 +216,7 @@ export default function FinanceiroDetalhePage() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate(-1)}
-                className="p-2.5 hover:bg-bg-surface-2 rounded-[10px] text-fg-3 transition-colors border border-transparent hover:border-border-1"
+                className="p-2.5 hover:bg-bg-surface-2 rounded-[6px] text-fg-3 transition-colors border border-transparent hover:border-border-1"
               >
                 <ArrowLeft size={18} />
               </button>
@@ -266,7 +266,7 @@ export default function FinanceiroDetalhePage() {
 
               <button
                 onClick={handleDiscard}
-                className="px-5 py-2.5 text-sm font-bold text-fg-3 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[10px] transition-all"
+                className="px-5 py-2.5 text-sm font-bold text-fg-3 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[6px] transition-all"
               >
                 Descartar
               </button>
@@ -311,9 +311,9 @@ export default function FinanceiroDetalhePage() {
       </div>
 
       {oportunidade && (
-        <div className="bg-accent-primary-soft border border-accent-primary/10 rounded-[14px] p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[var(--shadow-1)]">
+        <div className="bg-accent-primary-soft border border-accent-primary/10 rounded-[8px] p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[var(--shadow-1)]">
           <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-[14px] bg-gradient-to-br from-signal-success to-ramo-saude flex items-center justify-center text-fg-on-brand text-2xl font-bold shadow-[var(--shadow-2)]">
+            <div className="w-16 h-16 rounded-[8px] bg-gradient-to-br from-signal-success to-ramo-saude flex items-center justify-center text-fg-on-brand text-2xl font-bold shadow-[var(--shadow-2)]">
               {clienteNome.split(' ').map((n) => n[0]).join('').slice(0, 2)}
             </div>
             <div>
@@ -339,7 +339,7 @@ export default function FinanceiroDetalhePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12 animate-fade-in">
         <div className="lg:col-span-7 space-y-6">
-          <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
             <div className="flex items-center gap-2 mb-6 text-fg-4">
               <FileText size={18} className="text-accent-primary" />
               <h3 className="text-xs font-bold uppercase tracking-widest">Dados da Parcela</h3>
@@ -384,7 +384,7 @@ export default function FinanceiroDetalhePage() {
             </div>
           </div>
 
-          <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
             <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-4">Tratativas</h3>
             <textarea
               value={formData.observacoes}
@@ -396,7 +396,7 @@ export default function FinanceiroDetalhePage() {
         </div>
 
         <div className="lg:col-span-5 space-y-6">
-          <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
             <div className="flex items-center gap-2 mb-6 text-fg-4">
               <DollarSign size={18} className="text-signal-success" />
               <h3 className="text-xs font-bold uppercase tracking-widest">Valores</h3>
@@ -409,7 +409,7 @@ export default function FinanceiroDetalhePage() {
                   value={metaFields.valor_parcela}
                   onChange={(e) => setMetaFields({ ...metaFields, valor_parcela: e.target.value })}
                   placeholder="0,00"
-                  className="w-full bg-bg-surface-2 border-border-1 rounded-[14px] py-3 px-4 text-xl font-black text-fg-1 focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
+                  className="w-full bg-bg-surface-2 border-border-1 rounded-[8px] py-3 px-4 text-xl font-black text-fg-1 focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
                 />
                 <p className="text-[10px] text-fg-4">{formatCurrency(valorParcelaNumeric)}</p>
               </div>
@@ -420,7 +420,7 @@ export default function FinanceiroDetalhePage() {
                   type="number"
                   value={metaFields.dias_atraso}
                   onChange={(e) => setMetaFields({ ...metaFields, dias_atraso: e.target.value })}
-                  className={`w-full border-border-1 rounded-[14px] py-3 px-4 text-xl font-black focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none ${
+                  className={`w-full border-border-1 rounded-[8px] py-3 px-4 text-xl font-black focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none ${
                     diasAtrasoNumeric > 0
                       ? 'bg-signal-danger/10 text-signal-danger'
                       : 'bg-bg-surface-2 text-fg-1'

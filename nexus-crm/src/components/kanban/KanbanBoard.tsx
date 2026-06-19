@@ -130,7 +130,7 @@ export function KanbanBoard({
       </div>
 
       {cardsQuery.isError && (
-        <div className="border border-signal-danger/30 bg-signal-danger/10 text-signal-danger text-[10px] font-bold px-3 py-2 rounded-[10px] mx-4 mb-2">
+        <div className="border border-signal-danger/30 bg-signal-danger/10 text-signal-danger text-[10px] font-bold px-3 py-2 rounded-[6px] mx-4 mb-2">
           Falha ao carregar cards. Verifique conexao ou RLS.
         </div>
       )}

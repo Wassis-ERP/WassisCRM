@@ -45,7 +45,7 @@ export function KanbanColumn({
   if (collapsed) {
     return (
       <div
-        className="w-10 shrink-0 flex flex-col items-center py-4 bg-bg-surface-2 rounded-[14px] border border-border-1 cursor-pointer hover:bg-bg-surface-3 transition-all"
+        className="w-10 shrink-0 flex flex-col items-center py-4 bg-bg-surface-2 rounded-[8px] border border-border-1 cursor-pointer hover:bg-bg-surface-3 transition-all"
         onClick={() => onToggleCollapse(stage.id)}
       >
         <div className={`w-2 h-2 rounded-full mb-4 ${stage.color}`} />
@@ -111,7 +111,7 @@ export function KanbanColumn({
         ))}
 
         {cards.length === 0 && (
-          <div className="h-20 border border-dashed border-border-1 rounded-[14px] flex items-center justify-center bg-bg-surface-2/40">
+          <div className="h-20 border border-dashed border-border-1 rounded-[8px] flex items-center justify-center bg-bg-surface-2/40">
             <span className="text-[9px] font-black text-fg-4 uppercase tracking-widest italic">Vazio</span>
           </div>
         )}

@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Lock, Mail, ShieldCheck } from 'lucide-react'
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import Sidebar from './components/layout/Sidebar'
 import Header from './components/layout/Header'
 import DashboardPage from './pages/DashboardPage'
@@ -18,11 +18,14 @@ import ProdutoresPage from './pages/ProdutoresPage'
 import PropostasPage from './pages/PropostasPage'
 import SettingsPage from './pages/SettingsPage'
 import { useAuth } from './hooks/useAuth'
+import wassisMark from './assets/brand/wassis-mark.png'
+import wassisLogoDark from './assets/brand/wassis-logo-full_sidebar_dark.png'
 
 function LoginPage() {
   const { signIn } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -34,71 +37,116 @@ function LoginPage() {
     try {
       await signIn(username.trim(), password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Nao foi possivel entrar.')
+      setError(err instanceof Error ? err.message : 'Não foi possível entrar.')
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <main className="min-h-screen bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 flex items-center justify-center p-6">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl shadow-slate-900/5 p-6 space-y-5"
-      >
-        <div className="space-y-2">
-          <div className="w-11 h-11 rounded-xl bg-primary text-white flex items-center justify-center">
-            <ShieldCheck size={22} />
-          </div>
-          <div>
-            <h1 className="text-xl font-black tracking-tight">W.Assis CRM</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Acesse com seu usuario de homologacao.</p>
-          </div>
+    <main className="min-h-screen bg-bg-app text-fg-1 flex">
+      {/* Painel da marca — só em telas largas */}
+      <aside className="relative hidden lg:flex flex-col justify-between w-1/2 overflow-hidden bg-brand-primary-deep p-12 text-fg-on-brand">
+        <div
+          className="absolute inset-0 opacity-90"
+          style={{
+            background:
+              'radial-gradient(120% 120% at 0% 0%, var(--brand-blue) 0%, var(--brand-blue-deep) 55%, var(--neutral-950) 130%)',
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute -right-24 -top-24 h-96 w-96 rounded-full opacity-20 blur-3xl"
+          style={{ background: 'var(--brand-blue-on-dark)' }}
+        />
+        <div className="relative flex items-center">
+          <img src={wassisLogoDark} alt="W.Assis" className="h-10 w-auto object-contain" />
         </div>
 
-        <label className="block space-y-1.5">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Usuario</span>
-          <span className="relative block">
-            <Mail size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              className="w-full pl-10 pr-3 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:border-primary focus:outline-none"
-              autoComplete="username"
-              required
-            />
-          </span>
-        </label>
-
-        <label className="block space-y-1.5">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Senha</span>
-          <span className="relative block">
-            <Lock size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full pl-10 pr-3 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:border-primary focus:outline-none"
-              type="password"
-              autoComplete="current-password"
-              required
-            />
-          </span>
-        </label>
-
-        {error && (
-          <p className="rounded-xl border border-danger/20 bg-danger/10 px-3 py-2 text-xs font-bold text-danger">
-            {error}
+        <div className="relative max-w-md space-y-4">
+          <h2 className="font-display text-4xl font-bold leading-tight tracking-tight">
+            CRM de seguros, do primeiro contato à renovação.
+          </h2>
+          <p className="text-base leading-relaxed text-white/70">
+            Gerencie segurados, oportunidades, sinistros e cobranças em um só lugar.
           </p>
-        )}
+        </div>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full py-3 bg-primary text-white rounded-xl text-sm font-black hover:opacity-90 disabled:opacity-50 transition-opacity"
+        <p className="relative text-xs text-white/50">© {new Date().getFullYear()} W.Assis · Todos os direitos reservados</p>
+      </aside>
+
+      {/* Formulário */}
+      <div className="flex w-full flex-col items-center justify-center p-6 lg:w-1/2">
+        <form
+          onSubmit={handleSubmit}
+          className="w-full max-w-sm rounded-2xl border border-border-1 bg-bg-surface p-8 shadow-[var(--shadow-3)]"
         >
-          {submitting ? 'Entrando...' : 'Entrar'}
-        </button>
-      </form>
+          <div className="mb-8 space-y-1.5">
+            <img
+              src={wassisMark}
+              alt="W.Assis"
+              className="mb-5 h-12 w-12 rounded-2xl shadow-[var(--shadow-brand)] lg:hidden"
+            />
+            <h1 className="font-display text-2xl font-bold tracking-tight text-fg-1">Bem-vindo de volta</h1>
+            <p className="text-sm text-fg-3">Acesse sua conta para continuar.</p>
+          </div>
+
+          <div className="space-y-5">
+            <label className="block space-y-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-fg-3">Usuário</span>
+              <span className="relative block">
+                <Mail size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-4" />
+                <input
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="seu@email.com"
+                  className="w-full rounded-xl border border-border-1 bg-bg-surface-2 py-3 pl-11 pr-3 text-sm text-fg-1 placeholder:text-fg-4 transition-all focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
+                  autoComplete="username"
+                  required
+                />
+              </span>
+            </label>
+
+            <label className="block space-y-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-fg-3">Senha</span>
+              <span className="relative block">
+                <Lock size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-4" />
+                <input
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-xl border border-border-1 bg-bg-surface-2 py-3 pl-11 pr-11 text-sm text-fg-1 placeholder:text-fg-4 transition-all focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-fg-4 transition-colors hover:text-fg-2"
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </span>
+            </label>
+
+            {error && (
+              <p className="rounded-xl border border-signal-danger/20 bg-signal-danger/10 px-3 py-2 text-xs font-semibold text-signal-danger">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full rounded-xl bg-accent-primary py-3 text-sm font-semibold text-accent-primary-fg shadow-[var(--shadow-brand)] transition-all hover:bg-accent-primary-hover disabled:opacity-50"
+            >
+              {submitting ? 'Entrando...' : 'Entrar'}
+            </button>
+          </div>
+        </form>
+      </div>
     </main>
   )
 }

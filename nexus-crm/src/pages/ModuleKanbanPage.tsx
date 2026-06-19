@@ -82,7 +82,7 @@ export default function ModuleKanbanPage({ module, title, description }: ModuleK
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex bg-bg-surface p-1 rounded-[10px] border border-border-1 shadow-[var(--shadow-1)]">
+          <div className="flex bg-bg-surface p-1 rounded-[6px] border border-border-1 shadow-[var(--shadow-1)]">
             {STATUS_OPTIONS.map(opt => (
               <button
                 key={opt.value}
@@ -119,7 +119,7 @@ export default function ModuleKanbanPage({ module, title, description }: ModuleK
       </div>
 
       {/* Filtros dinamicos */}
-      <div className="bg-bg-surface border border-border-1 rounded-[14px] shadow-[var(--shadow-1)] mb-4 p-3 flex flex-wrap items-center gap-3">
+      <div className="bg-bg-surface border border-border-1 rounded-[8px] shadow-[var(--shadow-1)] mb-4 p-3 flex flex-wrap items-center gap-3">
         {enabled.has('search') && (
           <div className="relative flex-1 min-w-[200px]">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
@@ -128,7 +128,7 @@ export default function ModuleKanbanPage({ module, title, description }: ModuleK
               value={filters.search ?? ''}
               onChange={(e) => setFilter('search', e.target.value)}
               placeholder="Buscar..."
-              className="w-full pl-9 pr-3 py-2 rounded-[10px] bg-bg-surface-2 border-none text-xs font-bold text-fg-2 placeholder:text-fg-4 focus:ring-2 focus:ring-accent-primary/30"
+              className="w-full pl-9 pr-3 py-2 rounded-[6px] bg-bg-surface-2 border-none text-xs font-bold text-fg-2 placeholder:text-fg-4 focus:ring-2 focus:ring-accent-primary/30"
             />
           </div>
         )}
@@ -137,7 +137,7 @@ export default function ModuleKanbanPage({ module, title, description }: ModuleK
           <select
             value={filters.ramo ?? ''}
             onChange={(e) => setFilter('ramo', e.target.value)}
-            className="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] py-2 px-3"
+            className="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[6px] py-2 px-3"
           >
             <option value="">Todos os Ramos</option>
             {ramosQuery.data?.map(r => (
@@ -152,13 +152,13 @@ export default function ModuleKanbanPage({ module, title, description }: ModuleK
             <DateField
               value={filters.dataRetorno?.start ?? ''}
               onChange={(v) => setDateRange('dataRetorno', 'start', v)}
-              inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] py-1.5 px-2"
+              inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[6px] py-1.5 px-2"
             />
             <span className="text-fg-4 text-[10px]">ate</span>
             <DateField
               value={filters.dataRetorno?.end ?? ''}
               onChange={(v) => setDateRange('dataRetorno', 'end', v)}
-              inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] py-1.5 px-2"
+              inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[6px] py-1.5 px-2"
             />
           </div>
         )}
@@ -169,20 +169,20 @@ export default function ModuleKanbanPage({ module, title, description }: ModuleK
             <DateField
               value={filters.dataVigencia?.start ?? ''}
               onChange={(v) => setDateRange('dataVigencia', 'start', v)}
-              inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] py-1.5 px-2"
+              inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[6px] py-1.5 px-2"
             />
             <span className="text-fg-4 text-[10px]">ate</span>
             <DateField
               value={filters.dataVigencia?.end ?? ''}
               onChange={(v) => setDateRange('dataVigencia', 'end', v)}
-              inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[10px] py-1.5 px-2"
+              inputClassName="bg-bg-surface-2 text-fg-2 border-none text-[11px] font-bold rounded-[6px] py-1.5 px-2"
             />
           </div>
         )}
 
         <button
           onClick={() => setFilters(INITIAL_FILTERS)}
-          className="ml-auto px-3 py-1.5 bg-bg-surface-2 text-fg-3 rounded-[10px] text-[10px] font-black uppercase tracking-widest hover:bg-signal-danger/10 hover:text-signal-danger transition-all"
+          className="ml-auto px-3 py-1.5 bg-bg-surface-2 text-fg-3 rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-signal-danger/10 hover:text-signal-danger transition-all"
         >
           Limpar
         </button>

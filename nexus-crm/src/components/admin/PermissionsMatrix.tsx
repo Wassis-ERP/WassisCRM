@@ -22,7 +22,7 @@ export function PermissionsMatrix() {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div className="bg-signal-warning/10 border border-signal-warning/30 p-4 rounded-[14px] flex gap-3 items-start">
+      <div className="bg-signal-warning/10 border border-signal-warning/30 p-4 rounded-[8px] flex gap-3 items-start">
         <Shield className="text-signal-warning shrink-0" size={20} />
         <div>
           <h4 className="text-sm font-bold text-signal-warning uppercase tracking-tight">Aviso de Segurança</h4>
@@ -33,7 +33,7 @@ export function PermissionsMatrix() {
         </div>
       </div>
 
-      <div className="bg-bg-surface rounded-[14px] border border-border-1 overflow-hidden shadow-[var(--shadow-1)]">
+      <div className="bg-bg-surface rounded-[8px] border border-border-1 overflow-hidden shadow-[var(--shadow-1)]">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>

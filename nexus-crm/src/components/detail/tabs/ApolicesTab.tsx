@@ -26,7 +26,7 @@ export default function ApolicesTab({ seguradoId }: { seguradoId: string }) {
     })
 
   return (
-    <div className="bg-bg-surface border border-border-1 rounded-[14px] shadow-[var(--shadow-1)]">
+    <div className="bg-bg-surface border border-border-1 rounded-[8px] shadow-[var(--shadow-1)]">
       <div className="flex items-center justify-between p-4 border-b border-border-1">
         <h2 className="text-lg font-bold">Apólices &amp; propostas</h2>
         {doSegurado.length > 0 && (

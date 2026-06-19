@@ -75,7 +75,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, onToggleTheme, da
             <NavLink
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-[10px] transition-colors text-sm ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-[6px] transition-colors text-sm ${
                 collapsed ? 'justify-center' : ''
               } ${
                 isActive
@@ -95,7 +95,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, onToggleTheme, da
       <div className="p-3 border-t border-border-1 space-y-1">
         <button
           onClick={onToggleTheme}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-fg-3 hover:bg-bg-surface-2 hover:text-fg-2 transition-colors text-sm ${
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[6px] text-fg-3 hover:bg-bg-surface-2 hover:text-fg-2 transition-colors text-sm ${
             collapsed ? 'justify-center' : ''
           }`}
           title={collapsed ? 'Alterar Tema' : undefined}
@@ -105,7 +105,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, onToggleTheme, da
         </button>
         <button
           onClick={onToggleCollapse}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-fg-3 hover:bg-bg-surface-2 hover:text-fg-2 transition-colors text-sm ${
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[6px] text-fg-3 hover:bg-bg-surface-2 hover:text-fg-2 transition-colors text-sm ${
             collapsed ? 'justify-center' : ''
           }`}
           title={collapsed ? 'Expandir' : 'Colapsar'}

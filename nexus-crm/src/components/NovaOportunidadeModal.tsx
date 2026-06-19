@@ -227,7 +227,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-10 px-4">
       <div className="fixed inset-0 z-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 my-auto bg-bg-surface rounded-[14px] shadow-[var(--shadow-3)] w-full max-w-[720px] border border-border-1 animate-in zoom-in-95 duration-200">
+      <div className="relative z-10 my-auto bg-bg-surface rounded-[8px] shadow-[var(--shadow-3)] w-full max-w-[720px] border border-border-1 animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between p-5 border-b border-border-1 sticky top-0 bg-bg-surface z-10">
           <div>
             <h2 className="text-lg font-black text-fg-1 tracking-tight">Nova Oportunidade</h2>
@@ -235,7 +235,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
               {activePipeline ? `Pipeline: ${activePipeline.name}` : 'Carregando pipeline...'}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-bg-surface-2 rounded-[10px] transition-all text-fg-4 hover:text-fg-2">
+          <button onClick={onClose} className="p-2 hover:bg-bg-surface-2 rounded-[6px] transition-all text-fg-4 hover:text-fg-2">
             <X size={20} />
           </button>
         </div>
@@ -250,7 +250,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
               placeholder="Ex: Carro Corolla do Seu Jose"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              className="w-full px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-sm font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none focus:border-accent-primary/40 transition-all"
+              className="w-full px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none focus:border-accent-primary/40 transition-all"
             />
           </div>
 
@@ -267,11 +267,11 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
                   value={clienteSearch}
                   onChange={(e) => handleClienteSearchChange(e.target.value)}
                   onFocus={() => setShowSuggestions(true)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
+                  className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
                 />
               </div>
               {showClientePanel && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-bg-surface border border-border-1 rounded-[10px] shadow-[var(--shadow-3)] z-[80] overflow-hidden max-h-[220px] overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-bg-surface border border-border-1 rounded-[6px] shadow-[var(--shadow-3)] z-[80] overflow-hidden max-h-[220px] overflow-y-auto">
                   {segurados.isError ? (
                     <div className="p-3 text-center text-[10px] text-signal-danger font-bold">
                       Erro ao carregar clientes. Verifique sessao e permissoes.
@@ -312,7 +312,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
               <select
                 value={origemId}
                 onChange={(e) => setOrigemId(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all appearance-none"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all appearance-none"
               >
                 <option value="">De onde veio?</option>
                 {(origens.data ?? []).map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
@@ -326,22 +326,22 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
                 placeholder="R$ 0,00"
                 value={premioLiquidoStr}
                 onChange={(e) => setPremioLiquidoStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
               />
             </div>
           </div>
 
           {showNovoCliente && (
-            <div className="bg-accent-primary-soft border border-accent-primary/10 rounded-[10px] p-3 space-y-2 animate-in slide-in-from-top-1 duration-200">
+            <div className="bg-accent-primary-soft border border-accent-primary/10 rounded-[6px] p-3 space-y-2 animate-in slide-in-from-top-1 duration-200">
               <p className="text-[9px] font-black text-accent-primary uppercase tracking-widest">Cadastro rapido de cliente</p>
               <div className="grid grid-cols-3 gap-2">
                 <input type="text" placeholder="Nome completo *" value={novoClienteNome} onChange={(e) => setNovoClienteNome(e.target.value)}
-                  className="px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none" />
+                  className="px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none" />
                 <input type="text" placeholder="CPF / CNPJ" value={novoClienteDoc} onChange={(e) => setNovoClienteDoc(e.target.value)}
-                  className="px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none" />
+                  className="px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none" />
                 <div className="flex gap-2">
                   <input type="text" placeholder="Telefone" value={novoClienteTelefone} onChange={(e) => setNovoClienteTelefone(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none" />
+                    className="flex-1 px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none" />
                   <button
                     onClick={handleCriarNovoCliente}
                     disabled={createSegurado.isPending}
@@ -369,7 +369,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
               <select
                 value={ramoId}
                 onChange={(e) => { setRamoId(e.target.value); setMetaFields({}); }}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all appearance-none"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all appearance-none"
               >
                 <option value="">Qual ramo?</option>
                 {(ramos.data ?? []).map((r) => <option key={r.id} value={r.id}>{r.nome}</option>)}
@@ -383,7 +383,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
                 placeholder="Ex: 15"
                 value={comissaoStr}
                 onChange={(e) => setComissaoStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
               />
             </div>
           </div>
@@ -404,7 +404,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
               <select
                 value={tipoNegocio}
                 onChange={(e) => setTipoNegocio(e.target.value as typeof tipoNegocio)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all appearance-none"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all appearance-none"
               >
                 <option value="">Selecione</option>
                 <option value="novo">Novo</option>
@@ -418,7 +418,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
               <select
                 value={seguradoraId}
                 onChange={(e) => setSeguradoraId(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all appearance-none"
+                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all appearance-none"
               >
                 <option value="">Selecione</option>
                 {(seguradoras.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
@@ -427,7 +427,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
           </div>
 
           {metaFieldsForRamo.length > 0 && (
-            <div className="bg-bg-surface-2 border border-border-1 rounded-[10px] p-3 space-y-3">
+            <div className="bg-bg-surface-2 border border-border-1 rounded-[6px] p-3 space-y-3">
               <p className="text-[9px] font-black text-fg-4 uppercase tracking-widest">Campos de {selectedRamoName}</p>
               <div className="grid grid-cols-3 gap-3">
                 {metaFieldsForRamo.map((field) => (
@@ -436,7 +436,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
                       {field.label}
                     </label>
                     {field.type === 'boolean' ? (
-                      <label className="flex items-center gap-2 px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px]">
+                      <label className="flex items-center gap-2 px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px]">
                         <input
                           type="checkbox"
                           checked={!!metaFields[field.key]}
@@ -448,7 +448,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
                       <select
                         value={String(metaFields[field.key] ?? '')}
                         onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                        className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold"
+                        className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold"
                       >
                         <option value="">Selecione</option>
                         {(field.options ?? []).map((opt) => (
@@ -460,14 +460,14 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
                         value={String(metaFields[field.key] ?? '')}
                         onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
                         rows={2}
-                        className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold resize-none"
+                        className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold resize-none"
                       />
                     ) : (
                       <input
                         type={field.type === 'number' || field.type === 'money' ? 'text' : 'text'}
                         value={String(metaFields[field.key] ?? '')}
                         onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                        className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[10px] text-xs font-bold"
+                        className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold"
                       />
                     )}
                   </div>
@@ -490,7 +490,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
           </div>
 
           {submitError && (
-            <div className="text-[11px] font-bold text-signal-danger bg-signal-danger/10 border border-signal-danger/30 rounded-[10px] px-3 py-2">
+            <div className="text-[11px] font-bold text-signal-danger bg-signal-danger/10 border border-signal-danger/30 rounded-[6px] px-3 py-2">
               {submitError}
             </div>
           )}

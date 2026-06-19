@@ -213,7 +213,7 @@ export default function OportunidadeDetalhePage() {
         <p className="text-signal-danger font-bold uppercase tracking-widest text-xs">Oportunidade nao encontrada</p>
         <button
           onClick={() => navigate(-1)}
-          className="px-5 py-2 bg-bg-surface-2 text-fg-1 rounded-[10px] text-sm font-bold"
+          className="px-5 py-2 bg-bg-surface-2 text-fg-1 rounded-[6px] text-sm font-bold"
         >
           Voltar
         </button>
@@ -236,7 +236,7 @@ export default function OportunidadeDetalhePage() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate(-1)}
-                className="p-2.5 hover:bg-bg-surface-2 rounded-[10px] text-fg-3 transition-colors border border-transparent hover:border-border-1"
+                className="p-2.5 hover:bg-bg-surface-2 rounded-[6px] text-fg-3 transition-colors border border-transparent hover:border-border-1"
               >
                 <ArrowLeft size={18} />
               </button>
@@ -288,7 +288,7 @@ export default function OportunidadeDetalhePage() {
 
               <button
                 onClick={handleDiscard}
-                className="px-5 py-2.5 text-sm font-bold text-fg-3 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[10px] transition-all"
+                className="px-5 py-2.5 text-sm font-bold text-fg-3 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[6px] transition-all"
               >
                 Descartar
               </button>
@@ -334,9 +334,9 @@ export default function OportunidadeDetalhePage() {
         </div>
       </div>
 
-      <div className="bg-accent-primary-soft border border-accent-primary/10 rounded-[14px] p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[var(--shadow-1)]">
+      <div className="bg-accent-primary-soft border border-accent-primary/10 rounded-[8px] p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[var(--shadow-1)]">
         <div className="flex items-center gap-5">
-          <div className="w-16 h-16 rounded-[14px] bg-gradient-to-br from-accent-primary to-brand-primary-deep flex items-center justify-center text-fg-on-brand text-2xl font-bold shadow-[var(--shadow-2)]">
+          <div className="w-16 h-16 rounded-[8px] bg-gradient-to-br from-accent-primary to-brand-primary-deep flex items-center justify-center text-fg-on-brand text-2xl font-bold shadow-[var(--shadow-2)]">
             {clienteNome.split(' ').map((n) => n[0]).join('').slice(0, 2)}
           </div>
           <div>
@@ -378,7 +378,7 @@ export default function OportunidadeDetalhePage() {
       {activeTab === 'orcamento' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12 animate-fade-in">
           <div className="lg:col-span-7 space-y-6">
-            <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+            <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
               <div className="flex items-center gap-2 mb-6 text-fg-4">
                 <Shield size={18} className="text-accent-primary" />
                 <h3 className="text-xs font-bold uppercase tracking-widest">Resumo do Orcamento</h3>
@@ -448,7 +448,7 @@ export default function OportunidadeDetalhePage() {
               </div>
             </div>
 
-            <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+            <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
               <div className="flex items-center gap-2 mb-6 text-fg-4">
                 <TrendingUp size={18} className="text-accent-primary" />
                 <h3 className="text-xs font-bold uppercase tracking-widest">Origem e Agendamento</h3>
@@ -480,7 +480,7 @@ export default function OportunidadeDetalhePage() {
           </div>
 
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+            <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
               <div className="flex items-center gap-2 mb-8 text-fg-4">
                 <DollarSign size={18} className="text-signal-success" />
                 <h3 className="text-xs font-bold uppercase tracking-widest">Projecao Financeira</h3>
@@ -500,7 +500,7 @@ export default function OportunidadeDetalhePage() {
                   <p className="text-[10px] text-fg-4 mt-1">Valor base para o calculo da comissao.</p>
                 </div>
 
-                <div className="p-6 bg-bg-surface-2 rounded-[14px] border border-border-1 space-y-6">
+                <div className="p-6 bg-bg-surface-2 rounded-[8px] border border-border-1 space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold text-fg-3 uppercase">Comissao (%)</label>
@@ -529,7 +529,7 @@ export default function OportunidadeDetalhePage() {
               </div>
             </div>
 
-            <div className="bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+            <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
               <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-4">Notas da Oportunidade</h3>
               <textarea
                 value={formData.observacoes}
@@ -545,7 +545,7 @@ export default function OportunidadeDetalhePage() {
       {activeTab === 'produtores' && (
         <div className="animate-fade-in space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-bg-surface p-6 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)] flex items-center gap-4">
+            <div className="bg-bg-surface p-6 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)] flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-bg-surface-2 flex items-center justify-center text-accent-primary font-bold text-lg">
                 {(responsavel?.full_name ?? '?').split(' ').map((n) => n[0]).join('').slice(0, 2)}
               </div>
@@ -562,7 +562,7 @@ export default function OportunidadeDetalhePage() {
       )}
 
       {activeTab === 'anexos_logs' && (
-        <div className="animate-fade-in bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+        <div className="animate-fade-in bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
           <div className="flex items-center gap-2 mb-6 text-fg-4">
             <History size={18} className="text-accent-primary" />
             <h3 className="text-xs font-bold uppercase tracking-widest">Anexos e Logs</h3>
@@ -572,7 +572,7 @@ export default function OportunidadeDetalhePage() {
       )}
 
       {activeTab === 'comentarios' && (
-        <div className="animate-fade-in bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+        <div className="animate-fade-in bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
           <div className="flex items-center gap-2 mb-6 text-fg-4">
             <MessageSquare size={18} className="text-accent-primary" />
             <h3 className="text-xs font-bold uppercase tracking-widest">Comentarios Internos</h3>
@@ -582,7 +582,7 @@ export default function OportunidadeDetalhePage() {
       )}
 
       {activeTab === 'oportunidades' && (
-        <div className="animate-fade-in bg-bg-surface p-8 rounded-[14px] border border-border-1 shadow-[var(--shadow-1)]">
+        <div className="animate-fade-in bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
           <div className="flex items-center gap-2 mb-6 text-fg-4">
             <LayoutGrid size={18} className="text-accent-primary" />
             <h3 className="text-xs font-bold uppercase tracking-widest">Historico de Oportunidades do Cliente</h3>
