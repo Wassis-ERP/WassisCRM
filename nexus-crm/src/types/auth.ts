@@ -39,5 +39,6 @@ export interface UserProfile {
 export interface AuthState {
   session: Session | null;
   user: UserProfile | null;
+  activeBranchId: string | null;
   loading: boolean;
 }
