@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryClient';
 import type { Database } from '../types/database';
 import { useAuth } from './useAuth';
+import { useActiveFilialId } from './useActiveFilial';
 
 type OportunidadeRow = Database['public']['Tables']['oportunidades']['Row'];
 type OportunidadeInsert = Database['public']['Tables']['oportunidades']['Insert'];
@@ -36,6 +37,7 @@ export interface CreateOportunidadeInput {
 export function useCreateOportunidade() {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const filialId = useActiveFilialId();
 
   return useMutation({
     mutationFn: async (input: CreateOportunidadeInput): Promise<OportunidadeRow> => {
@@ -62,6 +64,7 @@ export function useCreateOportunidade() {
         metadata: (input.metadata ?? {}) as OportunidadeInsert['metadata'],
         responsavel_id: user.id,
         tenant_id: user.tenantId,
+        filial_id: filialId,
         status: 'pending',
       };
 

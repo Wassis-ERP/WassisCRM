@@ -13,7 +13,7 @@ import { ComercialCard } from './Card';
 export const comercialAdapter: ModuleAdapter = {
   module: 'comercial',
 
-  async fetchCards({ pipelineId, includeConcluded }) {
+  async fetchCards({ pipelineId, includeConcluded, filialId }) {
     // Nao usar embed `profiles:responsavel_id`: o schema publico nao expoe FK
     // oportunidades.responsavel_id -> profiles (PostgREST retorna 400).
     let builder = supabase
@@ -38,6 +38,12 @@ export const comercialAdapter: ModuleAdapter = {
         origens:origem_id ( id, nome )
       `)
       .eq('pipeline_id', pipelineId);
+
+    // Corretora ativa selecionada -> só as oportunidades dela (UX). "Todas as
+    // filiais" (null) não filtra. Isolamento real = RLS no backend (Fase 2).
+    if (filialId) {
+      builder = builder.eq('filial_id', filialId);
+    }
 
     if (!includeConcluded) {
       builder = builder.eq('status', 'pending');

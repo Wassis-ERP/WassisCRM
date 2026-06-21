@@ -20,6 +20,7 @@ import {
 import ProdutoresPage from './ProdutoresPage'
 import StepsConfigModal from '../components/modals/StepsConfigModal'
 import { PermissionsMatrix } from '../components/admin/PermissionsMatrix'
+import FiliaisTab from '../components/settings/FiliaisTab'
 
 import { useRamos, useOrigens, useSeguradoras, useMotivosPerda } from '../hooks/useLookups'
 import { useLookupsAdmin } from '../hooks/useLookupsAdmin'
@@ -306,9 +307,10 @@ const DBLookupListTab = ({
 }
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('produtores')
+  const [activeTab, setActiveTab] = useState('corretoras')
 
   const tabs = [
+    { id: 'corretoras', label: 'Corretoras/Filiais', icon: Building2, component: <FiliaisTab /> },
     { id: 'produtores', label: 'Equipe e Perfis', icon: Users, component: <ProdutoresPage /> },
     { id: 'permissoes', label: 'Matriz de Permissões', icon: ShieldCheck, component: <PermissionsMatrix /> },
     { id: 'funis', label: 'Funis & Etapas', icon: GitBranch, component: <FunisEtapasTab /> },

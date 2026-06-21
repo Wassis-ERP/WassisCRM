@@ -432,6 +432,7 @@ export type Database = {
           comissao_percentual: number | null
           concluded_at: string | null
           created_at: string
+          filial_id: string | null
           id: string
           indicador: string | null
           metadata: Json
@@ -461,6 +462,7 @@ export type Database = {
           comissao_percentual?: number | null
           concluded_at?: string | null
           created_at?: string
+          filial_id?: string | null
           id?: string
           indicador?: string | null
           metadata?: Json
@@ -490,6 +492,7 @@ export type Database = {
           comissao_percentual?: number | null
           concluded_at?: string | null
           created_at?: string
+          filial_id?: string | null
           id?: string
           indicador?: string | null
           metadata?: Json
@@ -771,6 +774,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          email: string | null
           full_name: string | null
           id: string
           phone: string | null
@@ -780,6 +784,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id: string
           phone?: string | null
@@ -789,6 +794,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
@@ -849,7 +855,7 @@ export type Database = {
           created_at: string | null
           id: string
           module: string
-          role: Database["public"]["Enums"]["app_role"]
+          perfil_id: string
         }
         Insert: {
           can_create?: boolean | null
@@ -859,7 +865,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           module: string
-          role: Database["public"]["Enums"]["app_role"]
+          perfil_id: string
         }
         Update: {
           can_create?: boolean | null
@@ -869,7 +875,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           module?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          perfil_id?: string
         }
         Relationships: []
       }
@@ -924,6 +930,7 @@ export type Database = {
           endereco: string | null
           estado: string | null
           estado_civil: Database["public"]["Enums"]["estado_civil"] | null
+          filial_id: string | null
           gerente_id: string | null
           id: string
           lgpd_autorizado: boolean
@@ -957,6 +964,7 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           estado_civil?: Database["public"]["Enums"]["estado_civil"] | null
+          filial_id?: string | null
           gerente_id?: string | null
           id?: string
           lgpd_autorizado?: boolean
@@ -990,6 +998,7 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           estado_civil?: Database["public"]["Enums"]["estado_civil"] | null
+          filial_id?: string | null
           gerente_id?: string | null
           id?: string
           lgpd_autorizado?: boolean
@@ -1230,11 +1239,12 @@ export type Database = {
         Args: never
         Returns: {
           avatar_url: string
+          corretoras_count: number
           created_at: string
           email: string
           full_name: string
           id: string
-          role: Database["public"]["Enums"]["app_role"]
+          perfil_principal: string | null
         }[]
       }
       get_user_role: {
