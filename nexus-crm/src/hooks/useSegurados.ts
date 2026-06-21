@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database';
 import { useAuth } from './useAuth';
+import { useActiveFilialId } from './useActiveFilial';
 import { useTeamAdmin } from './useTeamAdmin';
 import { mapPessoaContatoRowToView } from '../lib/seguradoMapper';
 import type { PessoaContato } from '../contexts/seguradosCore';
@@ -26,18 +27,24 @@ const SEGURADO_WITH_JOINS_SELECT =
  * sem precisar de hidratar separadamente.
  */
 export function useSegurados() {
-  const { session, loading: authLoading } = useAuth();
+  const { session, loading: authLoading, activeBranchId } = useAuth();
   const authReady = !authLoading && !!session;
 
   return useQuery({
-    queryKey: SEGURADOS_KEY,
+    // activeBranchId entra na chave: trocar a corretora ativa refaz a lista.
+    queryKey: [...SEGURADOS_KEY, 'branch', activeBranchId ?? '__all__'] as const,
     enabled: authReady,
     queryFn: async (): Promise<SeguradoRow[]> => {
-      const { data, error } = await supabase
+      let builder = supabase
         .from('segurados')
         .select(SEGURADO_WITH_JOINS_SELECT)
         .order('nome', { ascending: true });
 
+      // Corretora ativa selecionada -> só os cadastros dela (UX). "Todas as
+      // filiais" (null) não filtra. O isolamento real é RLS no backend.
+      if (activeBranchId) builder = builder.eq('filial_id', activeBranchId);
+
+      const { data, error } = await builder;
       if (error) throw error;
       return (data ?? []) as SeguradoRow[];
     },
@@ -45,15 +52,20 @@ export function useSegurados() {
   });
 }
 
-export type CreateSeguradoInput = Omit<SeguradoInsert, 'id' | 'tenant_id' | 'created_by' | 'created_at' | 'updated_at'>;
+export type CreateSeguradoInput = Omit<
+  SeguradoInsert,
+  'id' | 'tenant_id' | 'filial_id' | 'created_by' | 'created_at' | 'updated_at'
+>;
 
 /**
- * Cria um segurado. Preenche `tenant_id` do usuário logado e `created_by` com seu id.
- * Campos exclusivos do tipo oposto já chegam zerados (filtro feito no mapper).
+ * Cria um segurado. Preenche `tenant_id`/`created_by` do usuário logado e carimba
+ * `filial_id` com a corretora ATIVA (R6). Campos exclusivos do tipo oposto já
+ * chegam zerados (filtro feito no mapper).
  */
 export function useCreateSegurado() {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const filialId = useActiveFilialId();
 
   return useMutation({
     mutationFn: async (input: CreateSeguradoInput): Promise<SeguradoRow> => {
@@ -68,6 +80,7 @@ export function useCreateSegurado() {
           status: input.status ?? 'Ativo',
           lgpd_autorizado: input.lgpd_autorizado ?? false,
           tenant_id: user.tenantId,
+          filial_id: filialId,
           created_by: user.id,
         })
         .select('*')

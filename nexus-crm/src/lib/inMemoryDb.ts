@@ -22,6 +22,9 @@ const TABLES = [
   'pipelines',
   'pipeline_stages',
   'profiles',
+  'filiais',
+  'profile_filiais',
+  'perfis',
   'user_roles',
   'role_permissions',
   'ramos',
@@ -90,6 +93,12 @@ export const RELATIONS: Record<
   'pessoa_contato.pj': { target: 'segurados', localFk: 'pj_id', kind: 'forward' },
   'pessoa_contato.pf': { target: 'segurados', localFk: 'pf_id', kind: 'forward' },
 
+  // plataforma multi-corretora (v1.1)
+  'filiais.matriz': { target: 'filiais', localFk: 'matriz_id', kind: 'forward' },
+  'profile_filiais.profiles': { target: 'profiles', localFk: 'profile_id', kind: 'forward' },
+  'profile_filiais.filiais': { target: 'filiais', localFk: 'filial_id', kind: 'forward' },
+  'profile_filiais.perfis': { target: 'perfis', localFk: 'perfil_id', kind: 'forward' },
+
   // reverse (one-to-many): row.<targetTable> = array de filhos
   'pipelines.pipeline_stages': { target: 'pipeline_stages', childFk: 'pipeline_id', kind: 'reverse' },
 };
@@ -121,12 +130,6 @@ export function seed(): void {
     created_at: nowIso(),
   });
 
-  db.user_roles.push({
-    id: newId(),
-    user_id: MOCK_USER_ID,
-    role: 'admin',
-  });
-
   const allModules = [
     'dashboard',
     'segurados',
@@ -138,17 +141,125 @@ export function seed(): void {
     'emissao',
     'pos_venda',
   ];
-  (['admin', 'vendedor', 'visualizador'] as const).forEach((role) => {
+  // Perfis de acesso cadastráveis (D18): 4 pré-configurados "sistema".
+  const perfilIds: Record<string, string> = {};
+  ['Master', 'Gestor', 'Produtor', 'Operador'].forEach((nome) => {
+    const id = newId();
+    perfilIds[nome] = id;
+    db.perfis.push({
+      id,
+      nome,
+      sistema: true,
+      ativo: true,
+      tenant_id: MOCK_TENANT_ID,
+      created_at: nowIso(),
+      updated_at: nowIso(),
+    });
+  });
+
+  // role_permissions agora pendura no PERFIL (D18), não no enum app_role.
+  // [can_read, can_create, can_update, can_delete] por perfil-sistema.
+  const PERFIL_DEFAULTS: Record<string, [boolean, boolean, boolean, boolean]> = {
+    Master: [true, true, true, true],
+    Gestor: [true, true, true, false],
+    Produtor: [true, true, true, false],
+    Operador: [true, false, false, false],
+  };
+  Object.entries(perfilIds).forEach(([nome, perfilId]) => {
+    const [r, c, u, d] = PERFIL_DEFAULTS[nome];
     allModules.forEach((module) => {
       db.role_permissions.push({
         id: newId(),
-        role,
+        perfil_id: perfilId,
         module,
-        can_read: true,
-        can_create: role !== 'visualizador',
-        can_update: role !== 'visualizador',
-        can_delete: role === 'admin',
+        can_read: r,
+        can_create: c,
+        can_update: u,
+        can_delete: d,
+        created_at: nowIso(),
       });
+    });
+  });
+
+  // --- Plataforma multi-corretora (v1.1) ---
+  // (perfis e suas role_permissions já foram semeados acima.)
+  // Corretoras (filiais). Os IDs CASAM com os branchIds do MOCK_USER (AuthContext)
+  // para o seletor do Header resolver razão social/fantasia reais.
+  const MATRIZ_ID = 'mock-branch-id';
+  const FILIAL_CENTRO_ID = 'mock-branch-centro';
+  db.filiais.push({
+    id: MATRIZ_ID,
+    tenant_id: MOCK_TENANT_ID,
+    matriz_id: null,
+    razao_social: 'Wassis Corretora de Seguros LTDA',
+    fantasia: 'Wassis Matriz',
+    cnpj_cpf: '12345678000190',
+    susep: '202312345',
+    percentual_imposto: 5,
+    lgpd_aceito: true,
+    lgpd_aceito_em: nowIso(),
+    gerente: 'Renato Assis',
+    contato: 'Comercial',
+    home_page: 'https://wassis.com.br',
+    email: 'contato@wassis.com.br',
+    telefone: '1133334444',
+    celular: '11999998888',
+    telefone2: null,
+    cep: '01310100',
+    endereco: 'Av. Paulista, 1000',
+    numero: '1000',
+    complemento: 'Conj. 101',
+    bairro: 'Bela Vista',
+    cidade: 'São Paulo',
+    uf: 'SP',
+    ativo: true,
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  });
+  db.filiais.push({
+    id: FILIAL_CENTRO_ID,
+    tenant_id: MOCK_TENANT_ID,
+    matriz_id: MATRIZ_ID,
+    razao_social: 'Wassis Seguros Filial Centro LTDA',
+    fantasia: 'Wassis Centro',
+    cnpj_cpf: '12345678000271',
+    susep: '202354321',
+    percentual_imposto: 5,
+    lgpd_aceito: true,
+    lgpd_aceito_em: nowIso(),
+    gerente: 'Equipe Centro',
+    contato: 'Atendimento',
+    home_page: null,
+    email: 'centro@wassis.com.br',
+    telefone: '1132321111',
+    celular: null,
+    telefone2: null,
+    cep: '01001000',
+    endereco: 'Praça da Sé, 100',
+    numero: '100',
+    complemento: null,
+    bairro: 'Sé',
+    cidade: 'São Paulo',
+    uf: 'SP',
+    ativo: true,
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  });
+
+  // Vínculo perfil-por-corretora: o usuário mock atua nas 2 corretoras como Master,
+  // com a Matriz como corretora "casa" (principal).
+  [
+    { filial_id: MATRIZ_ID, principal: true },
+    { filial_id: FILIAL_CENTRO_ID, principal: false },
+  ].forEach((v) => {
+    db.profile_filiais.push({
+      id: newId(),
+      profile_id: MOCK_USER_ID,
+      filial_id: v.filial_id,
+      perfil_id: perfilIds['Master'],
+      principal: v.principal,
+      created_at: nowIso(),
+      updated_at: nowIso(),
     });
   });
 

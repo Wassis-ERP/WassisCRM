@@ -15,15 +15,25 @@ interface UseKanbanCardsArgs {
  * Retorna o shape generico `KanbanCard` pronto para render.
  */
 export function useKanbanCards({ pipelineId, module, includeConcluded }: UseKanbanCardsArgs) {
-  const { session } = useAuth();
+  const { session, activeBranchId } = useAuth();
   const tenantLike = session?.user?.id ?? '';
 
   return useQuery({
     enabled: !!pipelineId && !!module,
-    queryKey: queryKeys.cards(module ?? '-', pipelineId, includeConcluded ? 'all' : 'pending'),
+    queryKey: queryKeys.cards(
+      module ?? '-',
+      pipelineId,
+      includeConcluded ? 'all' : 'pending',
+      activeBranchId,
+    ),
     queryFn: async (): Promise<KanbanCard[]> => {
       const adapter = getAdapter(module as PipelineModule);
-      return adapter.fetchCards({ pipelineId: pipelineId as string, tenantId: tenantLike, includeConcluded });
+      return adapter.fetchCards({
+        pipelineId: pipelineId as string,
+        tenantId: tenantLike,
+        includeConcluded,
+        filialId: activeBranchId,
+      });
     },
   });
 }

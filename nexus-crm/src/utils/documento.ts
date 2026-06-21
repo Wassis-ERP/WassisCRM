@@ -28,6 +28,14 @@ export function formatDocumento(value: string, tipo: 'PF' | 'PJ'): string {
   return tipo === 'PF' ? formatCpf(value) : formatCnpj(value)
 }
 
+/**
+ * Formata por tamanho: até 11 dígitos -> CPF; acima -> CNPJ. Para documentos
+ * PF/PJ ambíguos (ex.: a corretora pode ser pessoa física — contrato v1.1).
+ */
+export function formatCpfCnpj(value: string): string {
+  return onlyDigits(value).length <= 11 ? formatCpf(value) : formatCnpj(value)
+}
+
 function calcCpfDigit(digits: string, length: number): number {
   let sum = 0
   for (let i = 0; i < length; i++) {

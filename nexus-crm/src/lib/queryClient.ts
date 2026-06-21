@@ -28,14 +28,27 @@ export const queryClient = new QueryClient({
 export const queryKeys = {
   pipelines: ['pipelines'] as const,
   stages: (pipelineId: string | null | undefined) => ['pipeline_stages', pipelineId] as const,
-  cards: (module: string, pipelineId: string | null | undefined, status?: string) =>
-    ['kanban_cards', module, pipelineId, status ?? 'pending'] as const,
+  cards: (
+    module: string,
+    pipelineId: string | null | undefined,
+    status?: string,
+    filialId?: string | null,
+  ) =>
+    // filialId entra só quando presente, no fim da chave: as invalidações que não
+    // o informam continuam casando por prefixo (TanStack faz match parcial).
+    (filialId
+      ? (['kanban_cards', module, pipelineId, status ?? 'pending', filialId] as const)
+      : (['kanban_cards', module, pipelineId, status ?? 'pending'] as const)),
   lookups: {
     ramos: ['ramos'] as const,
     origens: ['origens'] as const,
     seguradoras: ['seguradoras'] as const,
     motivosPerda: ['motivos_perda'] as const,
+    filiais: ['filiais', 'lookup'] as const,
   },
+  filiais: ['filiais', 'admin'] as const,
+  perfis: ['perfis'] as const,
+  profileFiliais: (profileId: string) => ['profile_filiais', profileId] as const,
   team: ['team_members'] as const,
   permissions: ['role_permissions'] as const,
 };

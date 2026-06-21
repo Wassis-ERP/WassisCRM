@@ -1,7 +1,11 @@
 import { Building2, LogOut, Search } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ProfileModal from './ProfileModal'
 import { useAuth } from '../../hooks/useAuth'
+import { useFilialLabelMap } from '../../hooks/useFiliais'
+import { useMyBranches } from '../../hooks/useMyBranches'
+import { useProfileFiliais } from '../../hooks/useProfileFiliais'
+import { usePerfis } from '../../hooks/usePerfis'
 
 /**
  * Header principal do CRM.
@@ -10,6 +14,8 @@ import { useAuth } from '../../hooks/useAuth'
 export default function Header() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const { activeBranchId, setActiveBranchId, user, signOut } = useAuth()
+  const { map: filialLabels } = useFilialLabelMap()
+  const labelFor = (branchId: string) => filialLabels.get(branchId) ?? formatBranchLabel(branchId)
   const displayName = user?.fullName || user?.email || 'Usuario'
   const initials = displayName
     .split(/\s+|@/)
@@ -17,11 +23,28 @@ export default function Header() {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join('')
-  const roleLabel = user?.role === 'admin' ? 'Administrador' : user?.role === 'vendedor' ? 'Vendedor' : 'Visualizador'
-  const branchIds = Array.from(new Set([user?.branchId, ...(user?.branchIds ?? [])].filter(Boolean))) as string[]
-  const canSelectAllBranches = user?.hasAllBranchesAccess === true
-  const canSwitchBranch = canSelectAllBranches || branchIds.length > 1
-  const activeBranchLabel = activeBranchId ? formatBranchLabel(activeBranchId) : 'Todas as filiais'
+  // Rótulo sob o nome = PERFIL do usuário na corretora ativa (D18), não mais o
+  // Role global. Em "Todas", usa o perfil da corretora principal.
+  const { vinculos } = useProfileFiliais(user?.id)
+  const { data: perfis } = usePerfis()
+  const activeVinculo = activeBranchId
+    ? vinculos.find((v) => v.filial_id === activeBranchId)
+    : vinculos.find((v) => v.principal) ?? vinculos[0]
+  const roleLabel =
+    (activeVinculo && (perfis ?? []).find((p) => p.id === activeVinculo.perfil_id)?.nome) || 'Sem perfil'
+  const { branches } = useMyBranches()
+  const branchIds = branches.map((b) => b.id)
+  const canSelectAllBranches = branches.length > 1
+  const canSwitchBranch = branches.length > 1
+  const activeBranchLabel = activeBranchId ? labelFor(activeBranchId) : 'Todas as filiais'
+
+  // Reconcilia a corretora ativa com o que o usuário realmente acessa: se o
+  // acesso foi removido (ou só há 1 corretora), aponta para a principal/primeira.
+  useEffect(() => {
+    if (branches.length === 0) return
+    const ok = activeBranchId === null ? branches.length > 1 : branches.some((b) => b.id === activeBranchId)
+    if (!ok) setActiveBranchId(branches.find((b) => b.principal)?.id ?? branches[0].id)
+  }, [activeBranchId, branches, setActiveBranchId])
 
   return (
     <>
@@ -48,10 +71,12 @@ export default function Header() {
                 aria-label="Filial ativa"
                 title="Filial ativa"
               >
-                {canSelectAllBranches ? <option value="__all__">Todas as filiais</option> : null}
+                {canSelectAllBranches ? (
+                  <option value="__all__" className="bg-bg-surface text-fg-1">Todas as filiais</option>
+                ) : null}
                 {branchIds.map((branchId) => (
-                  <option key={branchId} value={branchId}>
-                    {formatBranchLabel(branchId)}
+                  <option key={branchId} value={branchId} className="bg-bg-surface text-fg-1">
+                    {labelFor(branchId)}
                   </option>
                 ))}
               </select>

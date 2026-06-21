@@ -9,16 +9,9 @@ export interface Session {
   } | null;
 }
 
-// Papéis definidos no banco de dados (app_role)
+// Papel de IDENTIDADE do provedor de auth (WAssisBE). NÃO é mais a fonte de
+// permissão de NEGÓCIO — esta vem do PERFIL por corretora (D18, profile_filiais).
 export type Role = 'admin' | 'vendedor' | 'visualizador';
-
-export interface ModulePermission {
-  module: string;
-  can_read: boolean;
-  can_create: boolean;
-  can_update: boolean;
-  can_delete: boolean;
-}
 
 export interface UserProfile {
   id: string;
@@ -33,7 +26,6 @@ export interface UserProfile {
   branchId?: string | null;
   branchIds?: string[];
   hasAllBranchesAccess?: boolean;
-  permissions: ModulePermission[];
 }
 
 export interface AuthState {

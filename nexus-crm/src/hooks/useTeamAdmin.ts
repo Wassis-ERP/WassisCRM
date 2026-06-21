@@ -1,19 +1,27 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryClient';
-import type { Role } from '../types/auth';
+import { useAuth } from './useAuth';
 
 export interface TeamMember {
   id: string;
   full_name: string;
   email: string;
-  role: Role;
   avatar_url: string | null;
   created_at: string;
+  corretoras_count: number; // nº de corretoras que o membro acessa (profile_filiais)
+  perfil_principal: string | null; // perfil na corretora "casa" (principal)
 }
 
+/**
+ * Equipe (membros). O CARGO global foi APOSENTADO (D18): a permissão de negócio
+ * vem do PERFIL por corretora (profile_filiais), gerido na guia "Corretoras &
+ * Perfil" do membro. Aqui só listamos e convidamos.
+ */
 export function useTeamAdmin() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const tenantId = user?.tenantId;
 
   const membersQuery = useQuery({
     queryKey: queryKeys.team,
@@ -24,37 +32,33 @@ export function useTeamAdmin() {
     },
   });
 
-  const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: Role }) => {
-      const { error } = await supabase
-        .from('user_roles')
-        .upsert({ user_id: userId, role }, { onConflict: 'user_id' });
-      
-      if (error) throw error;
-      
-      // Log de auditoria manual (já que não temos trigger para tudo ainda)
-      await supabase.from('audit_logs').insert({
-        action: 'CHANGE_ROLE',
-        entity_type: 'user_roles',
-        entity_id: userId,
-        new_data: { role }
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.team });
-    },
-  });
-
   const inviteMutation = useMutation({
-    mutationFn: async ({ email, full_name, role }: { email: string; full_name: string; role: Role }) => {
-      // Aqui chamaríamos a Edge Function futuramente.
-      // Por enquanto, vamos simular ou usar o rpc se implementado.
-      const { data, error } = await supabase.functions.invoke('invite-user', {
-        body: { email, full_name, role }
-      });
-
+    mutationFn: async ({ email, full_name }: { email: string; full_name: string }): Promise<TeamMember> => {
+      if (!tenantId) throw new Error('Tenant não encontrado');
+      // Cria o membro no mock (profiles). O acesso (perfil por corretora) é
+      // atribuído depois em profile_filiais. No backend real isto vira convite.
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({ full_name, email, tenant_id: tenantId, avatar_url: null })
+        .select()
+        .single();
       if (error) throw error;
-      return data;
+      const profile = data as { id: string; created_at?: string };
+      await supabase.from('audit_logs').insert({
+        action: 'INVITE_MEMBER',
+        entity_type: 'profiles',
+        entity_id: profile.id,
+        new_data: { email },
+      });
+      return {
+        id: profile.id,
+        full_name,
+        email,
+        avatar_url: null,
+        created_at: profile.created_at ?? '',
+        corretoras_count: 0,
+        perfil_principal: null,
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.team });
@@ -64,9 +68,7 @@ export function useTeamAdmin() {
   return {
     members: membersQuery.data || [],
     isLoading: membersQuery.isLoading,
-    updateRole: updateRoleMutation.mutateAsync,
     invite: inviteMutation.mutateAsync,
-    isUpdating: updateRoleMutation.isPending,
     isInviting: inviteMutation.isPending,
   };
 }

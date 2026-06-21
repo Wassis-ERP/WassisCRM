@@ -100,7 +100,15 @@ export interface CreateCardModalProps {
  */
 export interface ModuleAdapter {
   module: PipelineModule;
-  fetchCards: (args: { pipelineId: string; tenantId: string; includeConcluded?: boolean }) => Promise<KanbanCard[]>;
+  // filialId = corretora ATIVA do Header (null = "Todas"). Adapters cujo registro
+  // carrega filial_id (ex.: comercial/oportunidades) filtram por ela; os demais
+  // ignoram. Isolamento real entre corretoras = RLS no backend (Fase 2).
+  fetchCards: (args: {
+    pipelineId: string;
+    tenantId: string;
+    includeConcluded?: boolean;
+    filialId?: string | null;
+  }) => Promise<KanbanCard[]>;
   updateStage: (args: MoveCardArgs) => Promise<void>;
   conclude: (args: ConcludeCardArgs) => Promise<void>;
   CardComponent: ComponentType<KanbanCardProps>;

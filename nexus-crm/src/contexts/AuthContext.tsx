@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { AuthState, ModulePermission, Session, UserProfile } from '../types/auth';
+import type { AuthState, Session, UserProfile } from '../types/auth';
 import {
   clearBackendSession,
   getBackendAccessToken,
@@ -10,6 +10,7 @@ import {
   markBackendActivity,
 } from '../lib/backendApi';
 import { queryClient } from '../lib/queryClient';
+import { getTable } from '../lib/inMemoryDb';
 import { AuthContext } from './authCore';
 
 const REQUIRE_BACKEND_AUTH = import.meta.env.VITE_AUTH_MODE === 'backend';
@@ -22,14 +23,6 @@ const ACTIVE_BRANCH_STORAGE_KEY = 'wassis.crm.activeBranchId';
  * troca de identidade. Quando o backend real existir, este provider volta a
  * conversar com ele (ou é substituído por uma versão HTTP).
  */
-const MOCK_PERMISSIONS: ModulePermission[] = [
-  { module: 'dashboard', can_read: true, can_create: true, can_update: true, can_delete: true },
-  { module: 'segurados', can_read: true, can_create: true, can_update: true, can_delete: true },
-  { module: 'apolices', can_read: true, can_create: true, can_update: true, can_delete: true },
-  { module: 'financeiro', can_read: true, can_create: true, can_update: true, can_delete: true },
-  { module: 'configuracoes', can_read: true, can_create: true, can_update: true, can_delete: true },
-];
-
 const MOCK_USER: UserProfile = {
   id: 'mock-user-id',
   email: 'dev@wassis.com',
@@ -43,7 +36,6 @@ const MOCK_USER: UserProfile = {
   branchId: 'mock-branch-id',
   branchIds: ['mock-branch-id', 'mock-branch-centro'],
   hasAllBranchesAccess: true,
-  permissions: MOCK_PERMISSIONS,
 };
 
 const MOCK_SESSION: Session = {
@@ -63,6 +55,17 @@ function toUnixSeconds(value?: string) {
 
 function getAvailableBranchIds(user: UserProfile | null) {
   if (!user) return [];
+
+  // Modo mock: as corretoras acessíveis derivam de profile_filiais do usuário
+  // (D12/D18) — editar o acesso na Equipe reflete no seletor. No backend real,
+  // o mesmo conjunto viria do token (branchIds).
+  if (!REQUIRE_BACKEND_AUTH) {
+    const vinculos = getTable('profile_filiais').filter((v) => v.profile_id === user.id);
+    const ids = Array.from(
+      new Set(vinculos.map((v) => v.filial_id).filter((x): x is string => Boolean(x))),
+    );
+    if (ids.length > 0) return ids;
+  }
 
   return Array.from(
     new Set(
@@ -142,7 +145,6 @@ async function loadBackendAuthState(): Promise<AuthState | null> {
     branchId: currentUser.branchId ?? snapshot.branchId,
     branchIds: currentUser.branchIds.length > 0 ? currentUser.branchIds : snapshot.branchIds,
     hasAllBranchesAccess: currentUser.hasAllBranchesAccess || snapshot.hasAllBranchesAccess,
-    permissions: MOCK_PERMISSIONS,
   };
   const activeBranchId = resolveInitialActiveBranchId(user);
 
