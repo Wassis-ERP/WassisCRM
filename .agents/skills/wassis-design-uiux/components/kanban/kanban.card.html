@@ -1,0 +1,51 @@
+<!-- @dsCard group="Components" viewport="700x340" name="Card de Kanban" subtitle="O componente-assinatura dos funis" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../../styles.css">
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  body { margin: 0; padding: 28px 32px; background: var(--bg-app); }
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .col h5 { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; font-family: var(--font-text); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--fg-3); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .stack { display: flex; flex-direction: column; gap: 10px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+  const { KanbanCard } = window.WAssisDesignSystem_502d77
+  function Demo() {
+    return (
+      <div className="cols">
+        <div className="col">
+          <h5><span className="dot" style={{background:'var(--ramo-auto)'}}></span>Cotação</h5>
+          <div className="stack">
+            <KanbanCard tag="AUTO" title="Seguro Auto — HB20" subtitle="João Pereira" dueDate="2026-06-25" responsavelName="Vinícius Assis" value={3200} valueLabel="Prêmio" />
+            <KanbanCard tag="VIDA" title="Vida Individual" subtitle="Ana Costa" dueDate="2026-06-30" responsavelName="Marina Costa" value={1850} valueLabel="Prêmio" accent="warning" accentBar />
+          </div>
+        </div>
+        <div className="col">
+          <h5><span className="dot" style={{background:'var(--ramo-empresarial)'}}></span>Negociação</h5>
+          <div className="stack">
+            <KanbanCard tag="EMPRESARIAL" title="Renovação Frota XPTO" subtitle="1001 Indústria Ltda" dueDate="2026-06-20" responsavelName="Carlos Santos" value={48500} valueLabel="Prêmio" tags={[{label:'Renovar',tone:'warning'}]} />
+          </div>
+        </div>
+        <div className="col">
+          <h5><span className="dot" style={{background:'var(--signal-success)'}}></span>Fechado</h5>
+          <div className="stack">
+            <KanbanCard tag="SAÚDE" title="Plano Família" subtitle="Roberto Lima" dueDate="2026-07-10" responsavelName="Hicila Fernandes" value={12400} valueLabel="Prêmio" accent="success" tags={[{label:'Ganho',tone:'success'}]} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo />)
+</script>
+</body>
+</html>

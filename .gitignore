@@ -22,3 +22,4 @@ pnpm-debug.log*
 __pycache__/
 .planos/
 .screens/
+.codex/

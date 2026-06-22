@@ -1,0 +1,23 @@
+<!-- @dsCard group="Spacing" viewport="700x180" name="Elevação" subtitle="Sombras suaves + sombra de marca" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 34px 32px; background: var(--bg-app); }
+  .row { display: flex; gap: 28px; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .box { width: 110px; height: 64px; background: var(--bg-surface); border-radius: var(--r-lg); border: 1px solid var(--border-1); }
+  .n { font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="col"><div class="box" style="box-shadow:var(--shadow-1)"></div><span class="n">shadow-1</span></div>
+    <div class="col"><div class="box" style="box-shadow:var(--shadow-2)"></div><span class="n">shadow-2</span></div>
+    <div class="col"><div class="box" style="box-shadow:var(--shadow-3)"></div><span class="n">shadow-3</span></div>
+    <div class="col"><div class="box" style="box-shadow:var(--shadow-brand)"></div><span class="n">shadow-brand</span></div>
+  </div>
+</body>
+</html>

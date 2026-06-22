@@ -7,7 +7,7 @@
  *
  * Alinhado ao PRD — Módulo de Cadastro de Pessoas v1.0:
  * entidade unificada PF/PJ + campos exclusivos por tipo + endereço
- * estruturado + atribuição a produtor/gerente (refs `profiles`) + LGPD.
+ * estruturado + atribuição a produtor/gerente (refs `produtores`) + LGPD.
  */
 
 export type StatusPessoa = 'Ativo' | 'Inativo' | 'Prospecto'

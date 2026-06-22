@@ -1,0 +1,47 @@
+<!-- @dsCard group="Brand" viewport="700x200" name="Símbolo & onda" subtitle="O 'W' em onda é o motivo central da marca" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; display: flex; align-items: stretch; min-height: 200px; font-family: var(--font-text); }
+  .panel { flex: 1; display: flex; align-items: center; gap: 22px; padding: 28px 32px; }
+  .light { background: var(--bg-surface); }
+  .dark-bg { background: #292B2F; }
+  .marks { display: flex; align-items: center; gap: 18px; }
+  .marks img { height: 72px; width: 72px; }
+  .marks .sm { height: 38px; width: 38px; }
+  .marks .xs { height: 24px; width: 24px; }
+  .cap { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; }
+  .cap.l { color: var(--fg-4); }
+  .cap.d { color: #94A3B8; }
+  .col { display: flex; flex-direction: column; gap: 12px; }
+  .note { color: var(--fg-2); font-size: 13px; line-height: 1.6; max-width: 280px; padding: 28px 32px; align-self: center; }
+  .note b { color: var(--fg-1); }
+</style>
+</head>
+<body>
+  <div class="panel light">
+    <div class="col">
+      <span class="cap l">Fundo claro</span>
+      <div class="marks">
+        <img src="../assets/brand/wassis-mark.png" alt="símbolo azul grande">
+        <img class="sm" src="../assets/brand/wassis-mark.png" alt="símbolo azul médio">
+        <img class="xs" src="../assets/brand/wassis-mark.png" alt="símbolo azul pequeno">
+      </div>
+    </div>
+  </div>
+  <div class="panel dark-bg">
+    <div class="col">
+      <span class="cap d">Fundo escuro / dark mode</span>
+      <div class="marks">
+        <img src="../assets/brand/wassis-mark-white.png" alt="símbolo branco grande">
+        <img class="sm" src="../assets/brand/wassis-mark-white.png" alt="símbolo branco médio">
+        <img class="xs" src="../assets/brand/wassis-mark-white.png" alt="símbolo branco pequeno">
+      </div>
+    </div>
+  </div>
+  <p class="note">O símbolo é o <b>"W" em forma de onda</b> — movimento, continuidade e proteção. Versão <b>azul/círculo</b> sobre fundo claro; versão <b>monocromática branca</b> sobre fundos escuros e no dark mode.</p>
+</body>
+</html>

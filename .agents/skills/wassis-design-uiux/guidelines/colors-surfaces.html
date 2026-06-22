@@ -1,0 +1,33 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Superfícies semânticas" subtitle="Tokens que adaptam light/dark" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 24px 32px; background: var(--bg-app); }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .sw { border-radius: var(--r-md); border: 1px solid var(--border-1); overflow: hidden; }
+  .chip { height: 56px; }
+  .meta { padding: 8px 10px; background: var(--bg-surface); }
+  .n { font-family: var(--font-text); font-weight: 700; font-size: 11px; color: var(--fg-1); }
+  .h { font-family: var(--font-mono); font-size: 9px; color: var(--fg-3); }
+  .fgrow { display: flex; gap: 18px; margin-top: 16px; }
+  .fg { font-family: var(--font-text); font-weight: 600; font-size: 14px; }
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div class="sw"><div class="chip" style="background:var(--bg-app)"></div><div class="meta"><div class="n">App</div><div class="h">--bg-app</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--bg-surface)"></div><div class="meta"><div class="n">Surface</div><div class="h">--bg-surface</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--bg-surface-2)"></div><div class="meta"><div class="n">Surface 2</div><div class="h">--bg-surface-2</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--bg-surface-3)"></div><div class="meta"><div class="n">Surface 3</div><div class="h">--bg-surface-3</div></div></div>
+  </div>
+  <div class="fgrow">
+    <span class="fg" style="color:var(--fg-1)">fg-1 principal</span>
+    <span class="fg" style="color:var(--fg-2)">fg-2 secundário</span>
+    <span class="fg" style="color:var(--fg-3)">fg-3 terciário</span>
+    <span class="fg" style="color:var(--fg-4)">fg-4 leve</span>
+  </div>
+</body>
+</html>

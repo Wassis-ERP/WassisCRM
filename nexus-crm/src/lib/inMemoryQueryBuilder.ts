@@ -150,6 +150,56 @@ function matchFilter(row: Row, f: Filter): boolean {
   }
 }
 
+function onlyDigits(value: unknown): string {
+  return String(value ?? '').replace(/\D+/g, '');
+}
+
+function validateSeguradoRow(candidate: Row, table: Row[], selfId?: string): void {
+  const cpfCnpj = onlyDigits(candidate.cpf_cnpj);
+  if (!candidate.filial_id) {
+    throw new Error('filial_id é obrigatório para cadastrar segurado');
+  }
+  if (!cpfCnpj) {
+    throw new Error('CPF/CNPJ é obrigatório para cadastrar segurado');
+  }
+  const duplicate = table.some(
+    (row) =>
+      row.id !== selfId &&
+      row.filial_id === candidate.filial_id &&
+      onlyDigits(row.cpf_cnpj) === cpfCnpj,
+  );
+  if (duplicate) {
+    throw new Error('Já existe segurado com este CPF/CNPJ nesta corretora');
+  }
+  candidate.cpf_cnpj = cpfCnpj;
+}
+
+function validatePessoaContatoRow(candidate: Row, table: Row[], selfId?: string): void {
+  const segurados = getTable('segurados');
+  const pj = segurados.find((row) => row.id === candidate.pj_id);
+  const pf = segurados.find((row) => row.id === candidate.pf_id);
+  if (!pj || !pf) {
+    throw new Error('PJ e PF do vínculo devem existir em segurados');
+  }
+  if (pj.tipo !== 'PJ' || pf.tipo !== 'PF') {
+    throw new Error('pessoa_contato deve vincular uma PJ a uma PF');
+  }
+  if (pj.filial_id !== pf.filial_id) {
+    throw new Error('pessoa_contato deve vincular cadastros da mesma corretora');
+  }
+  if (
+    candidate.principal &&
+    table.some((row) => row.id !== selfId && row.pj_id === candidate.pj_id && row.principal)
+  ) {
+    throw new Error('Já existe contato principal para esta PJ');
+  }
+}
+
+function validateRow(tableName: string, candidate: Row, table: Row[], selfId?: string): void {
+  if (tableName === 'segurados') validateSeguradoRow(candidate, table, selfId);
+  if (tableName === 'pessoa_contato') validatePessoaContatoRow(candidate, table, selfId);
+}
+
 // ----- builder -----
 
 export class InMemoryQueryBuilder<T = any> implements PromiseLike<QueryResult<T>> {
@@ -300,6 +350,7 @@ export class InMemoryQueryBuilder<T = any> implements PromiseLike<QueryResult<T>
         created_at: item.created_at ?? nowIso(),
         updated_at: item.updated_at ?? nowIso(),
       };
+      validateRow(this.table, row, table);
       table.push(row);
       inserted.push(row);
     }
@@ -310,7 +361,9 @@ export class InMemoryQueryBuilder<T = any> implements PromiseLike<QueryResult<T>
     const table = getTable(this.table);
     const matched = table.filter((r) => this.filters.every((f) => matchFilter(r, f)));
     for (const r of matched) {
-      Object.assign(r, this.payload, { updated_at: nowIso() });
+      const next = { ...r, ...this.payload, updated_at: nowIso() };
+      validateRow(this.table, next, table, r.id);
+      Object.assign(r, next);
     }
     return matched;
   }
@@ -334,7 +387,9 @@ export class InMemoryQueryBuilder<T = any> implements PromiseLike<QueryResult<T>
       const conflictVal = item[conflictCol];
       const existing = conflictVal != null ? table.find((r) => r[conflictCol] === conflictVal) : undefined;
       if (existing) {
-        Object.assign(existing, item, { updated_at: nowIso() });
+        const next = { ...existing, ...item, updated_at: nowIso() };
+        validateRow(this.table, next, table, existing.id);
+        Object.assign(existing, next);
         result.push(existing);
       } else {
         const row: Row = {
@@ -343,6 +398,7 @@ export class InMemoryQueryBuilder<T = any> implements PromiseLike<QueryResult<T>
           created_at: item.created_at ?? nowIso(),
           updated_at: item.updated_at ?? nowIso(),
         };
+        validateRow(this.table, row, table);
         table.push(row);
         result.push(row);
       }

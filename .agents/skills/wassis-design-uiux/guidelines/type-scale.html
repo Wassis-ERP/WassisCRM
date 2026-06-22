@@ -1,0 +1,23 @@
+<!-- @dsCard group="Type" viewport="700x170" name="Escala tipográfica" subtitle="1.250 Major Third · base 16px" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 24px 32px; background: var(--bg-surface); }
+  .row { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--border-1); padding: 7px 0; }
+  .row:last-child { border-bottom: 0; }
+  .name { font-family: var(--font-mono); font-size: 11px; color: var(--fg-4); width: 70px; flex: none; }
+  .px { font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); width: 48px; flex: none; }
+  .sample { font-family: var(--font-display); color: var(--fg-1); font-weight: 600; white-space: nowrap; overflow: hidden; }
+</style>
+</head>
+<body>
+  <div class="row"><span class="name">--t-3xl</span><span class="px">36px</span><span class="sample" style="font-size:36px">Aa</span></div>
+  <div class="row"><span class="name">--t-2xl</span><span class="px">30px</span><span class="sample" style="font-size:30px">Apólice</span></div>
+  <div class="row"><span class="name">--t-xl</span><span class="px">24px</span><span class="sample" style="font-size:24px">Apólice ativa</span></div>
+  <div class="row"><span class="name">--t-lg</span><span class="px">20px</span><span class="sample" style="font-size:20px">Apólice ativa hoje</span></div>
+  <div class="row"><span class="name">--t-base</span><span class="px">16px</span><span class="sample" style="font-size:16px;font-family:var(--font-text)">Apólice ativa renovada hoje</span></div>
+</body>
+</html>

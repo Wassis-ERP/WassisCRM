@@ -2,6 +2,7 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import { X, Building2, Edit, Network } from 'lucide-react'
 import type { Filial, FilialInput } from '../../types/platform'
 import { useFiliais } from '../../hooks/useFiliais'
+import { useProdutores } from '../../hooks/useProdutores'
 import { formatCpfCnpj } from '../../utils/documento'
 import { formatCep, formatTelefone } from '../../utils/masks'
 
@@ -15,6 +16,7 @@ const EMPTY: FilialInput = {
   lgpd_aceito: false,
   lgpd_aceito_em: null,
   gerente: '',
+  gerente_id: null,
   contato: '',
   home_page: '',
   email: '',
@@ -75,6 +77,7 @@ export default function FilialModal({
 }) {
   const [form, setForm] = useState<FilialInput>(() => toForm(filial))
   const { data: filiais } = useFiliais()
+  const { data: produtores } = useProdutores()
 
   if (!isOpen) return null
 
@@ -202,7 +205,21 @@ export default function FilialModal({
 
             <SectionTitle>Contato</SectionTitle>
             <Field label="Gerente">
-              <input className={inputClass} value={form.gerente ?? ''} onChange={(e) => set('gerente', e.target.value)} />
+              <select
+                className={inputClass}
+                value={form.gerente_id ?? ''}
+                onChange={(e) => {
+                  const produtorId = e.target.value || null
+                  const produtor = (produtores ?? []).find((p) => p.id === produtorId)
+                  set('gerente_id', produtorId)
+                  set('gerente', produtor?.nome ?? '')
+                }}
+              >
+                <option value="">Sem gerente definido</option>
+                {(produtores ?? []).map((p) => (
+                  <option key={p.id} value={p.id}>{p.nome}</option>
+                ))}
+              </select>
             </Field>
             <Field label="Contato">
               <input className={inputClass} value={form.contato ?? ''} onChange={(e) => set('contato', e.target.value)} />

@@ -19,7 +19,8 @@ export interface Filial {
   percentual_imposto: number | null;
   lgpd_aceito: boolean;
   lgpd_aceito_em: string | null;
-  gerente: string | null; // texto livre por ora (-> FK produtores na 0.2)
+  gerente: string | null; // legado/texto livre, preservado para compatibilidade
+  gerente_id: string | null; // FK -> produtores (0.2)
   contato: string | null;
   home_page: string | null;
   email: string | null;
@@ -62,3 +63,25 @@ export interface ProfileFilial {
   created_at: string;
   updated_at: string;
 }
+
+/** PRODUTOR de negócio: interno quando vinculado a profile; externo quando profile_id = null. */
+export interface Produtor {
+  id: string;
+  tenant_id: string;
+  profile_id: string | null;
+  nome: string;
+  cpf_cnpj: string | null;
+  email: string | null;
+  telefone: string | null;
+  celular: string | null;
+  banco: string | null;
+  agencia: string | null;
+  conta: string | null;
+  chave_pix: string | null;
+  percentual_repasse_padrao: number | null;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ProdutorInput = Omit<Produtor, 'id' | 'tenant_id' | 'created_at' | 'updated_at'>;

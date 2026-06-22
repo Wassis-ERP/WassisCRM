@@ -25,6 +25,7 @@ const TABLES = [
   'filiais',
   'profile_filiais',
   'perfis',
+  'produtores',
   'user_roles',
   'role_permissions',
   'ramos',
@@ -86,15 +87,16 @@ export const RELATIONS: Record<
   'pos_vendas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
   'sinistros.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
   'financeiro_cobrancas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
-  // Segurado -> Produtor/Gerente (ambos apontam para profiles)
-  'segurados.produtor': { target: 'profiles', localFk: 'produtor_id', kind: 'forward' },
-  'segurados.gerente': { target: 'profiles', localFk: 'gerente_id', kind: 'forward' },
+  // Segurado -> Produtor/Gerente (ambos apontam para produtores desde a fase 0.2)
+  'segurados.produtor': { target: 'produtores', localFk: 'produtor_id', kind: 'forward' },
+  'segurados.gerente': { target: 'produtores', localFk: 'gerente_id', kind: 'forward' },
   // pessoa_contato -> PJ/PF (ambos apontam para segurados)
   'pessoa_contato.pj': { target: 'segurados', localFk: 'pj_id', kind: 'forward' },
   'pessoa_contato.pf': { target: 'segurados', localFk: 'pf_id', kind: 'forward' },
 
   // plataforma multi-corretora (v1.1)
   'filiais.matriz': { target: 'filiais', localFk: 'matriz_id', kind: 'forward' },
+  'filiais.gerente_produtor': { target: 'produtores', localFk: 'gerente_id', kind: 'forward' },
   'profile_filiais.profiles': { target: 'profiles', localFk: 'profile_id', kind: 'forward' },
   'profile_filiais.filiais': { target: 'filiais', localFk: 'filial_id', kind: 'forward' },
   'profile_filiais.perfis': { target: 'perfis', localFk: 'perfil_id', kind: 'forward' },
@@ -199,6 +201,7 @@ export function seed(): void {
     lgpd_aceito: true,
     lgpd_aceito_em: nowIso(),
     gerente: 'Renato Assis',
+    gerente_id: null,
     contato: 'Comercial',
     home_page: 'https://wassis.com.br',
     email: 'contato@wassis.com.br',
@@ -228,6 +231,7 @@ export function seed(): void {
     lgpd_aceito: true,
     lgpd_aceito_em: nowIso(),
     gerente: 'Equipe Centro',
+    gerente_id: null,
     contato: 'Atendimento',
     home_page: null,
     email: 'centro@wassis.com.br',
@@ -261,6 +265,55 @@ export function seed(): void {
       created_at: nowIso(),
       updated_at: nowIso(),
     });
+  });
+
+  const PRODUTOR_INTERNO_ID = 'mock-produtor-interno';
+  const PRODUTOR_EXTERNO_ID = 'mock-produtor-externo';
+  db.produtores.push({
+    id: PRODUTOR_INTERNO_ID,
+    tenant_id: MOCK_TENANT_ID,
+    profile_id: MOCK_USER_ID,
+    nome: 'Dev Wassis',
+    cpf_cnpj: '12345678901',
+    email: 'dev@wassis.com',
+    telefone: null,
+    celular: '11999998888',
+    banco: 'Banco do Brasil',
+    agencia: '0001',
+    conta: '12345-6',
+    chave_pix: 'dev@wassis.com',
+    percentual_repasse_padrao: 35,
+    ativo: true,
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  });
+  db.produtores.push({
+    id: PRODUTOR_EXTERNO_ID,
+    tenant_id: MOCK_TENANT_ID,
+    profile_id: null,
+    nome: 'Marina Costa',
+    cpf_cnpj: '98765432100',
+    email: 'marina.parceira@example.com',
+    telefone: null,
+    celular: '11988887777',
+    banco: null,
+    agencia: null,
+    conta: null,
+    chave_pix: '98765432100',
+    percentual_repasse_padrao: 25,
+    ativo: true,
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  });
+  db.filiais.forEach((f) => {
+    if (f.id === MATRIZ_ID) {
+      f.gerente_id = PRODUTOR_INTERNO_ID;
+      f.gerente = 'Dev Wassis';
+    }
+    if (f.id === FILIAL_CENTRO_ID) {
+      f.gerente_id = PRODUTOR_EXTERNO_ID;
+      f.gerente = 'Marina Costa';
+    }
   });
 
   ['Auto', 'Vida', 'Residencial', 'Empresarial', 'Saúde'].forEach((nome) => {

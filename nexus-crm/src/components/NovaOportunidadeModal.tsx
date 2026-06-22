@@ -8,6 +8,7 @@ import { useCreateSegurado, useSegurados } from '../hooks/useSegurados';
 import { useCreateOportunidade } from '../hooks/useOportunidades';
 import { COMERCIAL_METADATA_BY_RAMO, COMERCIAL_METADATA_FLAGS } from '../modules/comercial/fieldSchema';
 import type { Database } from '../types/database';
+import { isValidDocumento, onlyDigits } from '../utils/documento';
 
 /**
  * Tipo legado exportado apenas por compatibilidade com componentes que ainda o
@@ -117,10 +118,19 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
 
   const handleCriarNovoCliente = async () => {
     if (!novoClienteNome.trim()) return;
+    const docDigits = onlyDigits(novoClienteDoc);
+    const tipoPessoa = docDigits.length > 11 ? 'PJ' : 'PF';
+    if (!docDigits || !isValidDocumento(docDigits, tipoPessoa)) {
+      setSubmitError(
+        'Para criar um segurado, informe um CPF/CNPJ válido. Sem documento, crie apenas a oportunidade com um título.',
+      );
+      return;
+    }
     try {
       const created = await createSegurado.mutateAsync({
+        tipo: tipoPessoa,
         nome: novoClienteNome,
-        cpf_cnpj: novoClienteDoc,
+        cpf_cnpj: docDigits,
         telefone: novoClienteTelefone,
       });
       setSelectedSeguradoId(created.id);
