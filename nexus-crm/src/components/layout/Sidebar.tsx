@@ -108,10 +108,10 @@ export default function Sidebar({ collapsed, onToggleCollapse, onToggleTheme, da
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[6px] text-fg-3 hover:bg-bg-surface-2 hover:text-fg-2 transition-colors text-sm ${
             collapsed ? 'justify-center' : ''
           }`}
-          title={collapsed ? 'Expandir' : 'Colapsar'}
+          title={collapsed ? 'Expandir' : 'Encolher'}
         >
           {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-          {!collapsed && <span>Colapsar Menu</span>}
+          {!collapsed && <span>Encolher menu</span>}
         </button>
       </div>
     </aside>

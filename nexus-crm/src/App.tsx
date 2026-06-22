@@ -14,7 +14,6 @@ import SinistroDetalhePage from './pages/SinistroDetalhePage'
 import FinanceiroDetalhePage from './pages/FinanceiroDetalhePage'
 import EmissaoDetalhePage from './pages/EmissaoDetalhePage'
 import PosVendaDetalhePage from './pages/PosVendaDetalhePage'
-import ProdutoresPage from './pages/ProdutoresPage'
 import PropostasPage from './pages/PropostasPage'
 import SettingsPage from './pages/SettingsPage'
 import { useAuth } from './hooks/useAuth'
@@ -213,7 +212,7 @@ function AppLayout() {
               element={<ModuleKanbanPage module="financeiro" title="Financeiro" description="Cobrancas e conciliacao" />}
             />
             <Route path="/financeiro/:id" element={<FinanceiroDetalhePage />} />
-            <Route path="/produtores" element={<ProdutoresPage />} />
+            <Route path="/produtores" element={<Navigate to="/configuracoes?tab=produtores" replace />} />
             <Route path="/propostas" element={<PropostasPage />} />
             <Route path="/configuracoes" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

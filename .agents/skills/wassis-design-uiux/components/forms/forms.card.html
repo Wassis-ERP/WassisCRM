@@ -1,0 +1,49 @@
+<!-- @dsCard group="Components" viewport="700x250" name="Formulários" subtitle="Input (label, ícone, erro, pill) + Select" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../../styles.css">
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  body { margin: 0; padding: 28px 32px; background: var(--bg-surface); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 24px; align-items: start; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const { Input, Select } = window.WAssisDesignSystem_502d77;
+const Search = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
+function maskCPF(v) {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  let out = d.slice(0, 3);
+  if (d.length > 3) out += '.' + d.slice(3, 6);
+  if (d.length > 6) out += '.' + d.slice(6, 9);
+  if (d.length > 9) out += '-' + d.slice(9, 11);
+  return out;
+}
+function Demo() {
+  const [cpf, setCpf] = React.useState('');
+  return (
+    <div className="grid">
+        <Input label="Nome do segurado" placeholder="Ex.: Maria Silva" defaultValue="Maria Silva" />
+        <Select label="Ramo" placeholder="Todos os ramos" options={[
+      { value: 'auto', label: 'Auto' }, { value: 'vida', label: 'Vida' }, { value: 'saude', label: 'Saúde' }]
+      } />
+        <Input label="E-mail" defaultValue="maria@" error="E-mail inválido" />
+        <Input label="CPF" hint="Somente números" placeholder="000.000.000-00" value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} />
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Input pill leadingIcon={Search} placeholder="Buscar por nome, CPF, e-mail..." />
+        </div>
+      </div>);
+
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script>
+</body>
+</html>

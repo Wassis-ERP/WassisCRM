@@ -1,4 +1,6 @@
 ﻿import { useMemo, useState, type ComponentType } from 'react'
+import { useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Users,
   GitBranch,
@@ -16,7 +18,9 @@ import {
   AlertTriangle,
   Loader2,
   Archive,
+  BadgeDollarSign,
 } from 'lucide-react'
+import EquipeAcessosPage from './EquipeAcessosPage'
 import ProdutoresPage from './ProdutoresPage'
 import StepsConfigModal from '../components/modals/StepsConfigModal'
 import { PermissionsMatrix } from '../components/admin/PermissionsMatrix'
@@ -307,11 +311,18 @@ const DBLookupListTab = ({
 }
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('corretoras')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialTab = searchParams.get('tab') || 'corretoras'
+  const [activeTab, setActiveTab] = useState(initialTab)
+
+  useEffect(() => {
+    setActiveTab(searchParams.get('tab') || 'corretoras')
+  }, [searchParams])
 
   const tabs = [
     { id: 'corretoras', label: 'Corretoras/Filiais', icon: Building2, component: <FiliaisTab /> },
-    { id: 'produtores', label: 'Equipe e Perfis', icon: Users, component: <ProdutoresPage /> },
+    { id: 'produtores', label: 'Produtores', icon: BadgeDollarSign, component: <ProdutoresPage /> },
+    { id: 'equipe', label: 'Usuários e Perfis', icon: Users, component: <EquipeAcessosPage /> },
     { id: 'permissoes', label: 'Matriz de Permissões', icon: ShieldCheck, component: <PermissionsMatrix /> },
     { id: 'funis', label: 'Funis & Etapas', icon: GitBranch, component: <FunisEtapasTab /> },
     { id: 'ramos', label: 'Ramos de Seguros', icon: ShieldCheck, component: <DBLookupListTab title="Ramo" table="ramos" useDataHook={useRamos} icon={ShieldCheck} /> },
@@ -340,7 +351,10 @@ export default function SettingsPage() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id)
+                setSearchParams(tab.id === 'corretoras' ? {} : { tab: tab.id })
+              }}
               className={`flex items-center justify-between group px-4 py-3.5 rounded-[8px] text-sm font-bold transition-all ${
                 activeTab === tab.id
                   ? 'bg-accent-primary text-fg-on-brand shadow-[var(--shadow-brand)] translate-x-1'

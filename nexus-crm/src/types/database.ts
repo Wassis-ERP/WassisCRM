@@ -1029,14 +1029,14 @@ export type Database = {
             foreignKeyName: "segurados_produtor_id_fkey"
             columns: ["produtor_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "produtores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "segurados_gerente_id_fkey"
             columns: ["gerente_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "produtores"
             referencedColumns: ["id"]
           },
         ]

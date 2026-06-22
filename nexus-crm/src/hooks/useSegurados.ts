@@ -3,10 +3,11 @@ import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database';
 import { useAuth } from './useAuth';
 import { useActiveFilialId } from './useActiveFilial';
-import { useTeamAdmin } from './useTeamAdmin';
+import { useProdutores } from './useProdutores';
 import { mapPessoaContatoRowToView } from '../lib/seguradoMapper';
 import type { PessoaContato } from '../contexts/seguradosCore';
 import { useMemo } from 'react';
+import { onlyDigits } from '../utils/documento';
 
 type SeguradoRow = Database['public']['Tables']['segurados']['Row'];
 type SeguradoUpdate = Database['public']['Tables']['segurados']['Update'];
@@ -17,9 +18,9 @@ type PessoaContatoInsert = Database['public']['Tables']['pessoa_contato']['Inser
 const SEGURADOS_KEY = ['segurados'] as const;
 const PESSOA_CONTATO_KEY = ['pessoa_contato'] as const;
 
-// Select com joins para resolver produtor/gerente em `profiles`.
+// Select com joins para resolver produtor/gerente em `produtores`.
 const SEGURADO_WITH_JOINS_SELECT =
-  '*, produtor:produtor_id ( id, full_name ), gerente:gerente_id ( id, full_name )';
+  '*, produtor:produtor_id ( id, nome ), gerente:gerente_id ( id, nome )';
 
 /**
  * Lista segurados do tenant (RLS aplica em produção). Ordenado por nome.
@@ -70,11 +71,14 @@ export function useCreateSegurado() {
   return useMutation({
     mutationFn: async (input: CreateSeguradoInput): Promise<SeguradoRow> => {
       if (!user?.tenantId) throw new Error('Usuario sem tenant vinculado');
+      const cpfCnpj = onlyDigits(input.cpf_cnpj);
+      if (!cpfCnpj) throw new Error('CPF/CNPJ é obrigatório para cadastrar segurado');
 
       const { data, error } = await supabase
         .from('segurados')
         .insert({
           ...input,
+          cpf_cnpj: cpfCnpj,
           nome: input.nome.trim(),
           tipo: input.tipo ?? 'PF',
           status: input.status ?? 'Ativo',
@@ -307,7 +311,7 @@ export function useDeletePessoaContato() {
 }
 
 // ---------------------------------------------------------------------------
-// Produtores / Gerentes (refs a `profiles` via team admin)
+// Produtores / Gerentes (refs a `produtores`, fase 0.2)
 // ---------------------------------------------------------------------------
 
 /**
@@ -317,14 +321,14 @@ export function useDeletePessoaContato() {
  * que todos os membros retornados são "ativos".
  */
 export function useProdutoresLookup() {
-  const { members, isLoading } = useTeamAdmin();
+  const { data, isLoading } = useProdutores();
 
   const options = useMemo(
     () =>
-      (members ?? [])
-        .map((m) => ({ id: m.id, nome: m.full_name || m.email || 'Sem nome' }))
+      (data ?? [])
+        .map((p) => ({ id: p.id, nome: p.nome || 'Sem nome' }))
         .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
-    [members],
+    [data],
   );
 
   return { options, isLoading };

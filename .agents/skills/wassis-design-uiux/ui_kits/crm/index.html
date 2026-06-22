@@ -1,0 +1,71 @@
+<!-- @dsCard group="WassisCRM" viewport="1280x800" name="WassisCRM — Aplicação" subtitle="Shell, dashboard, kanban e segurados (interativo)" -->
+<!-- @startingPoint section="WassisCRM" subtitle="App CRM completo: sidebar, dashboard, kanban e segurados" viewport="1280x800" -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WassisCRM</title>
+<link rel="icon" href="../../assets/brand/favicon-32x32.png">
+<link rel="stylesheet" href="../../styles.css">
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html, body { margin: 0; height: 100%; }
+  #root { height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="icons.js"></script>
+<script type="text/babel" src="Shell.jsx"></script>
+<script type="text/babel" src="DashboardScreen.jsx"></script>
+<script type="text/babel" src="KanbanScreen.jsx"></script>
+<script type="text/babel" src="SeguradosScreen.jsx"></script>
+<script type="text/babel" data-presets="react">
+  const { useState, useEffect } = React
+
+  function PlaceholderScreen({ label }) {
+    return (
+      <div className="animate-fade-in" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 12 }}>
+        <div style={{ width: 56, height: 56, borderRadius: 'var(--r-lg)', background: 'var(--bg-surface-2)', color: 'var(--fg-4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {React.createElement(window.Icons.LayoutGrid, { size: 28 })}
+        </div>
+        <h2 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 'var(--t-xl)', color: 'var(--fg-2)' }}>{label}</h2>
+        <p style={{ margin: 0, fontFamily: 'var(--font-text)', fontSize: 'var(--t-sm)', color: 'var(--fg-4)', maxWidth: 380 }}>
+          Esta tela usa o mesmo funil Kanban dos demais módulos. Recriação omitida neste UI kit.
+        </p>
+      </div>
+    )
+  }
+
+  function App() {
+    const [active, setActive] = useState('dashboard')
+    const [dark, setDark] = useState(false)
+
+    useEffect(() => {
+      document.documentElement.classList.toggle('dark', dark)
+    }, [dark])
+
+    let screen
+    if (active === 'dashboard') screen = <window.DashboardScreen />
+    else if (active === 'oportunidades') screen = <window.KanbanScreen />
+    else if (active === 'segurados') screen = <window.SeguradosScreen />
+    else {
+      const labels = { painel: 'Painel de Propostas', sinistros: 'Sinistros', emissao: 'Emissão', posvenda: 'Pós-Venda', financeiro: 'Financeiro', config: 'Configurações' }
+      screen = <PlaceholderScreen label={labels[active] || 'Módulo'} />
+    }
+
+    return (
+      <window.Shell active={active} onNavigate={setActive} dark={dark} onToggleDark={() => setDark((d) => !d)}>
+        {screen}
+      </window.Shell>
+    )
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />)
+</script>
+</body>
+</html>

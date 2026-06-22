@@ -1,0 +1,45 @@
+/* ============================================================
+ * W.Assis Design System — Typography tokens
+ * Famílias: Rubik (display/títulos) + Mulish (texto, fallback de Gilroy)
+ *           + JetBrains Mono (números, código, IDs).
+ * Escala 1.250 (Major Third), base 16px.
+ * ============================================================ */
+
+:root {
+  /* Famílias — Rubik/Mulish ANTES do system stack */
+  --font-display: "Rubik", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-text:    "Mulish", "Gilroy", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, "Cascadia Code", Menlo, monospace;
+
+  /* Escala tipográfica */
+  --t-xs:   12px;
+  --t-sm:   14px;
+  --t-base: 16px;
+  --t-md:   18px;
+  --t-lg:   20px;
+  --t-xl:   24px;
+  --t-2xl:  30px;
+  --t-3xl:  36px;
+  --t-4xl:  44px;
+  --t-5xl:  56px;
+
+  /* Pesos canônicos */
+  --w-regular:  400; /* @kind font */
+  --w-medium:   500; /* @kind font */
+  --w-semibold: 600; /* @kind font */
+  --w-bold:     700; /* @kind font */
+  --w-black:    800; /* @kind font */
+
+  /* Line heights */
+  --lh-tight:  1.15; /* @kind other */
+  --lh-snug:   1.3; /* @kind other */
+  --lh-normal: 1.5; /* @kind other */
+  --lh-loose:  1.7; /* @kind other */
+
+  /* Tracking */
+  --tr-tighter: -0.03em; /* @kind other */
+  --tr-tight:   -0.02em; /* @kind other */
+  --tr-normal:   0; /* @kind other */
+  --tr-caps:     0.06em; /* @kind other */
+  --tr-widest:   0.12em; /* @kind other */
+}

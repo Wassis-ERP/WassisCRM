@@ -1,5 +1,6 @@
 import type { PessoaContato, Segurado } from '../contexts/seguradosCore'
 import type { Database } from '../types/database'
+import { formatDocumento, onlyDigits } from '../utils/documento'
 
 type SeguradoRow = Database['public']['Tables']['segurados']['Row']
 type SeguradoUpdate = Database['public']['Tables']['segurados']['Update']
@@ -7,13 +8,13 @@ type PessoaContatoRow = Database['public']['Tables']['pessoa_contato']['Row']
 
 /**
  * Linhas devolvidas pelos hooks de detalhe podem trazer joins aninhados
- * (produtor/gerente vindos de `profiles`). Esses campos não fazem parte
+ * (produtor/gerente vindos de `produtores`). Esses campos não fazem parte
  * do schema base, então estendemos o tipo localmente.
  */
-type ProfileLite = { id: string; full_name: string | null }
+type ProdutorLite = { id: string; nome: string | null }
 type SeguradoRowWithJoins = SeguradoRow & {
-  produtor?: ProfileLite | null
-  gerente?: ProfileLite | null
+  produtor?: ProdutorLite | null
+  gerente?: ProdutorLite | null
 }
 type PessoaContatoRowWithJoins = PessoaContatoRow & {
   pj?: Pick<SeguradoRow, 'id' | 'nome' | 'nome_fantasia'> | null
@@ -60,15 +61,16 @@ function colorFor(seed?: string | null): string | null {
  * resolvidos diretamente.
  */
 export function mapSeguradoRowToView(row: SeguradoRowWithJoins): Segurado {
-  const produtorNome = row.produtor?.full_name ?? null
-  const gerenteNome = row.gerente?.full_name ?? null
+  const produtorNome = row.produtor?.nome ?? null
+  const gerenteNome = row.gerente?.nome ?? null
+  const documento = row.cpf_cnpj ? formatDocumento(row.cpf_cnpj, row.tipo) : ''
 
   return {
     id: row.id,
     tipo: row.tipo,
     nome: row.nome,
     nomeFantasia: row.nome_fantasia ?? undefined,
-    documento: row.cpf_cnpj ?? '',
+    documento,
     status: row.status ?? 'Ativo',
     lgpdAutorizado: Boolean(row.lgpd_autorizado),
 
@@ -110,6 +112,12 @@ function trimOrNull(value: string | undefined | null): string | null {
   return t === '' ? null : t
 }
 
+function digitsOrNull(value: string | undefined | null): string | null {
+  if (value === undefined) return null
+  const digits = onlyDigits(value)
+  return digits === '' ? null : digits
+}
+
 function applyTipoFilter(u: SeguradoUpdate, tipo: 'PF' | 'PJ' | undefined): SeguradoUpdate {
   // Limpa campos exclusivos do tipo OPOSTO conforme regra do PRD:
   // "Campos exclusivos de PF devem ser ignorados (nulos) quando tipo = PJ e vice-versa".
@@ -133,7 +141,7 @@ export function partialSeguradoToUpdate(data: Partial<Segurado>): SeguradoUpdate
   const u: SeguradoUpdate = {}
   if (data.nome !== undefined) u.nome = data.nome.trim()
   if (data.nomeFantasia !== undefined) u.nome_fantasia = trimOrNull(data.nomeFantasia)
-  if (data.documento !== undefined) u.cpf_cnpj = trimOrNull(data.documento)
+  if (data.documento !== undefined) u.cpf_cnpj = digitsOrNull(data.documento)
   if (data.tipo !== undefined) u.tipo = data.tipo
   if (data.status !== undefined) u.status = data.status
   if (data.lgpdAutorizado !== undefined) u.lgpd_autorizado = data.lgpdAutorizado
@@ -176,7 +184,7 @@ export function buildCreateSeguradoInput(data: Partial<Segurado>) {
     nome,
     tipo,
     nome_fantasia: trimOrNull(data.nomeFantasia),
-    cpf_cnpj: trimOrNull(data.documento),
+    cpf_cnpj: digitsOrNull(data.documento),
     status: data.status ?? 'Ativo',
     lgpd_autorizado: data.lgpdAutorizado ?? false,
 
