@@ -32,6 +32,14 @@ export function buildRamoUpdatePayload(input: RamoInput) {
   };
 }
 
+export function buildLookupInsertPayload(nome: string, tenantId: string) {
+  return {
+    nome: nome.trim(),
+    tenant_id: tenantId,
+    ativo: true,
+  };
+}
+
 export function useLookupsAdmin(table: LookupTable) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -50,11 +58,12 @@ export function useLookupsAdmin(table: LookupTable) {
     mutationFn: async (nome: string) => {
       if (!tenantId) throw new Error('Tenant não encontrado');
       
-      const { data, error } = await supabase.from(table).insert({ 
-        nome, 
-        tenant_id: tenantId,
-        ...(table === 'ramos' ? { comissao_padrao: 0 } : {})
-      }).select().single();
+      const payload = {
+        ...buildLookupInsertPayload(nome, tenantId),
+        ...(table === 'ramos' ? { comissao_padrao: 0 } : {}),
+      };
+
+      const { data, error } = await supabase.from(table).insert(payload).select().single();
 
       if (error) throw error;
 
@@ -62,7 +71,7 @@ export function useLookupsAdmin(table: LookupTable) {
         action: 'CREATE_LOOKUP',
         entity_type: table,
         entity_id: data.id,
-        new_data: { nome }
+        new_data: payload
       });
 
       return data;
