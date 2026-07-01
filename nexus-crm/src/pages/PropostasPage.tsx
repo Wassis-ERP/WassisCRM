@@ -16,6 +16,7 @@ import type { Proposal, ProposalStatus, ProposalType } from '../types/proposta'
 import { usePropostas } from '../contexts/usePropostas'
 import { PropostasListView } from '../components/propostas/PropostasListView'
 import { initials } from '../components/propostas/propostaFormat'
+import { useSystemFeedback } from '../components/feedback/systemFeedbackContext'
 
 /* =========================================================================
  * Tipos
@@ -80,6 +81,7 @@ const INITIAL_FILTERS: FilterValues = {
 
 export default function PropostasPage() {
   const { proposals, setProposalStatus } = usePropostas()
+  const { notify } = useSystemFeedback()
   const [filters, setFilters] = useState<FilterValues>(INITIAL_FILTERS)
   const [viewMode, setViewMode] = useState<'Lista' | 'Kanban'>('Lista')
   const [activeCard, setActiveCard] = useState<CardKey>(null)
@@ -223,14 +225,22 @@ export default function PropostasPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => alert('Abrir tela de nova proposta (newProposal)')}
+            onClick={() => notify({
+              title: 'Nova proposta em preparação',
+              description: 'O cadastro real de proposta entra na reconstrução do eixo contratual.',
+              tone: 'info',
+            })}
             className="flex items-center gap-2 px-4 py-2 bg-accent-primary hover:bg-accent-primary-hover text-fg-on-brand rounded-full text-sm font-semibold shadow-[var(--shadow-brand)]"
           >
             <Plus size={16} />
             Novo
           </button>
           <button
-            onClick={() => alert('Abrir tela de importação em lote')}
+            onClick={() => notify({
+              title: 'Importação em lote em preparação',
+              description: 'Este fluxo será definido junto ao contrato real de propostas e apólices.',
+              tone: 'info',
+            })}
             className="flex items-center gap-2 px-4 py-2 bg-bg-surface border border-border-1 hover:bg-bg-surface-2 text-fg-2 rounded-full text-sm font-semibold"
           >
             <Upload size={16} />
@@ -378,6 +388,7 @@ function KanbanView({
   statuses: CustomProposalStatus[]
   onDrop: (proposalId: string, newStatus: ProposalStatus) => void
 }) {
+  const { notify } = useSystemFeedback()
   // Foca pipeline pré-emissão: ignora propostas já emitidas
   const pipeline = proposals.filter(p => !p.policyNumber)
   return (
@@ -413,7 +424,11 @@ function KanbanView({
                       key={p.id}
                       draggable
                       onDragStart={e => e.dataTransfer.setData('text/plain', p.id)}
-                      onClick={() => alert(`Abrir ProposalDetails: ${p.id}`)}
+                      onClick={() => notify({
+                        title: 'Detalhe de proposta em preparação',
+                        description: `ID interno: ${p.id}`,
+                        tone: 'info',
+                      })}
                       className="bg-bg-surface rounded-[6px] p-3 shadow-[var(--shadow-1)] border border-border-1 cursor-grab active:cursor-grabbing hover:shadow-[var(--shadow-2)] transition-all"
                     >
                       <p className="font-semibold text-sm text-fg-1 truncate">{p.insured}</p>

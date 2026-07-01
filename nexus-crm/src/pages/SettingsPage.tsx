@@ -27,6 +27,7 @@ import ProdutoresPage from './ProdutoresPage'
 import StepsConfigModal from '../components/modals/StepsConfigModal'
 import { PermissionsMatrix } from '../components/admin/PermissionsMatrix'
 import FiliaisTab from '../components/settings/FiliaisTab'
+import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
 
 import { useRamos, useOrigens, useSeguradoras, useMotivosPerda } from '../hooks/useLookups'
 import type { RamoGrupoOperacional, RamoRiskType } from '../hooks/useLookups'
@@ -88,6 +89,8 @@ const PipelineStagesPreview = ({ pipelineId }: { pipelineId: string }) => {
 const FunisEtapasTab = () => {
   const { data: pipelines, isLoading, isError, error } = usePipelines()
   const { createPipeline, archivePipeline, isCreatingPipeline, isArchivingPipeline } = usePipelinesAdmin()
+  const confirm = useConfirm()
+  const { notify } = useSystemFeedback()
 
   const [newPipelineName, setNewPipelineName] = useState('')
   const [newPipelineModule, setNewPipelineModule] = useState<PipelineModule>('comercial')
@@ -121,11 +124,21 @@ const FunisEtapasTab = () => {
   }
 
   const handleArchive = async (p: PipelineRow) => {
-    if (!window.confirm(`Arquivar o funil "${p.name}"? Cards já existentes não serão removidos, mas ele deixa de aparecer no Kanban.`)) return
+    const shouldArchive = await confirm({
+      title: 'Arquivar funil',
+      description: `Arquivar o funil "${p.name}"? Cards já existentes não serão removidos, mas ele deixa de aparecer no Kanban.`,
+      confirmLabel: 'Arquivar',
+      tone: 'warning',
+    })
+    if (!shouldArchive) return
     try {
       await archivePipeline(p.id)
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Erro ao arquivar funil')
+      notify({
+        title: 'Erro ao arquivar funil',
+        description: e instanceof Error ? e.message : 'Tente novamente.',
+        tone: 'danger',
+      })
     }
   }
 
@@ -250,6 +263,8 @@ const FunisEtapasTab = () => {
 const RamosTab = () => {
   const { data, isLoading } = useRamos()
   const { add, update, remove, isAdding, isUpdating, isRemoving } = useRamosAdmin()
+  const confirm = useConfirm()
+  const { notify } = useSystemFeedback()
 
   const [nome, setNome] = useState('')
   const [riskType, setRiskType] = useState<RamoRiskType>('VEICULO')
@@ -300,11 +315,21 @@ const RamosTab = () => {
   }
 
   const handleRemove = async (id: string, ramoNome: string) => {
-    if (!window.confirm(`Inativar o ramo "${ramoNome}"? Registros históricos continuam preservados.`)) return
+    const shouldRemove = await confirm({
+      title: 'Inativar ramo',
+      description: `Inativar o ramo "${ramoNome}"? Registros históricos continuam preservados.`,
+      confirmLabel: 'Inativar',
+      tone: 'danger',
+    })
+    if (!shouldRemove) return
     try {
       await remove(id)
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : 'Erro ao inativar ramo')
+      notify({
+        title: 'Erro ao inativar ramo',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        tone: 'danger',
+      })
     }
   }
 
@@ -444,6 +469,8 @@ const DBLookupListTab = ({
   const [newValue, setNewValue] = useState('')
   const { data, isLoading } = useDataHook()
   const { add, remove, isAdding, isRemoving } = useLookupsAdmin(table)
+  const confirm = useConfirm()
+  const { notify } = useSystemFeedback()
 
   const handleAdd = async () => {
     if (newValue.trim() && !isAdding) { 
@@ -453,6 +480,25 @@ const DBLookupListTab = ({
       } catch (err) {
         console.error("Erro ao adicionar:", err)
       }
+    }
+  }
+
+  const handleRemove = async (id: string, nome: string) => {
+    const shouldRemove = await confirm({
+      title: `Inativar ${title.toLowerCase()}`,
+      description: `Tem certeza que deseja inativar "${nome}"?`,
+      confirmLabel: 'Inativar',
+      tone: 'danger',
+    })
+    if (!shouldRemove) return
+    try {
+      await remove(id)
+    } catch (err) {
+      notify({
+        title: `Erro ao inativar ${title.toLowerCase()}`,
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        tone: 'danger',
+      })
     }
   }
 
@@ -493,11 +539,7 @@ const DBLookupListTab = ({
                 <span className="font-semibold text-fg-2">{item.nome}</span>
               </div>
               <button
-                onClick={() => {
-                  if (window.confirm(`Tem certeza que deseja inativar "${item.nome}"?`)) {
-                    remove(item.id)
-                  }
-                }}
+                onClick={() => handleRemove(item.id, item.nome)}
                 disabled={isRemoving}
                 className="p-2 text-fg-4 hover:text-signal-danger hover:bg-signal-danger/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
               >

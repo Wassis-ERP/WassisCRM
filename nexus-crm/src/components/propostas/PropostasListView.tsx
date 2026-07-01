@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronRight, Edit } from 'lucide-react'
 import type { Proposal } from '../../types/proposta'
 import { STATUS_BADGE, initials, fmtDate } from './propostaFormat'
+import { useSystemFeedback } from '../feedback/systemFeedbackContext'
 
 /* =========================================================================
  * Tabela de propostas/apólices reutilizável.
@@ -18,6 +19,8 @@ export function PropostasListView({
   onToggleExpand: (id: string) => void
   emptyMessage?: string
 }) {
+  const { notify } = useSystemFeedback()
+
   if (proposals.length === 0) {
     return <div className="p-12 text-center text-sm text-fg-4">{emptyMessage}</div>
   }
@@ -87,7 +90,11 @@ export function PropostasListView({
               </div>
               <div className="col-span-1 flex justify-end">
                 <button
-                  onClick={() => alert(`Abrir ProposalDetails: ${p.id}`)}
+                  onClick={() => notify({
+                    title: 'Detalhe de proposta em preparação',
+                    description: `ID interno: ${p.id}`,
+                    tone: 'info',
+                  })}
                   className="p-1.5 rounded-[6px] hover:bg-bg-surface-2 text-fg-3"
                   aria-label="Editar"
                 >

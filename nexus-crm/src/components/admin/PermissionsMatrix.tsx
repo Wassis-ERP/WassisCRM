@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shield, CheckCircle2, XCircle, Plus, Pencil, Trash2, Lock, X } from 'lucide-react';
 import { usePerfisAdmin, type PermField, type PermissionRow } from '../../hooks/usePerfisAdmin';
+import { useConfirm, useSystemFeedback } from '../feedback/systemFeedbackContext';
 
 /**
  * AUTORIA de perfis de acesso (D18). Colunas = perfis (pré-configurados + criados);
@@ -8,6 +9,8 @@ import { usePerfisAdmin, type PermField, type PermissionRow } from '../../hooks/
  * A APLICAÇÃO das permissões (runtime/RLS) é do backend — ver relatório de hand-off.
  */
 export function PermissionsMatrix() {
+  const confirm = useConfirm();
+  const { notify } = useSystemFeedback();
   const {
     perfis,
     permissions,
@@ -39,16 +42,30 @@ export function PermissionsMatrix() {
       else if (nameDialog.id) await renamePerfil({ id: nameDialog.id, nome: trimmed });
       setNameDialog(null);
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Erro ao salvar perfil');
+      notify({
+        title: 'Erro ao salvar perfil',
+        description: e instanceof Error ? e.message : 'Tente novamente.',
+        tone: 'danger',
+      });
     }
   };
 
   const handleRemove = async (id: string, nome: string) => {
-    if (!window.confirm(`Inativar o perfil "${nome}"?`)) return;
+    const shouldRemove = await confirm({
+      title: 'Inativar perfil',
+      description: `Inativar o perfil "${nome}"?`,
+      confirmLabel: 'Inativar',
+      tone: 'danger',
+    });
+    if (!shouldRemove) return;
     try {
       await removePerfil(id);
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Erro ao inativar perfil');
+      notify({
+        title: 'Erro ao inativar perfil',
+        description: e instanceof Error ? e.message : 'Tente novamente.',
+        tone: 'danger',
+      });
     }
   };
 
@@ -56,7 +73,11 @@ export function PermissionsMatrix() {
     try {
       await togglePermission({ id: perm.id, field, value: !perm[field] });
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Erro ao atualizar permissão');
+      notify({
+        title: 'Erro ao atualizar permissão',
+        description: e instanceof Error ? e.message : 'Tente novamente.',
+        tone: 'danger',
+      });
     }
   };
 

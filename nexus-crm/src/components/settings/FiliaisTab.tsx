@@ -4,9 +4,12 @@ import { useFiliaisAdmin } from '../../hooks/useFiliaisAdmin'
 import type { Filial, FilialInput } from '../../types/platform'
 import { formatCpfCnpj } from '../../utils/documento'
 import FilialModal from './FilialModal'
+import { useConfirm, useSystemFeedback } from '../feedback/systemFeedbackContext'
 
 export default function FiliaisTab() {
   const { filiais, isLoading, create, update, remove, isSaving, isRemoving } = useFiliaisAdmin()
+  const confirm = useConfirm()
+  const { notify } = useSystemFeedback()
   const [isOpen, setIsOpen] = useState(false)
   const [selected, setSelected] = useState<Filial | null>(null)
 
@@ -25,17 +28,31 @@ export default function FiliaisTab() {
       else await create(values)
       setIsOpen(false)
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : 'Erro ao salvar corretora')
+      notify({
+        title: 'Erro ao salvar corretora',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        tone: 'danger',
+      })
     }
   }
 
   const handleRemove = async (f: Filial) => {
     const nome = f.fantasia || f.razao_social || 'esta corretora'
-    if (!window.confirm(`Inativar "${nome}"? Ela deixa de aparecer no seletor e nos cadastros.`)) return
+    const shouldRemove = await confirm({
+      title: 'Inativar corretora',
+      description: `Inativar "${nome}"? Ela deixa de aparecer no seletor e nos cadastros.`,
+      confirmLabel: 'Inativar',
+      tone: 'danger',
+    })
+    if (!shouldRemove) return
     try {
       await remove(f.id)
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : 'Erro ao inativar corretora')
+      notify({
+        title: 'Erro ao inativar corretora',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        tone: 'danger',
+      })
     }
   }
 

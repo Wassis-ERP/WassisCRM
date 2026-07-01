@@ -423,6 +423,7 @@ export function seed(): void {
       id: pipelineId,
       name: p.name,
       module: p.module,
+      filial_id: null,
       is_active: true,
       tenant_id: MOCK_TENANT_ID,
       won_label: 'Ganho',

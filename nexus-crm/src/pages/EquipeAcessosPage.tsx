@@ -4,6 +4,7 @@ import { useTeamAdmin, type TeamMember } from '../hooks/useTeamAdmin'
 import { useFiliais } from '../hooks/useFiliais'
 import { usePerfis } from '../hooks/usePerfis'
 import { useProfileFiliais } from '../hooks/useProfileFiliais'
+import { useSystemFeedback } from '../components/feedback/systemFeedbackContext'
 
 /**
  * Modal de membro. Convite = nome + e-mail (o CARGO global foi aposentado — D18).
@@ -118,6 +119,7 @@ function CorretorasPerfilSection({ profileId }: { profileId: string }) {
   const { data: filiais } = useFiliais()
   const { data: perfis } = usePerfis()
   const { vinculos, setVinculo, removeVinculo, isSaving } = useProfileFiliais(profileId)
+  const { notify } = useSystemFeedback()
 
   const vinculoFor = (filialId: string) => vinculos.find((v) => v.filial_id === filialId)
 
@@ -126,20 +128,32 @@ function CorretorasPerfilSection({ profileId }: { profileId: string }) {
       if (!perfilId) await removeVinculo(filialId)
       else await setVinculo({ filialId, perfilId, principal: vinculoFor(filialId)?.principal })
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Erro ao definir perfil')
+      notify({
+        title: 'Erro ao definir perfil',
+        description: e instanceof Error ? e.message : 'Tente novamente.',
+        tone: 'danger',
+      })
     }
   }
 
   const handlePrincipal = async (filialId: string) => {
     const v = vinculoFor(filialId)
     if (!v) {
-      window.alert('Defina um perfil para esta corretora antes de torná-la principal.')
+      notify({
+        title: 'Perfil necessário',
+        description: 'Defina um perfil para esta corretora antes de torná-la principal.',
+        tone: 'warning',
+      })
       return
     }
     try {
       await setVinculo({ filialId, perfilId: v.perfil_id, principal: true })
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Erro ao definir corretora principal')
+      notify({
+        title: 'Erro ao definir corretora principal',
+        description: e instanceof Error ? e.message : 'Tente novamente.',
+        tone: 'danger',
+      })
     }
   }
 
@@ -196,6 +210,7 @@ function CorretorasPerfilSection({ profileId }: { profileId: string }) {
  */
 export default function EquipeAcessosPage() {
   const { members, isLoading, invite, isInviting } = useTeamAdmin()
+  const { notify } = useSystemFeedback()
   const [search, setSearch] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedProdutor, setSelectedProdutor] = useState<TeamMember | null>(null)
@@ -217,7 +232,11 @@ export default function EquipeAcessosPage() {
       // mantém o modal aberto em modo edição para já atribuir corretoras/perfil
       if (member) setSelectedProdutor(member)
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : 'Erro ao convidar membro')
+      notify({
+        title: 'Erro ao convidar membro',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        tone: 'danger',
+      })
     }
   }
 
