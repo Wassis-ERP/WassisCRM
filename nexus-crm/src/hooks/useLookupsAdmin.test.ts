@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildRamoInsertPayload, buildRamoUpdatePayload } from './useLookupsAdmin';
+import { buildLookupInsertPayload, buildRamoInsertPayload, buildRamoUpdatePayload } from './useLookupsAdmin';
 
 const ramoInput = {
   nome: '  Vida em Grupo PME  ',
@@ -28,6 +28,16 @@ describe('useLookupsAdmin Ramos payload', () => {
       grupo_operacional: 'Pessoas',
       is_monthly: false,
       comissao_padrao: 0,
+    });
+  });
+});
+
+describe('useLookupsAdmin lookup payload', () => {
+  it('cria catalogo auxiliar ativo para aparecer nas consultas filtradas', () => {
+    expect(buildLookupInsertPayload('  Porto Seguro  ', 'tenant-test')).toEqual({
+      nome: 'Porto Seguro',
+      tenant_id: 'tenant-test',
+      ativo: true,
     });
   });
 });
