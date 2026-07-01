@@ -1,13 +1,13 @@
 ---
 name: wassis-git-pr-flow
-description: "Fluxo enxuto para subir alteracoes do WassisCRM: conferir sync local/remoto, validar nexus-crm, commitar, dar push em Dev, criar ou reutilizar PR para main, acompanhar CI/CodeQL, fazer merge quando autorizado e reportar o estado final. Use quando o usuario pedir para subir alteracoes, criar PR, verificar CI/CD, fazer merge, ou checar se Dev/origin/Dev/origin/main estao corretos antes de publicar."
+description: "Fluxo enxuto de cabo a rabo para subir alteracoes do WassisCRM: conferir sync local/remoto, validar nexus-crm, commitar, dar push em Dev, criar ou reutilizar PR para main, acompanhar CI/CodeQL, fazer merge quando a PR estiver limpa e reportar o estado final. Use quando o usuario pedir para subir alteracoes, criar PR, verificar CI/CD, fazer merge, ou checar se Dev/origin/Dev/origin/main estao corretos antes de publicar."
 ---
 
 # Wassis Git PR Flow
 
 ## Objetivo
 
-Executar o ritual Git/PR do WassisCRM com minimo de conversa e maxima previsibilidade. O fluxo padrao e `Dev` -> `main`, mantendo a branch `Dev`.
+Executar o ritual Git/PR do WassisCRM com minimo de conversa e maxima previsibilidade, de cabo a rabo. O fluxo padrao e `Dev` -> `main`, mantendo a branch `Dev`, e termina com merge quando a PR estiver `CLEAN` e os checks obrigatorios passarem.
 
 ## Regras
 
@@ -17,7 +17,7 @@ Executar o ritual Git/PR do WassisCRM com minimo de conversa e maxima previsibil
 - Prefira binarios locais: `node_modules\.bin\tsc.cmd`, `vite.cmd`, `vitest.cmd`, `eslint.cmd`.
 - Nao corrija lint legado amplo durante este fluxo; registre como risco se falhar fora do escopo.
 - Se houver conflito, divergencia remota, working tree inesperadamente suja, ou check vermelho, pare e reporte.
-- Para merge, confirme que a PR esta `CLEAN` e checks obrigatorios passaram. So faca merge se o usuario pediu merge explicitamente.
+- Para merge, confirme que a PR esta `CLEAN` e checks obrigatorios passaram. Quando esta skill for chamada para subir alteracoes, faca o merge automaticamente ao fim do fluxo apto, salvo se o usuario pedir explicitamente para nao mesclar.
 - Se comandos Git/GitHub precisarem de permissao elevada por sandbox, solicite diretamente no comando.
 
 ## Sequencia Rapida
@@ -46,7 +46,8 @@ Executar o ritual Git/PR do WassisCRM com minimo de conversa e maxima previsibil
    - Acompanhar: `gh pr checks <numero> --watch --interval 10`
    - Confirmar estado: `gh pr view <numero> --json state,mergeStateStatus,statusCheckRollup,url`
 
-5. Merge, quando pedido:
+5. Merge automatico ao fim do fluxo apto:
+   - Confirmar que a PR esta aberta, `CLEAN` e com checks obrigatorios verdes
    - `gh pr merge <numero> --merge --delete-branch=false`
    - `git fetch origin main Dev`
    - Estado final:
