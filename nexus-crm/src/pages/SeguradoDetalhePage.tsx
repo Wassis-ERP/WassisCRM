@@ -34,6 +34,7 @@ import AnexosLogsTab from '../components/detail/tabs/AnexosLogsTab'
 import ObservacoesTab from '../components/detail/tabs/ObservacoesTab'
 import ApolicesTab from '../components/detail/tabs/ApolicesTab'
 import { usePropostas } from '../contexts/usePropostas'
+import { useConfirm } from '../components/feedback/systemFeedbackContext'
 
 const ESTADO_CIVIL_LABEL: Record<NonNullable<Segurado['estadoCivil']>, string> = {
   Solteiro: 'Solteiro(a)',
@@ -75,6 +76,7 @@ function onlyDigits(v?: string): string {
 export default function SeguradoDetalhePage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const confirm = useConfirm()
   const { data: row, isLoading, isError, refetch } = useSegurado(id)
   const updateSegurado = useUpdateSegurado()
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -163,7 +165,13 @@ export default function SeguradoDetalhePage() {
   }
 
   const handleRemoveVinculo = async (v: PessoaContato) => {
-    if (!window.confirm('Remover este vínculo? O cadastro da pessoa permanece intacto.')) return
+    const shouldRemove = await confirm({
+      title: 'Remover vínculo',
+      description: 'Remover este vínculo? O cadastro da pessoa permanece intacto.',
+      confirmLabel: 'Remover',
+      tone: 'danger',
+    })
+    if (!shouldRemove) return
     await deleteVinculo.mutateAsync(v.id)
   }
 

@@ -652,6 +652,7 @@ export type Database = {
       pipelines: {
         Row: {
           created_at: string
+          filial_id: string | null
           id: string
           is_active: boolean
           lost_label: string
@@ -663,6 +664,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          filial_id?: string | null
           id?: string
           is_active?: boolean
           lost_label?: string
@@ -674,6 +676,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          filial_id?: string | null
           id?: string
           is_active?: boolean
           lost_label?: string

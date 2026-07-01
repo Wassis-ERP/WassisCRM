@@ -36,6 +36,8 @@
 - A skill fica em `.agents\skills\wassis-design-uiux`.
 - Antes de criar uma tela nova, leia as instrucoes da skill e siga seus padroes visuais, fluxos, componentes e criterios de usabilidade.
 - Preserve consistencia com a experiencia existente do WassisCRM e priorize telas operacionais, claras e eficientes para corretoras de seguros.
+- Fluxos de produto nao devem usar dialogos nativos do navegador (`window.confirm`, `window.alert`, `window.prompt` ou `alert`). Use o confirmador/feedback interno do sistema para confirmacoes, erros e placeholders temporarios.
+- Modais devem permitir fechamento por clique fora e tecla `Esc`, exceto quando houver salvamento em andamento ou risco explicito de perda de dados.
 
 ## Escopo tecnico
 - Este projeto e puramente frontend. O backend sera desenvolvido por outra equipe.

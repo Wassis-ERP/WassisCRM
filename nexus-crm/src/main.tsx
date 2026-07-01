@@ -9,6 +9,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { SettingsProvider } from './contexts/SettingsContext'
 import { PropostasProvider } from './contexts/PropostasContext'
 import { queryClient } from './lib/queryClient'
+import { ConfirmProvider } from './components/feedback/ConfirmProvider'
 
 // Modo "frontend puro": estado em memória, sem backend.
 // O AuthProvider entrega um usuário admin fixo; dados de domínio vivem em
@@ -20,7 +21,9 @@ createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <SettingsProvider>
             <PropostasProvider>
-              <App />
+              <ConfirmProvider>
+                <App />
+              </ConfirmProvider>
             </PropostasProvider>
           </SettingsProvider>
         </AuthProvider>

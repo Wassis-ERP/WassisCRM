@@ -5,6 +5,7 @@ import { useTeamAdmin } from '../hooks/useTeamAdmin'
 import type { Produtor, ProdutorInput } from '../types/platform'
 import { formatCpfCnpj } from '../utils/documento'
 import { formatTelefone } from '../utils/masks'
+import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
 
 const EMPTY: ProdutorInput = {
   profile_id: null,
@@ -183,6 +184,8 @@ function ProdutorModal({
 
 export default function ProdutoresPage() {
   const { produtores, isLoading, create, update, remove, isSaving, isRemoving } = useProdutoresAdmin()
+  const confirm = useConfirm()
+  const { notify } = useSystemFeedback()
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Produtor | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -207,16 +210,30 @@ export default function ProdutoresPage() {
       setIsModalOpen(false)
       setSelected(null)
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : 'Erro ao salvar produtor')
+      notify({
+        title: 'Erro ao salvar produtor',
+        description: error instanceof Error ? error.message : 'Tente novamente.',
+        tone: 'danger',
+      })
     }
   }
 
   const handleRemove = async (produtor: Produtor) => {
-    if (!window.confirm(`Inativar o produtor ${produtor.nome}? Registros históricos continuam preservados.`)) return
+    const shouldRemove = await confirm({
+      title: 'Inativar produtor',
+      description: `Inativar o produtor ${produtor.nome}? Registros históricos continuam preservados.`,
+      confirmLabel: 'Inativar',
+      tone: 'danger',
+    })
+    if (!shouldRemove) return
     try {
       await remove(produtor.id)
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : 'Erro ao inativar produtor')
+      notify({
+        title: 'Erro ao inativar produtor',
+        description: error instanceof Error ? error.message : 'Tente novamente.',
+        tone: 'danger',
+      })
     }
   }
 

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Wassis Git PR Flow"
-  short_description: "Fluxo enxuto de sync, validacao, PR e merge do WassisCRM."
-  default_prompt: "Suba as alteracoes recentes do WassisCRM usando o fluxo Git/PR padrao."

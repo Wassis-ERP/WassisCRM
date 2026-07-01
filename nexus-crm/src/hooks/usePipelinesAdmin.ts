@@ -11,6 +11,16 @@ type StagePatch = Pick<
   'name' | 'color' | 'is_win_eligible' | 'is_loss_eligible' | 'order'
 >;
 
+export function buildPipelineInsertPayload(input: { name: string; module: PipelineModule }, tenantId: string) {
+  return {
+    name: input.name.trim(),
+    module: input.module,
+    tenant_id: tenantId,
+    filial_id: null,
+    is_active: true,
+  };
+}
+
 /**
  * Mutations admin para gestao de Pipelines e Pipeline Stages.
  * Todas isoladas por tenant via RLS (`get_user_tenant_id()`) + filtro explicito.
@@ -34,13 +44,10 @@ export function usePipelinesAdmin() {
   const createPipeline = useMutation({
     mutationFn: async (input: { name: string; module: PipelineModule }): Promise<PipelineRow> => {
       if (!tenantId) throw new Error('Tenant nao encontrado');
+      const payload = buildPipelineInsertPayload(input, tenantId);
       const { data, error } = await supabase
         .from('pipelines')
-        .insert({
-          name: input.name.trim(),
-          module: input.module,
-          tenant_id: tenantId,
-        })
+        .insert(payload)
         .select()
         .single();
       if (error) throw error;
