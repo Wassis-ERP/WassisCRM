@@ -19,6 +19,7 @@
 ## Planos e acompanhamento
 - Leia `.codex\plans\macro_plano.md` antes de iniciar uma fase, tela ou subtela.
 - Crie todos os subplanos e micro-planos dentro de `.codex\plans`.
+- Nao execute alteracoes no frontend (tela, fluxo, tipo, hook, adapter, mock, rota ou comportamento) sem existir micro-plano correspondente em `.codex\plans`.
 - Sempre que criar, concluir ou mudar o escopo de um subplano, atualize o plano macro em `.codex\plans\macro_plano.md`.
 - Use o status do macro plano de forma consistente: `[ ]` pendente, `[~]` em andamento e `[x]` concluido.
 - Registre decisoes de legado no subplano: reconstruir sobre o esqueleto, refatorar no lugar ou manter temporariamente.
@@ -48,6 +49,9 @@
 ## Verificacao
 - Ao concluir mudancas de codigo, execute as verificacoes relevantes do projeto.
 - Quando aplicavel, rode `npm run build`, `npm run lint` e `npm test`.
+- Para telas, fluxos, hooks, adapters e mocks, inclua teste funcional do comportamento principal alterado: criar, editar, inativar/remover, filtrar ou navegar conforme o escopo. Quando houver UI, valide no navegador/local app alem de build/testes estaticos.
+- Para telas, valide tambem o layout visual no navegador em zoom 100% e em pelo menos um viewport desktop comum. Confirme que botoes, campos, textos e cards nao estouram, nao ficam cortados e nao se sobrepoem.
+- Nao considere uma subtela funcional concluida apenas com `tsc`, build ou testes unitarios se o fluxo principal nao foi exercitado.
 - Se algum comando nao puder ser executado, informe o motivo e o risco residual.
 
 ## Contexto rapido

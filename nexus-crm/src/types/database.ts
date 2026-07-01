@@ -816,25 +816,37 @@ export type Database = {
           ativo: boolean
           comissao_padrao: number
           created_at: string
+          grupo_operacional: string
           id: string
+          is_monthly: boolean
           nome: string
+          risk_type: string
           tenant_id: string | null
+          updated_at: string | null
         }
         Insert: {
           ativo?: boolean
           comissao_padrao?: number
           created_at?: string
+          grupo_operacional?: string
           id?: string
+          is_monthly?: boolean
           nome: string
+          risk_type?: string
           tenant_id?: string | null
+          updated_at?: string | null
         }
         Update: {
           ativo?: boolean
           comissao_padrao?: number
           created_at?: string
+          grupo_operacional?: string
           id?: string
+          is_monthly?: boolean
           nome?: string
+          risk_type?: string
           tenant_id?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {

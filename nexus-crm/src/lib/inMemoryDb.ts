@@ -316,14 +316,24 @@ export function seed(): void {
     }
   });
 
-  ['Auto', 'Vida', 'Residencial', 'Empresarial', 'Saúde'].forEach((nome) => {
+  [
+    { nome: 'Automóvel', risk_type: 'VEICULO', grupo_operacional: 'Auto e Frota', is_monthly: false },
+    { nome: 'Frota', risk_type: 'VEICULO', grupo_operacional: 'Auto e Frota', is_monthly: false },
+    { nome: 'Residencial', risk_type: 'IMOVEL', grupo_operacional: 'Patrimonial', is_monthly: false },
+    { nome: 'Empresarial', risk_type: 'EMPRESA', grupo_operacional: 'Empresarial', is_monthly: false },
+    { nome: 'Vida em Grupo Global', risk_type: 'VIDA', grupo_operacional: 'Pessoas', is_monthly: false },
+    { nome: 'Vida em Grupo PME', risk_type: 'VIDA', grupo_operacional: 'Pessoas', is_monthly: true },
+    { nome: 'Saúde Empresarial', risk_type: 'SAUDE', grupo_operacional: 'Pessoas', is_monthly: true },
+    { nome: 'Transporte', risk_type: 'CARGA', grupo_operacional: 'Transporte', is_monthly: true },
+  ].forEach((ramo) => {
     db.ramos.push({
       id: newId(),
-      nome,
+      ...ramo,
       ativo: true,
       tenant_id: MOCK_TENANT_ID,
       comissao_padrao: 10,
       created_at: nowIso(),
+      updated_at: nowIso(),
     });
   });
   ['Porto Seguro', 'Bradesco', 'Allianz', 'Sulamérica', 'Tokio Marine'].forEach((nome) => {
