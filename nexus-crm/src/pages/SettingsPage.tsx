@@ -19,6 +19,8 @@ import {
   Loader2,
   Archive,
   BadgeDollarSign,
+  Edit3,
+  X,
 } from 'lucide-react'
 import EquipeAcessosPage from './EquipeAcessosPage'
 import ProdutoresPage from './ProdutoresPage'
@@ -27,7 +29,8 @@ import { PermissionsMatrix } from '../components/admin/PermissionsMatrix'
 import FiliaisTab from '../components/settings/FiliaisTab'
 
 import { useRamos, useOrigens, useSeguradoras, useMotivosPerda } from '../hooks/useLookups'
-import { useLookupsAdmin } from '../hooks/useLookupsAdmin'
+import type { RamoGrupoOperacional, RamoRiskType } from '../hooks/useLookups'
+import { useLookupsAdmin, useRamosAdmin } from '../hooks/useLookupsAdmin'
 import { usePipelines } from '../hooks/usePipelines'
 import { usePipelinesAdmin } from '../hooks/usePipelinesAdmin'
 import { usePipelineStages } from '../hooks/usePipelineStages'
@@ -44,6 +47,27 @@ const MODULE_META: Record<PipelineModule, { label: string; icon: ComponentType<{
 }
 
 const MODULE_ORDER: PipelineModule[] = ['comercial', 'emissao', 'pos_venda', 'financeiro', 'sinistro']
+
+const RISK_TYPES: Array<{ value: RamoRiskType; label: string }> = [
+  { value: 'VEICULO', label: 'Veículo' },
+  { value: 'IMOVEL', label: 'Imóvel' },
+  { value: 'VIDA', label: 'Vida' },
+  { value: 'EMPRESA', label: 'Empresa' },
+  { value: 'CARGA', label: 'Carga' },
+  { value: 'SAUDE', label: 'Saúde' },
+  { value: 'DIVERSOS', label: 'Diversos' },
+]
+
+const GRUPOS_OPERACIONAIS: RamoGrupoOperacional[] = [
+  'Auto e Frota',
+  'Patrimonial',
+  'Pessoas',
+  'Empresarial',
+  'Transporte',
+  'Diversos',
+]
+
+const riskTypeLabel = (value: RamoRiskType) => RISK_TYPES.find((item) => item.value === value)?.label ?? value
 
 const PipelineStagesPreview = ({ pipelineId }: { pipelineId: string }) => {
   const { data, isLoading } = usePipelineStages(pipelineId)
@@ -223,6 +247,188 @@ const FunisEtapasTab = () => {
   )
 }
 
+const RamosTab = () => {
+  const { data, isLoading } = useRamos()
+  const { add, update, remove, isAdding, isUpdating, isRemoving } = useRamosAdmin()
+
+  const [nome, setNome] = useState('')
+  const [riskType, setRiskType] = useState<RamoRiskType>('VEICULO')
+  const [grupoOperacional, setGrupoOperacional] = useState<RamoGrupoOperacional>('Auto e Frota')
+  const [isMonthly, setIsMonthly] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const isSaving = isAdding || isUpdating
+
+  const resetForm = () => {
+    setNome('')
+    setRiskType('VEICULO')
+    setGrupoOperacional('Auto e Frota')
+    setIsMonthly(false)
+    setEditingId(null)
+    setError(null)
+  }
+
+  const handleSave = async () => {
+    const trimmedName = nome.trim()
+    if (!trimmedName || isSaving) return
+    setError(null)
+    try {
+      const input = {
+        nome: trimmedName,
+        risk_type: riskType,
+        grupo_operacional: grupoOperacional,
+        is_monthly: isMonthly,
+      }
+      if (editingId) {
+        await update({ id: editingId, input })
+      } else {
+        await add(input)
+      }
+      resetForm()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao salvar ramo')
+    }
+  }
+
+  const handleEdit = (ramo: NonNullable<ReturnType<typeof useRamos>['data']>[number]) => {
+    setEditingId(ramo.id)
+    setNome(ramo.nome)
+    setRiskType(ramo.risk_type)
+    setGrupoOperacional(ramo.grupo_operacional)
+    setIsMonthly(ramo.is_monthly)
+    setError(null)
+  }
+
+  const handleRemove = async (id: string, ramoNome: string) => {
+    if (!window.confirm(`Inativar o ramo "${ramoNome}"? Registros históricos continuam preservados.`)) return
+    try {
+      await remove(id)
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Erro ao inativar ramo')
+    }
+  }
+
+  return (
+    <div className="animate-fade-in space-y-6">
+      <div className="bg-bg-surface p-6 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
+        <h3 className="text-xs font-bold text-fg-3 uppercase tracking-wider mb-4">Adicionar Ramo</h3>
+        <div className="flex flex-wrap gap-3">
+          <input
+            type="text"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
+            disabled={isSaving}
+            placeholder="Ex: Vida em Grupo PME"
+            className="min-w-0 flex-[1_1_220px] px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
+          />
+          <select
+            value={riskType}
+            onChange={(e) => setRiskType(e.target.value as RamoRiskType)}
+            disabled={isSaving}
+            className="min-w-0 flex-[1_1_160px] px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm font-bold focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
+          >
+            {RISK_TYPES.map((item) => (
+              <option key={item.value} value={item.value}>{item.label}</option>
+            ))}
+          </select>
+          <select
+            value={grupoOperacional}
+            onChange={(e) => setGrupoOperacional(e.target.value as RamoGrupoOperacional)}
+            disabled={isSaving}
+            className="min-w-0 flex-[1_1_180px] px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm font-bold focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
+          >
+            {GRUPOS_OPERACIONAIS.map((grupo) => (
+              <option key={grupo} value={grupo}>{grupo}</option>
+            ))}
+          </select>
+          <label className="flex h-[42px] items-center gap-2 px-3 bg-bg-surface-2 border border-border-1 rounded-[6px] text-sm font-bold text-fg-2 whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={isMonthly}
+              onChange={(e) => setIsMonthly(e.target.checked)}
+              disabled={isSaving}
+              className="h-4 w-4 accent-accent-primary"
+            />
+            Mensal
+          </label>
+          <button
+            onClick={handleSave}
+            disabled={isSaving || !nome.trim()}
+            className="flex h-[42px] min-w-0 flex-[1_1_156px] items-center justify-center gap-2 px-6 bg-accent-primary text-fg-on-brand rounded-full text-sm font-bold hover:bg-accent-primary-hover transition-colors disabled:opacity-50 whitespace-nowrap"
+          >
+            <Plus size={18} /> {isSaving ? 'Salvando...' : editingId ? 'Atualizar' : 'Adicionar'}
+          </button>
+        </div>
+        {editingId && (
+          <button
+            onClick={resetForm}
+            className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-fg-3 hover:text-accent-primary transition-colors"
+          >
+            <X size={14} /> Cancelar edição
+          </button>
+        )}
+        {error && (
+          <p className="mt-3 text-xs text-signal-danger font-medium">{error}</p>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="text-center py-8 text-fg-4 font-medium">Carregando ramos...</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {data?.map((ramo) => (
+            <div key={ramo.id} className="flex items-start justify-between gap-4 p-4 bg-bg-surface border border-border-1 rounded-[8px] group hover:shadow-[var(--shadow-1)] transition-all">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="p-2 bg-bg-surface-2 rounded-lg text-fg-4 group-hover:text-accent-primary transition-colors">
+                  <ShieldCheck size={16} />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-fg-2">{ramo.nome}</span>
+                    {ramo.is_monthly && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-accent-primary bg-accent-primary-soft px-2 py-0.5 rounded-full">
+                        Mensal
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-wider text-fg-4">
+                    <span className="px-2 py-1 rounded-[6px] bg-bg-surface-2">{riskTypeLabel(ramo.risk_type)}</span>
+                    <span className="px-2 py-1 rounded-[6px] bg-bg-surface-2">{ramo.grupo_operacional}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <button
+                  onClick={() => handleEdit(ramo)}
+                  disabled={isSaving}
+                  className="p-2 text-fg-4 hover:text-accent-primary hover:bg-accent-primary-soft rounded-lg transition-colors disabled:opacity-50"
+                  title="Editar ramo"
+                >
+                  <Edit3 size={14} />
+                </button>
+                <button
+                  onClick={() => handleRemove(ramo.id, ramo.nome)}
+                  disabled={isRemoving}
+                  className="p-2 text-fg-4 hover:text-signal-danger hover:bg-signal-danger/10 rounded-lg transition-colors disabled:opacity-50"
+                  title="Inativar ramo"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+          {data?.length === 0 && (
+            <div className="col-span-full text-center py-8 text-fg-4 font-medium text-sm">
+              Nenhum ramo encontrado.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // --- Componente DB Lookup ---
 const DBLookupListTab = ({ 
   title, 
@@ -325,7 +531,7 @@ export default function SettingsPage() {
     { id: 'equipe', label: 'Usuários e Perfis', icon: Users, component: <EquipeAcessosPage /> },
     { id: 'permissoes', label: 'Matriz de Permissões', icon: ShieldCheck, component: <PermissionsMatrix /> },
     { id: 'funis', label: 'Funis & Etapas', icon: GitBranch, component: <FunisEtapasTab /> },
-    { id: 'ramos', label: 'Ramos de Seguros', icon: ShieldCheck, component: <DBLookupListTab title="Ramo" table="ramos" useDataHook={useRamos} icon={ShieldCheck} /> },
+    { id: 'ramos', label: 'Ramos de Seguros', icon: ShieldCheck, component: <RamosTab /> },
     { id: 'seguradoras', label: 'Seguradoras', icon: Building2, component: <DBLookupListTab title="Seguradora" table="seguradoras" useDataHook={useSeguradoras} icon={Building2} /> },
     { id: 'origens', label: 'Origem de Lead', icon: Target, component: <DBLookupListTab title="Origem" table="origens" useDataHook={useOrigens} icon={Target} /> },
     { id: 'perda', label: 'Motivos de Perda', icon: XCircle, component: <DBLookupListTab title="Motivo de Perda" table="motivos_perda" useDataHook={useMotivosPerda} icon={XCircle} /> },
