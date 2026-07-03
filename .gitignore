@@ -24,3 +24,6 @@ __pycache__/
 .screens/
 .codex/
 .agents/
+.contextos-mercado/
+.github/hooks/impeccable.json
+.github/skills/impeccable/

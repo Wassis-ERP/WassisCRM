@@ -59,16 +59,25 @@ const RISK_TYPES: Array<{ value: RamoRiskType; label: string }> = [
   { value: 'DIVERSOS', label: 'Diversos' },
 ]
 
-const GRUPOS_OPERACIONAIS: RamoGrupoOperacional[] = [
-  'Auto e Frota',
-  'Patrimonial',
-  'Pessoas',
-  'Empresarial',
-  'Transporte',
-  'Diversos',
-]
-
 const riskTypeLabel = (value: RamoRiskType) => RISK_TYPES.find((item) => item.value === value)?.label ?? value
+
+const riskTypeToGrupoOperacional = (value: RamoRiskType): RamoGrupoOperacional => {
+  switch (value) {
+    case 'VEICULO':
+      return 'Auto e Frota'
+    case 'IMOVEL':
+      return 'Patrimonial'
+    case 'VIDA':
+    case 'SAUDE':
+      return 'Pessoas'
+    case 'EMPRESA':
+      return 'Empresarial'
+    case 'CARGA':
+      return 'Transporte'
+    case 'DIVERSOS':
+      return 'Diversos'
+  }
+}
 
 const PipelineStagesPreview = ({ pipelineId }: { pipelineId: string }) => {
   const { data, isLoading } = usePipelineStages(pipelineId)
@@ -268,7 +277,6 @@ const RamosTab = () => {
 
   const [nome, setNome] = useState('')
   const [riskType, setRiskType] = useState<RamoRiskType>('VEICULO')
-  const [grupoOperacional, setGrupoOperacional] = useState<RamoGrupoOperacional>('Auto e Frota')
   const [isMonthly, setIsMonthly] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -277,7 +285,6 @@ const RamosTab = () => {
   const resetForm = () => {
     setNome('')
     setRiskType('VEICULO')
-    setGrupoOperacional('Auto e Frota')
     setIsMonthly(false)
     setEditingId(null)
     setError(null)
@@ -291,7 +298,7 @@ const RamosTab = () => {
       const input = {
         nome: trimmedName,
         risk_type: riskType,
-        grupo_operacional: grupoOperacional,
+        grupo_operacional: riskTypeToGrupoOperacional(riskType),
         is_monthly: isMonthly,
       }
       if (editingId) {
@@ -309,7 +316,6 @@ const RamosTab = () => {
     setEditingId(ramo.id)
     setNome(ramo.nome)
     setRiskType(ramo.risk_type)
-    setGrupoOperacional(ramo.grupo_operacional)
     setIsMonthly(ramo.is_monthly)
     setError(null)
   }
@@ -338,36 +344,32 @@ const RamosTab = () => {
       <div className="bg-bg-surface p-6 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
         <h3 className="text-xs font-bold text-fg-3 uppercase tracking-wider mb-4">Adicionar Ramo</h3>
         <div className="flex flex-wrap gap-3">
-          <input
-            type="text"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
-            disabled={isSaving}
-            placeholder="Ex: Vida em Grupo PME"
-            className="min-w-0 flex-[1_1_220px] px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
-          />
-          <select
-            value={riskType}
-            onChange={(e) => setRiskType(e.target.value as RamoRiskType)}
-            disabled={isSaving}
-            className="min-w-0 flex-[1_1_160px] px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm font-bold focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
-          >
-            {RISK_TYPES.map((item) => (
-              <option key={item.value} value={item.value}>{item.label}</option>
-            ))}
-          </select>
-          <select
-            value={grupoOperacional}
-            onChange={(e) => setGrupoOperacional(e.target.value as RamoGrupoOperacional)}
-            disabled={isSaving}
-            className="min-w-0 flex-[1_1_180px] px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm font-bold focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
-          >
-            {GRUPOS_OPERACIONAIS.map((grupo) => (
-              <option key={grupo} value={grupo}>{grupo}</option>
-            ))}
-          </select>
-          <label className="flex h-[42px] items-center gap-2 px-3 bg-bg-surface-2 border border-border-1 rounded-[6px] text-sm font-bold text-fg-2 whitespace-nowrap">
+          <label className="min-w-0 flex-[1_1_260px] space-y-1.5">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-fg-4">Nome do ramo</span>
+            <input
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
+              disabled={isSaving}
+              placeholder="Ex: Vida em Grupo PME"
+              className="w-full px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
+            />
+          </label>
+          <label className="min-w-0 flex-[1_1_220px] space-y-1.5">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-fg-4">Categoria do risco</span>
+            <select
+              value={riskType}
+              onChange={(e) => setRiskType(e.target.value as RamoRiskType)}
+              disabled={isSaving}
+              className="w-full px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm font-bold focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
+            >
+              {RISK_TYPES.map((item) => (
+                <option key={item.value} value={item.value}>{item.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="mt-auto flex h-[42px] items-center gap-2 px-3 bg-bg-surface-2 border border-border-1 rounded-[6px] text-sm font-bold text-fg-2 whitespace-nowrap">
             <input
               type="checkbox"
               checked={isMonthly}
@@ -380,7 +382,7 @@ const RamosTab = () => {
           <button
             onClick={handleSave}
             disabled={isSaving || !nome.trim()}
-            className="flex h-[42px] min-w-0 flex-[1_1_156px] items-center justify-center gap-2 px-6 bg-accent-primary text-fg-on-brand rounded-full text-sm font-bold hover:bg-accent-primary-hover transition-colors disabled:opacity-50 whitespace-nowrap"
+            className="mt-auto flex h-[42px] w-full sm:w-[180px] items-center justify-center gap-2 px-6 bg-accent-primary text-fg-on-brand rounded-full text-sm font-bold hover:bg-accent-primary-hover transition-colors disabled:opacity-50 whitespace-nowrap"
           >
             <Plus size={18} /> {isSaving ? 'Salvando...' : editingId ? 'Atualizar' : 'Adicionar'}
           </button>
@@ -418,8 +420,9 @@ const RamosTab = () => {
                     )}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-wider text-fg-4">
-                    <span className="px-2 py-1 rounded-[6px] bg-bg-surface-2">{riskTypeLabel(ramo.risk_type)}</span>
-                    <span className="px-2 py-1 rounded-[6px] bg-bg-surface-2">{ramo.grupo_operacional}</span>
+                    <span className="px-2 py-1 rounded-[6px] bg-bg-surface-2">
+                      Categoria: {riskTypeLabel(ramo.risk_type)}
+                    </span>
                   </div>
                 </div>
               </div>
