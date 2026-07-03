@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-03T00:00:00-03:00",
+  "title": "Design System: WassisCRM",
+  "extensions": {
+    "colorMeta": {
+      "brand-blue": {
+        "role": "primary",
+        "displayName": "Azul W.Assis",
+        "canonical": "#004FC2",
+        "tonalRamp": ["oklch(18% 0.08 258)", "oklch(28% 0.12 258)", "oklch(38% 0.16 258)", "oklch(48% 0.20 258)", "oklch(53% 0.18 258)", "oklch(70% 0.16 258)", "oklch(84% 0.08 258)", "oklch(95% 0.03 258)"]
+      },
+      "brand-blue-deep": {
+        "role": "primary",
+        "displayName": "Azul Profundo",
+        "canonical": "#053D96",
+        "tonalRamp": ["oklch(16% 0.08 262)", "oklch(26% 0.12 262)", "oklch(36% 0.16 262)", "oklch(45% 0.20 262)", "oklch(56% 0.18 262)", "oklch(70% 0.12 262)", "oklch(84% 0.07 262)", "oklch(95% 0.03 262)"]
+      },
+      "neutral-50": {
+        "role": "neutral",
+        "displayName": "Canvas Claro",
+        "canonical": "#F8FAFC",
+        "tonalRamp": ["#060B17", "#0F172A", "#1E293B", "#334155", "#64748B", "#CBD5E1", "#F1F5F9", "#F8FAFC"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display Rubik",
+        "purpose": "Titulos de pagina e KPIs de alto nivel."
+      },
+      "body": {
+        "displayName": "Texto Mulish",
+        "purpose": "Formularios, tabelas, navegacao e copy operacional."
+      },
+      "mono": {
+        "displayName": "Dados JetBrains Mono",
+        "purpose": "IDs, CPF/CNPJ, datas e valores tecnicos."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-1",
+        "value": "0 1px 2px rgba(15, 23, 42, 0.06)",
+        "purpose": "Superficie em repouso."
+      },
+      {
+        "name": "shadow-2",
+        "value": "0 4px 10px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04)",
+        "purpose": "Hover, menus e elevacao temporaria."
+      },
+      {
+        "name": "shadow-3",
+        "value": "0 12px 28px -6px rgba(15, 23, 42, 0.12), 0 4px 8px -2px rgba(15, 23, 42, 0.06)",
+        "purpose": "Modais e superficies realmente elevadas."
+      },
+      {
+        "name": "shadow-brand",
+        "value": "0 8px 24px -6px oklch(53% 0.18 258 / 0.35)",
+        "purpose": "CTA primario e destaque pontual de marca."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Entrada e mudanca de estado."
+      },
+      {
+        "name": "dur-base",
+        "value": "200ms",
+        "purpose": "Transicoes padrao de produto."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "desktop-default",
+        "value": "1280px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acao primaria do contexto atual.",
+      "html": "<button class=\"ds-btn-primary\">Salvar alteracoes</button>",
+      "css": ".ds-btn-primary { background: var(--accent-primary); color: var(--accent-primary-fg); border: 0; border-radius: var(--r-pill); padding: 10px 24px; font-family: var(--font-text); font-size: 14px; font-weight: 800; box-shadow: var(--shadow-brand); transition: background var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out); } .ds-btn-primary:hover { background: var(--accent-primary-hover); } .ds-btn-primary:focus-visible { outline: none; box-shadow: var(--shadow-brand), var(--focus-ring); }"
+    },
+    {
+      "name": "Surface Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Container operacional de secao ou item repetido.",
+      "html": "<section class=\"ds-card\"><h3>Segurados</h3><p>1.284 registros ativos</p></section>",
+      "css": ".ds-card { background: var(--bg-surface); color: var(--fg-1); border: 1px solid var(--border-1); border-radius: var(--r-lg); padding: 24px; box-shadow: var(--shadow-1); font-family: var(--font-text); } .ds-card h3 { margin: 0; font-family: var(--font-display); font-size: 20px; line-height: 1.3; } .ds-card p { margin: 6px 0 0; color: var(--fg-3); font-size: 14px; }"
+    },
+    {
+      "name": "Operational Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de formulario com foco azul e contraste suficiente.",
+      "html": "<label class=\"ds-field\"><span>CPF/CNPJ</span><input placeholder=\"Buscar documento\" /></label>",
+      "css": ".ds-field { display: grid; gap: 6px; font-family: var(--font-text); color: var(--fg-1); } .ds-field span { color: var(--fg-3); font-size: 10px; font-weight: 800; letter-spacing: var(--tr-caps); text-transform: uppercase; } .ds-field input { background: var(--bg-surface); color: var(--fg-1); border: 1px solid var(--border-1); border-radius: var(--r-lg); padding: 10px 12px; font: inherit; font-size: 14px; } .ds-field input:focus { outline: none; border-color: var(--accent-primary); box-shadow: var(--focus-ring); }"
+    },
+    {
+      "name": "Ramo Badge",
+      "kind": "chip",
+      "refersTo": "chip-ramo",
+      "description": "Badge de categoria de seguro; nao comunica status.",
+      "html": "<span class=\"ds-ramo-badge\">Automovel</span>",
+      "css": ".ds-ramo-badge { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 9px; border-radius: var(--r-pill); background: var(--ramo-auto-soft); color: var(--ramo-auto-fg); font-family: var(--font-text); font-size: 10px; font-weight: 800; letter-spacing: var(--tr-caps); text-transform: uppercase; }"
+    },
+    {
+      "name": "Sidebar Nav Item",
+      "kind": "nav",
+      "refersTo": "navigation-sidebar",
+      "description": "Item de navegacao lateral ativo.",
+      "html": "<a class=\"ds-nav-item\" href=\"#\">Segurados</a>",
+      "css": ".ds-nav-item { display: inline-flex; align-items: center; min-height: 40px; padding: 10px 12px; border-radius: var(--r-md); background: var(--accent-primary-soft); color: var(--accent-primary); font-family: var(--font-text); font-size: 14px; font-weight: 700; text-decoration: none; } .ds-nav-item:hover { filter: brightness(0.96); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Cockpit Operacional W.Assis",
+    "overview": "WassisCRM e uma ferramenta de trabalho para corretoras de seguros. A interface deve parecer uma cabine de operacao bem calibrada: informacao visivel, acoes evidentes, densidade controlada e pouca decoracao.",
+    "keyCharacteristics": ["Denso, operacional e escaneavel.", "Azul W.Assis como acento de acao e selecao.", "Cores de ramo somente para categoria de seguro.", "Estados semanticos claros.", "Componentes familiares e consistentes."],
+    "rules": [
+      {
+        "name": "The Ramo-Is-Category Rule",
+        "body": "Cor de ramo categoriza seguro; status sempre usa sucesso, alerta, perigo, info ou neutro.",
+        "section": "colors"
+      },
+      {
+        "name": "The Restrained Accent Rule",
+        "body": "Azul W.Assis e raro o bastante para apontar acao. Nao use azul como decoracao de fundo sem funcao.",
+        "section": "colors"
+      },
+      {
+        "name": "The Product-Scale Rule",
+        "body": "Produto usa escala fixa, nao tipografia fluida.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-At-Rest Rule",
+        "body": "Superficies operacionais ficam quietas em repouso. Elevacao aparece para hover, drag, modal, foco ou prioridade real.",
+        "section": "elevation"
+      }
+    ],
+    "dos": ["Do usar nexus-crm/src/design-system/colors_and_type.css como fonte visual normativa.", "Do consultar .agents/skills/wassis-design-uiux antes de desenhar ou alterar telas.", "Do usar lucide-react para icones.", "Do validar contraste, foco, modais e estados.", "Do manter copy em portugues do Brasil."],
+    "donts": ["Don't usar landing page SaaS generica.", "Don't usar gradiente decorativo, glassmorphism, bokeh, fundo ilustrativo, grid decorativo ou textura sem funcao.", "Don't usar emoji ou icones fora de lucide.", "Don't usar dialogos nativos do navegador.", "Don't usar cor de ramo como status.", "Don't criar cards operacionais com raio maior que 12px.", "Don't combinar borda fina e sombra larga como decoracao."]
+  }
+}

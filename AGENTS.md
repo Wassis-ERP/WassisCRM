@@ -14,7 +14,15 @@
 - Observe sempre `instrucoes_projeto_wassis_v1_1.txt` e `wassis_erp_esqueleto_v1_1.dbml`, ou arquivos equivalentes com versao mais recente.
 - As instrucoes do projeto e o DBML sobem juntos e compartilham o mesmo numero de versao. Se existir `v1_2`, `v2_0` ou versao superior, use a mais recente.
 - Consulte tambem `.codex\artefatos\endpoints` para entender os hand-offs ja emitidos antes de criar ou alterar telas relacionadas.
+- Consulte tambem `.contextos-mercado\portal_ajuda_quiver` e `.contextos-mercado\portal_ajuda_segfy` quando o trabalho envolver mapeamento de campos, contratos ou validacao de lacunas no esqueleto.
 - Respeite as decisoes fechadas do contrato, especialmente: grupo x corretoras, contrato x documento x item, multi-calculo, comissao diferente de repasse, EAV tipado para campos personalizados, zero JSON para dado de negocio e fusao apenas na leitura.
+
+## Sincronizacao do `database.ts`
+- `nexus-crm\src\types\database.ts` e a tipagem aplicada ao mock/front devem refletir o contrato vigente do esqueleto DBML e das instrucoes do projeto.
+- Sempre que uma tarefa alterar ou criar tela, fluxo, tipo, hook, adapter, mock ou comportamento ligado a dados de negocio, compare as tabelas, nomes, enums, FKs e estruturas usadas com o DBML/instrucoes mais recentes.
+- Ao mexer em um modulo especifico, por exemplo Sinistros, Financeiro, Apolices, Propostas, Segurados ou Configuracoes, confirme ao final se o trecho correspondente de `database.ts` esta aderente ao esqueleto.
+- Se houver divergencia entre `database.ts` e o esqueleto, trate como legado/drift: ajuste o front/mock para refletir o contrato quando isso estiver dentro do escopo seguro da tarefa, ou registre a divergencia no micro-plano quando a correcao exigir fase propria.
+- Nao use `database.ts` como fonte de verdade para decidir nomes ou estruturas de negocio quando ele divergir do DBML/instrucoes.
 
 ## Planos e acompanhamento
 - Leia `.codex\plans\macro_plano.md` antes de iniciar uma fase, tela ou subtela.
@@ -35,6 +43,8 @@
 - Sempre que for desenhar, redesenhar ou implementar alguma tela no frontend, use a skill `wassis-design-uiux`.
 - A skill fica em `.agents\skills\wassis-design-uiux`.
 - Antes de criar uma tela nova, leia as instrucoes da skill e siga seus padroes visuais, fluxos, componentes e criterios de usabilidade.
+- Use tambem a skill `impeccable` quando o trabalho envolver desenho, revisao, polimento, auditoria ou automacao visual de UI. O contexto do Impeccable fica em `PRODUCT.md`, `DESIGN.md` e `.impeccable\design.json`; ele complementa a `wassis-design-uiux`, mas nao substitui o design system W.Assis.
+- Ao aplicar comandos ou heuristicas do Impeccable, preserve os tokens, componentes e decisoes da `wassis-design-uiux` como fonte visual de marca/produto.
 - Preserve consistencia com a experiencia existente do WassisCRM e priorize telas operacionais, claras e eficientes para corretoras de seguros.
 - Fluxos de produto nao devem usar dialogos nativos do navegador (`window.confirm`, `window.alert`, `window.prompt` ou `alert`). Use o confirmador/feedback interno do sistema para confirmacoes, erros e placeholders temporarios.
 - Modais devem permitir fechamento por clique fora e tecla `Esc`, exceto quando houver salvamento em andamento ou risco explicito de perda de dados.
@@ -50,6 +60,7 @@
 
 ## Verificacao
 - Ao concluir mudancas de codigo, execute as verificacoes relevantes do projeto.
+- Ao concluir mudancas ligadas a dados de negocio, confirme explicitamente se `database.ts` esta alinhado ao esqueleto DBML/instrucoes para o modulo alterado, ou registre a divergencia e o motivo de nao corrigi-la no mesmo ciclo.
 - Quando aplicavel, rode `npm run build`, `npm run lint` e `npm test`.
 - Para telas, fluxos, hooks, adapters e mocks, inclua teste funcional do comportamento principal alterado: criar, editar, inativar/remover, filtrar ou navegar conforme o escopo. Quando houver UI, valide no navegador/local app alem de build/testes estaticos.
 - Para telas, valide tambem o layout visual no navegador em zoom 100% e em pelo menos um viewport desktop comum. Confirme que botoes, campos, textos e cards nao estouram, nao ficam cortados e nao se sobrepoem.
