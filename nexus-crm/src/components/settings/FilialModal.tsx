@@ -1,10 +1,11 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { X, Building2, Edit, Network } from 'lucide-react'
+import { Building2, Edit, Network } from 'lucide-react'
 import type { Filial, FilialInput } from '../../types/platform'
 import { useFiliais } from '../../hooks/useFiliais'
 import { useProdutores } from '../../hooks/useProdutores'
 import { formatCpfCnpj } from '../../utils/documento'
 import { formatCep, formatTelefone } from '../../utils/masks'
+import AppModal from '../modals/AppModal'
 
 const EMPTY: FilialInput = {
   matriz_id: null,
@@ -104,29 +105,15 @@ export default function FilialModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-bg-surface w-full max-w-3xl rounded-[12px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="px-8 py-6 border-b border-border-1 flex items-center justify-between bg-bg-surface-2">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-accent-primary-soft rounded-[6px] text-accent-primary">
-              {filial ? <Edit size={20} /> : <Building2 size={20} />}
-            </div>
-            <h2 className="text-xl font-black text-fg-1 uppercase tracking-tight">
-              {filial ? 'Editar Corretora' : 'Nova Corretora'}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            disabled={isSaving}
-            className="p-2 hover:bg-bg-surface-3 rounded-full transition-colors text-fg-4 disabled:opacity-50"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit}>
+    <AppModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={filial ? 'Editar Corretora' : 'Nova Corretora'}
+      icon={filial ? <Edit size={20} /> : <Building2 size={20} />}
+      size="lg"
+      isDismissDisabled={isSaving}
+    >
+      <form onSubmit={handleSubmit}>
           <div className="p-8 overflow-y-auto max-h-[70vh] custom-scrollbar grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
             <SectionTitle>Identificação</SectionTitle>
             <Field label="Razão Social" span={2}>
@@ -288,8 +275,7 @@ export default function FilialModal({
               {isSaving ? 'Salvando...' : filial ? 'Atualizar' : 'Criar Corretora'}
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </AppModal>
   )
 }

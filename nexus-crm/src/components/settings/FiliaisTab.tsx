@@ -80,7 +80,7 @@ export default function FiliaisTab() {
           <Loader2 className="animate-spin" size={18} /> Carregando corretoras...
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
           {filiais.map((f) => (
             <div
               key={f.id}
@@ -91,9 +91,9 @@ export default function FiliaisTab() {
                   <Building2 size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-fg-1 truncate">{f.fantasia || f.razao_social || 'Sem nome'}</h3>
+                  <h3 className="font-bold text-fg-1 leading-tight break-words">{f.fantasia || f.razao_social || 'Sem nome'}</h3>
                   {f.razao_social && f.fantasia && (
-                    <p className="text-[11px] text-fg-3 truncate">{f.razao_social}</p>
+                    <p className="text-[11px] text-fg-3 leading-snug break-words">{f.razao_social}</p>
                   )}
                   {f.cnpj_cpf && <p className="text-[11px] text-fg-4 font-mono">{formatCpfCnpj(f.cnpj_cpf)}</p>}
                 </div>
@@ -119,19 +119,23 @@ export default function FiliaisTab() {
                 )}
               </div>
 
-              <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-1 justify-end">
                 <button
+                  type="button"
                   onClick={() => openEdit(f)}
                   className="p-2 text-fg-4 hover:text-accent-primary hover:bg-accent-primary-soft rounded-[6px] transition-all"
                   title="Editar"
+                  aria-label={`Editar corretora ${f.fantasia || f.razao_social || 'sem nome'}`}
                 >
                   <Edit size={16} />
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleRemove(f)}
                   disabled={isRemoving}
                   className="p-2 text-fg-4 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[6px] transition-all disabled:opacity-50"
                   title="Inativar"
+                  aria-label={`Inativar corretora ${f.fantasia || f.razao_social || 'sem nome'}`}
                 >
                   <Trash2 size={16} />
                 </button>

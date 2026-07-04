@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Shield, CheckCircle2, XCircle, Plus, Pencil, Trash2, Lock, X } from 'lucide-react';
+import { Shield, CheckCircle2, XCircle, Plus, Pencil, Trash2, Lock } from 'lucide-react';
 import { usePerfisAdmin, type PermField, type PermissionRow } from '../../hooks/usePerfisAdmin';
 import { useConfirm, useSystemFeedback } from '../feedback/systemFeedbackContext';
+import AppModal from '../modals/AppModal';
 
 /**
  * AUTORIA de perfis de acesso (D18). Colunas = perfis (pré-configurados + criados);
@@ -89,7 +90,16 @@ export function PermissionsMatrix() {
         <div className="bg-signal-warning/10 border border-signal-warning/30 p-4 rounded-[8px] flex gap-3 items-start flex-1">
           <Shield className="text-signal-warning shrink-0" size={20} />
           <div>
-            <h4 className="text-sm font-bold text-signal-warning uppercase tracking-tight">Perfis de acesso</h4>
+            <div className="flex flex-wrap items-center gap-2">
+              <h4 className="text-sm font-bold text-signal-warning uppercase tracking-tight">Perfis de acesso</h4>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${
+                isSaving
+                  ? 'bg-signal-warning/15 text-signal-warning'
+                  : 'bg-bg-surface text-fg-4 border border-border-1'
+              }`}>
+                {isSaving ? 'Salvando alterações' : 'Salvo automaticamente'}
+              </span>
+            </div>
             <p className="text-xs text-fg-3 mt-1 leading-relaxed">
               Defina o que cada <strong>perfil</strong> pode fazer por módulo. Os perfis-sistema
               (Master, Gestor, Produtor, Operador) não podem ser excluídos. A <strong>aplicação</strong>{' '}
@@ -128,6 +138,7 @@ export function PermissionsMatrix() {
                             onClick={() => handleRename(perfil.id, perfil.nome)}
                             className="text-fg-4 hover:text-accent-primary transition-colors"
                             title="Renomear"
+                            aria-label={`Renomear perfil ${perfil.nome}`}
                           >
                             <Pencil size={12} />
                           </button>
@@ -135,6 +146,7 @@ export function PermissionsMatrix() {
                             onClick={() => handleRemove(perfil.id, perfil.nome)}
                             className="text-fg-4 hover:text-signal-danger transition-colors"
                             title="Inativar"
+                            aria-label={`Inativar perfil ${perfil.nome}`}
                           >
                             <Trash2 size={12} />
                           </button>
@@ -166,8 +178,8 @@ export function PermissionsMatrix() {
                             <PermissionBadge label="Criar" active={perm.can_create} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_create')} />
                           </div>
                           <div className="flex gap-1.5">
-                            <PermissionBadge label="Edit" active={perm.can_update} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_update')} />
-                            <PermissionBadge label="Del" active={perm.can_delete} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_delete')} />
+                            <PermissionBadge label="Editar" active={perm.can_update} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_update')} />
+                            <PermissionBadge label="Excluir" active={perm.can_delete} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_delete')} />
                           </div>
                         </div>
                       </td>
@@ -208,16 +220,14 @@ function PerfilNameDialog({
 }) {
   const [value, setValue] = useState(initial);
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-bg-surface w-full max-w-md rounded-[12px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="px-6 py-5 border-b border-border-1 flex items-center justify-between bg-bg-surface-2">
-          <h2 className="text-lg font-black text-fg-1 uppercase tracking-tight">
-            {mode === 'create' ? 'Novo Perfil' : 'Renomear Perfil'}
-          </h2>
-          <button onClick={onClose} disabled={isSaving} className="p-2 hover:bg-bg-surface-3 rounded-full transition-colors text-fg-4 disabled:opacity-50">
-            <X size={18} />
-          </button>
-        </div>
+    <AppModal
+      isOpen
+      onClose={onClose}
+      title={mode === 'create' ? 'Novo Perfil' : 'Renomear Perfil'}
+      icon={<Shield size={18} />}
+      size="sm"
+      isDismissDisabled={isSaving}
+    >
         <div className="p-6">
           <label className="text-[10px] font-black text-fg-4 uppercase tracking-widest ml-1">Nome do perfil</label>
           <input
@@ -241,8 +251,7 @@ function PerfilNameDialog({
             {isSaving ? 'Salvando...' : mode === 'create' ? 'Criar' : 'Salvar'}
           </button>
         </div>
-      </div>
-    </div>
+    </AppModal>
   );
 }
 
@@ -261,6 +270,7 @@ function PermissionBadge({
     <button
       onClick={onClick}
       disabled={disabled}
+      aria-label={`${active ? 'Remover permissão' : 'Conceder permissão'}: ${label}`}
       className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter transition-all flex items-center gap-1 border ${
         active
           ? 'bg-accent-primary-soft text-accent-primary border-accent-primary/20'

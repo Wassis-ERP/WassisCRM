@@ -1227,24 +1227,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_roles: {
-        Row: {
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
@@ -1262,22 +1244,9 @@ export type Database = {
           perfil_principal: string | null
         }[]
       }
-      get_user_role: {
-        Args: { _user_id: string }
-        Returns: Database["public"]["Enums"]["app_role"]
-      }
       get_user_tenant_id: { Args: never; Returns: string }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_admin_or_vendedor: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "vendedor" | "visualizador"
       card_status: "pending" | "won" | "lost"
       estado_civil:
         | "Solteiro"
@@ -1434,7 +1403,6 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "vendedor", "visualizador"],
       card_status: ["pending", "won", "lost"],
       estado_civil: [
         "Solteiro",

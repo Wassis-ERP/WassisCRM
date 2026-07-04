@@ -1,10 +1,11 @@
-import { Search, UserPlus, Edit, X, Building2, ShieldCheck } from 'lucide-react'
+import { Search, UserPlus, Edit, Building2, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { useTeamAdmin, type TeamMember } from '../hooks/useTeamAdmin'
 import { useFiliais } from '../hooks/useFiliais'
 import { usePerfis } from '../hooks/usePerfis'
 import { useProfileFiliais } from '../hooks/useProfileFiliais'
 import { useSystemFeedback } from '../components/feedback/systemFeedbackContext'
+import AppModal from '../components/modals/AppModal'
 
 /**
  * Modal de membro. Convite = nome + e-mail (o CARGO global foi aposentado — D18).
@@ -34,23 +35,15 @@ const ProdutorModal = ({
   const isEditing = !!produtor?.id
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-bg-surface w-full max-w-2xl rounded-[12px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="px-8 py-6 border-b border-border-1 flex items-center justify-between bg-bg-surface-2">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-accent-primary-soft rounded-[6px] text-accent-primary">
-              {isEditing ? <Edit size={20} /> : <UserPlus size={20} />}
-            </div>
-            <h2 className="text-xl font-black text-fg-1 uppercase tracking-tight">
-              {isEditing ? 'Editar Membro' : 'Convidar Membro'}
-            </h2>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-bg-surface-3 rounded-full transition-colors text-fg-4">
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="p-8 overflow-y-auto max-h-[70vh] custom-scrollbar">
+    <AppModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? 'Editar Membro' : 'Convidar Membro'}
+      icon={isEditing ? <Edit size={20} /> : <UserPlus size={20} />}
+      size="md"
+      isDismissDisabled={isSaving}
+    >
+      <div className="p-8 overflow-y-auto max-h-[70vh] custom-scrollbar">
           <div className="grid grid-cols-1 gap-6">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-fg-4 uppercase tracking-widest ml-1">Nome Completo</label>
@@ -91,6 +84,7 @@ const ProdutorModal = ({
         <div className="px-8 py-6 border-t border-border-1 bg-bg-surface-2 flex justify-end gap-3">
           <button
             onClick={onClose}
+            disabled={isSaving}
             className="px-6 py-2.5 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[6px] transition-all"
           >
             {isEditing ? 'Fechar' : 'Cancelar'}
@@ -104,9 +98,8 @@ const ProdutorModal = ({
               {isSaving ? 'Convidando...' : 'Enviar Convite'}
             </button>
           )}
-        </div>
       </div>
-    </div>
+    </AppModal>
   )
 }
 
@@ -328,6 +321,7 @@ export default function EquipeAcessosPage() {
                           onClick={() => handleOpenModal(p)}
                           className="p-2 text-fg-4 hover:text-accent-primary hover:bg-accent-primary-soft rounded-[6px] transition-all"
                           title="Gerenciar acesso"
+                          aria-label={`Gerenciar acesso de ${p.full_name || p.email}`}
                         >
                           <Edit size={18} />
                         </button>

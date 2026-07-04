@@ -1,5 +1,6 @@
 ﻿import { useMemo, useState, type ComponentType } from 'react'
 import { useEffect } from 'react'
+import type { ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Users,
@@ -21,6 +22,7 @@ import {
   BadgeDollarSign,
   Edit3,
   X,
+  type LucideIcon,
 } from 'lucide-react'
 import EquipeAcessosPage from './EquipeAcessosPage'
 import ProdutoresPage from './ProdutoresPage'
@@ -35,6 +37,7 @@ import { useLookupsAdmin, useRamosAdmin } from '../hooks/useLookupsAdmin'
 import { usePipelines } from '../hooks/usePipelines'
 import { usePipelinesAdmin } from '../hooks/usePipelinesAdmin'
 import { usePipelineStages } from '../hooks/usePipelineStages'
+import { getPipelineScopeLabel } from '../hooks/pipelineScope'
 import type { PipelineModule, PipelineRow } from '../modules/types'
 
 // --- Aba de Funis & Etapas (Supabase) ---
@@ -48,6 +51,20 @@ const MODULE_META: Record<PipelineModule, { label: string; icon: ComponentType<{
 }
 
 const MODULE_ORDER: PipelineModule[] = ['comercial', 'emissao', 'pos_venda', 'financeiro', 'sinistro']
+
+type SettingsTab = {
+  id: string
+  label: string
+  description: string
+  icon: LucideIcon
+  component: ReactNode
+}
+
+type SettingsGroup = {
+  title: string
+  description: string
+  tabs: SettingsTab[]
+}
 
 const RISK_TYPES: Array<{ value: RamoRiskType; label: string }> = [
   { value: 'VEICULO', label: 'Veículo' },
@@ -189,7 +206,7 @@ const FunisEtapasTab = () => {
           <p className="mt-3 text-xs text-signal-danger font-medium">{createError}</p>
         )}
         <p className="mt-3 text-[11px] text-fg-4 italic">
-          O funil é criado vazio. Clique nele depois para adicionar as etapas.
+          O funil é criado vazio como modelo do grupo. Clique nele depois para adicionar as etapas.
         </p>
       </div>
 
@@ -229,23 +246,39 @@ const FunisEtapasTab = () => {
                           setSelectedPipeline(p)
                           setIsModalOpen(true)
                         }}
-                        className="flex items-center gap-4 p-4 bg-bg-surface border border-border-1 rounded-[8px] group hover:border-accent-primary/50 cursor-pointer transition-all shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] hover:translate-x-1"
+                        className="flex items-center gap-4 p-4 bg-bg-surface border border-border-1 rounded-[8px] group hover:border-accent-primary/50 cursor-pointer transition-all shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)]"
+                        tabIndex={0}
+                        role="button"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            setSelectedPipeline(p)
+                            setIsModalOpen(true)
+                          }
+                        }}
                       >
                         <div className={`p-2 rounded-lg ${meta.tone}`}>
                           <Icon size={14} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-fg-2 group-hover:text-accent-primary transition-colors truncate">{p.name}</p>
-                          <PipelineStagesPreview pipelineId={p.id} />
+                          <div className="mt-1 flex flex-wrap items-center gap-2">
+                            <span className="rounded-full bg-bg-surface-2 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-fg-4">
+                              {getPipelineScopeLabel(p)}
+                            </span>
+                            <PipelineStagesPreview pipelineId={p.id} />
+                          </div>
                         </div>
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation()
                             handleArchive(p)
                           }}
                           disabled={isArchivingPipeline}
                           title="Arquivar funil"
-                          className="p-2 text-fg-4 hover:text-signal-warning hover:bg-signal-warning/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                          aria-label={`Arquivar funil ${p.name}`}
+                          className="p-2 text-fg-4 hover:text-signal-warning hover:bg-signal-warning/10 rounded-lg transition-colors disabled:opacity-50"
                         >
                           <Archive size={16} />
                         </button>
@@ -426,20 +459,24 @@ const RamosTab = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
                 <button
+                  type="button"
                   onClick={() => handleEdit(ramo)}
                   disabled={isSaving}
                   className="p-2 text-fg-4 hover:text-accent-primary hover:bg-accent-primary-soft rounded-lg transition-colors disabled:opacity-50"
                   title="Editar ramo"
+                  aria-label={`Editar ramo ${ramo.nome}`}
                 >
                   <Edit3 size={14} />
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleRemove(ramo.id, ramo.nome)}
                   disabled={isRemoving}
                   className="p-2 text-fg-4 hover:text-signal-danger hover:bg-signal-danger/10 rounded-lg transition-colors disabled:opacity-50"
                   title="Inativar ramo"
+                  aria-label={`Inativar ramo ${ramo.nome}`}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -542,9 +579,11 @@ const DBLookupListTab = ({
                 <span className="font-semibold text-fg-2">{item.nome}</span>
               </div>
               <button
+                type="button"
                 onClick={() => handleRemove(item.id, item.nome)}
                 disabled={isRemoving}
-                className="p-2 text-fg-4 hover:text-signal-danger hover:bg-signal-danger/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                className="p-2 text-fg-4 hover:text-signal-danger hover:bg-signal-danger/10 rounded-lg transition-colors disabled:opacity-50"
+                aria-label={`Inativar ${title.toLowerCase()} ${item.nome}`}
               >
                 <Trash2 size={14} />
               </button>
@@ -570,61 +609,171 @@ export default function SettingsPage() {
     setActiveTab(searchParams.get('tab') || 'corretoras')
   }, [searchParams])
 
-  const tabs = [
-    { id: 'corretoras', label: 'Corretoras/Filiais', icon: Building2, component: <FiliaisTab /> },
-    { id: 'produtores', label: 'Produtores', icon: BadgeDollarSign, component: <ProdutoresPage /> },
-    { id: 'equipe', label: 'Usuários e Perfis', icon: Users, component: <EquipeAcessosPage /> },
-    { id: 'permissoes', label: 'Matriz de Permissões', icon: ShieldCheck, component: <PermissionsMatrix /> },
-    { id: 'funis', label: 'Funis & Etapas', icon: GitBranch, component: <FunisEtapasTab /> },
-    { id: 'ramos', label: 'Ramos de Seguros', icon: ShieldCheck, component: <RamosTab /> },
-    { id: 'seguradoras', label: 'Seguradoras', icon: Building2, component: <DBLookupListTab title="Seguradora" table="seguradoras" useDataHook={useSeguradoras} icon={Building2} /> },
-    { id: 'origens', label: 'Origem de Lead', icon: Target, component: <DBLookupListTab title="Origem" table="origens" useDataHook={useOrigens} icon={Target} /> },
-    { id: 'perda', label: 'Motivos de Perda', icon: XCircle, component: <DBLookupListTab title="Motivo de Perda" table="motivos_perda" useDataHook={useMotivosPerda} icon={XCircle} /> },
+  const settingsGroups: SettingsGroup[] = [
+    {
+      title: 'Organização',
+      description: 'Corretoras, filiais e produtores do grupo',
+      tabs: [
+        {
+          id: 'corretoras',
+          label: 'Corretoras/Filiais',
+          description: 'Cadastre unidades, matriz, contatos e dados fiscais.',
+          icon: Building2,
+          component: <FiliaisTab />,
+        },
+        {
+          id: 'produtores',
+          label: 'Produtores',
+          description: 'Gerencie produtores internos e parceiros externos.',
+          icon: BadgeDollarSign,
+          component: <ProdutoresPage />,
+        },
+      ],
+    },
+    {
+      title: 'Acessos',
+      description: 'Usuários, perfis e permissões',
+      tabs: [
+        {
+          id: 'equipe',
+          label: 'Usuários e Perfis',
+          description: 'Vincule usuários às corretoras e aos perfis por unidade.',
+          icon: Users,
+          component: <EquipeAcessosPage />,
+        },
+        {
+          id: 'permissoes',
+          label: 'Matriz de Permissões',
+          description: 'Autorize leitura, criação, edição e exclusão por perfil.',
+          icon: ShieldCheck,
+          component: <PermissionsMatrix />,
+        },
+      ],
+    },
+    {
+      title: 'Operação',
+      description: 'Funis e ramos operacionais',
+      tabs: [
+        {
+          id: 'funis',
+          label: 'Funis & Etapas',
+          description: 'Configure pipelines, etapas e regras de conclusão.',
+          icon: GitBranch,
+          component: <FunisEtapasTab />,
+        },
+        {
+          id: 'ramos',
+          label: 'Ramos de Seguros',
+          description: 'Cadastre ramos comerciais e classificação do risco.',
+          icon: ShieldCheck,
+          component: <RamosTab />,
+        },
+      ],
+    },
+    {
+      title: 'Catálogos',
+      description: 'Listas auxiliares compartilhadas',
+      tabs: [
+        {
+          id: 'seguradoras',
+          label: 'Seguradoras',
+          description: 'Mantenha o catálogo de seguradoras do grupo.',
+          icon: Building2,
+          component: <DBLookupListTab title="Seguradora" table="seguradoras" useDataHook={useSeguradoras} icon={Building2} />,
+        },
+        {
+          id: 'origens',
+          label: 'Origem de Lead',
+          description: 'Padronize origens usadas nos funis comerciais.',
+          icon: Target,
+          component: <DBLookupListTab title="Origem" table="origens" useDataHook={useOrigens} icon={Target} />,
+        },
+        {
+          id: 'perda',
+          label: 'Motivos de Perda',
+          description: 'Defina motivos usados ao encerrar oportunidades.',
+          icon: XCircle,
+          component: <DBLookupListTab title="Motivo de Perda" table="motivos_perda" useDataHook={useMotivosPerda} icon={XCircle} />,
+        },
+      ],
+    },
   ]
 
-  const activeTabDetails = tabs.find(t => t.id === activeTab)
+  const tabs = settingsGroups.flatMap((group) => group.tabs)
+  const activeTabDetails = tabs.find(t => t.id === activeTab) ?? tabs[0]
+  const activeGroup = settingsGroups.find((group) => group.tabs.some((tab) => tab.id === activeTabDetails.id))
+  const ActiveIcon = activeTabDetails.icon
 
   return (
     <div className="animate-fade-in flex flex-col min-h-full">
-      {/* Cabeçalho Padronizado */}
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Configurações</h1>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Configurações</h1>
           <p className="text-fg-3 font-medium tracking-tight">
-            Gerencie os parâmetros, regras e automações do seu CRM.
+            Administre cadastros, acessos, catálogos e fluxos operacionais do CRM.
           </p>
         </div>
       </div>
 
-      <div className="flex bg-bg-surface rounded-[8px] shadow-[var(--shadow-1)] border border-border-1 overflow-hidden min-h-[600px]">
-        {/* Sidebar Interna */}
-        <div className="w-72 border-r border-border-1 bg-bg-surface flex flex-col p-4 gap-1.5 overflow-y-auto custom-scrollbar shrink-0">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id)
-                setSearchParams(tab.id === 'corretoras' ? {} : { tab: tab.id })
-              }}
-              className={`flex items-center justify-between group px-4 py-3.5 rounded-[8px] text-sm font-bold transition-all ${
-                activeTab === tab.id
-                  ? 'bg-accent-primary text-fg-on-brand shadow-[var(--shadow-brand)] translate-x-1'
-                  : 'text-fg-3 hover:bg-bg-surface-2 hover:text-fg-1'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <tab.icon size={18} className={`${activeTab === tab.id ? 'text-fg-on-brand' : 'text-fg-4 group-hover:text-accent-primary'} transition-colors`} />
-                <span>{tab.label}</span>
+      <div className="flex flex-col lg:flex-row bg-bg-surface rounded-[8px] shadow-[var(--shadow-1)] border border-border-1 overflow-hidden min-h-[600px]">
+        <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-border-1 bg-bg-surface flex flex-col p-4 gap-5 overflow-y-auto custom-scrollbar shrink-0">
+          {settingsGroups.map((group) => (
+            <section key={group.title} className="space-y-1.5">
+              <div className="px-2">
+                <h2 className="text-[10px] font-black uppercase tracking-widest text-fg-4">{group.title}</h2>
+                <p className="mt-0.5 text-[11px] font-semibold text-fg-4 leading-snug">{group.description}</p>
               </div>
-              <ChevronRight size={14} className={`${activeTab === tab.id ? 'text-fg-on-brand/70' : 'text-fg-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1'} transition-all`} />
-            </button>
+              {group.tabs.map((tab) => {
+                const Icon = tab.icon
+                const isActive = activeTabDetails.id === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(tab.id)
+                      setSearchParams(tab.id === 'corretoras' ? {} : { tab: tab.id })
+                    }}
+                    className={`flex w-full items-center justify-between group px-3 py-3 rounded-[8px] text-left text-sm font-bold transition-all ${
+                      isActive
+                        ? 'bg-accent-primary text-fg-on-brand shadow-[var(--shadow-brand)]'
+                        : 'text-fg-3 hover:bg-bg-surface-2 hover:text-fg-1'
+                    }`}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    <span className="flex min-w-0 items-center gap-3">
+                      <Icon size={18} className={`${isActive ? 'text-fg-on-brand' : 'text-fg-4 group-hover:text-accent-primary'} transition-colors shrink-0`} />
+                      <span className="truncate">{tab.label}</span>
+                    </span>
+                    <ChevronRight size={14} className={`${isActive ? 'text-fg-on-brand/70' : 'text-fg-4 opacity-60'} transition-all shrink-0`} />
+                  </button>
+                )
+              })}
+            </section>
           ))}
         </div>
 
-        {/* Conteúdo da Aba */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-bg-app">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-5 lg:p-8 bg-bg-app">
           <div className="max-w-6xl">
-             {activeTabDetails?.component}
+            <div className="mb-6 flex flex-col gap-3 border-b border-border-1 pb-5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="rounded-[8px] bg-accent-primary-soft p-2 text-accent-primary">
+                  <ActiveIcon size={18} />
+                </div>
+                <div>
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <h2 className="text-xl font-bold text-fg-1">{activeTabDetails.label}</h2>
+                    {activeGroup && (
+                      <span className="rounded-full bg-bg-surface-2 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-fg-4">
+                        {activeGroup.title}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm font-medium text-fg-3">{activeTabDetails.description}</p>
+                </div>
+              </div>
+            </div>
+            {activeTabDetails.component}
           </div>
         </div>
       </div>
