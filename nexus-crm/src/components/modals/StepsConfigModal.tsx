@@ -1,8 +1,9 @@
-﻿import { useEffect, useMemo, useState } from 'react'
-import { X, Plus, Trash2, GripVertical, Save, Trophy, ShieldOff, Loader2 } from 'lucide-react'
+﻿import { useMemo, useState } from 'react'
+import { Plus, Trash2, GripVertical, Save, Trophy, ShieldOff, Loader2, GitBranch } from 'lucide-react'
 import type { PipelineRow, PipelineStageRow } from '../../modules/types'
 import { usePipelineStages } from '../../hooks/usePipelineStages'
 import { usePipelinesAdmin } from '../../hooks/usePipelinesAdmin'
+import AppModal from './AppModal'
 
 interface StepsConfigModalProps {
   isOpen: boolean
@@ -36,13 +37,6 @@ const tempId = () => `new-${crypto.randomUUID()}`
 export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsConfigModalProps) {
   const pipelineId = pipeline?.id ?? null
   const { data: dbStages, isLoading } = usePipelineStages(pipelineId)
-  const { createStage, deleteStage, saveStagesBatch, isSavingStages } = usePipelinesAdmin()
-
-  const [steps, setSteps] = useState<LocalStage[]>([])
-  const [removedIds, setRemovedIds] = useState<string[]>([])
-  const [newStepName, setNewStepName] = useState('')
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
   const initialFromDb = useMemo<LocalStage[]>(
     () =>
@@ -56,17 +50,59 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
     [dbStages]
   )
 
-  // Reseta o estado local sempre que o pipeline muda ou o modal reabre
-  useEffect(() => {
-    if (isOpen) {
-      setSteps(initialFromDb)
-      setRemovedIds([])
-      setError(null)
-      setNewStepName('')
-    }
-  }, [isOpen, initialFromDb])
+  if (!isOpen || !pipeline || !pipelineId) return null
 
-  if (!isOpen || !pipeline) return null
+  if (isLoading) {
+    return (
+      <AppModal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={`Etapas de "${pipeline.name}"`}
+        description="Defina ordem, nomes e regras de conclusão deste funil."
+        icon={<GitBranch size={20} />}
+        size="lg"
+      >
+        <div className="flex items-center justify-center gap-2 px-8 py-16 text-fg-3">
+          <Loader2 className="animate-spin" size={18} /> Carregando etapas...
+        </div>
+      </AppModal>
+    )
+  }
+
+  return (
+    <StepsConfigEditor
+      key={pipelineId}
+      isOpen={isOpen}
+      onClose={onClose}
+      pipeline={pipeline}
+      pipelineId={pipelineId}
+      initialSteps={initialFromDb}
+    />
+  )
+}
+
+interface StepsConfigEditorProps {
+  isOpen: boolean
+  onClose: () => void
+  pipeline: PipelineRow
+  pipelineId: string
+  initialSteps: LocalStage[]
+}
+
+function StepsConfigEditor({
+  isOpen,
+  onClose,
+  pipeline,
+  pipelineId,
+  initialSteps,
+}: StepsConfigEditorProps) {
+  const { createStage, deleteStage, saveStagesBatch, isSavingStages } = usePipelinesAdmin()
+
+  const [steps, setSteps] = useState<LocalStage[]>(initialSteps)
+  const [removedIds, setRemovedIds] = useState<string[]>([])
+  const [newStepName, setNewStepName] = useState('')
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const handleAddStep = () => {
     if (!newStepName.trim()) return
@@ -165,26 +201,20 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-bg-surface w-full max-w-3xl rounded-[12px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="px-8 py-6 border-b border-border-1 flex items-center justify-between bg-bg-surface-2">
-          <div>
-            <h2 className="text-xl font-black text-fg-1 uppercase tracking-tight flex items-center gap-2">
-              Etapas de "{pipeline.name}"
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent-primary-soft text-accent-primary border border-accent-primary/20">{pipeline.module}</span>
-            </h2>
-            <p className="text-xs text-fg-3 font-bold mt-1">
-              Defina o fluxo, ordem, cores e regras de conclusão das etapas
-            </p>
-          </div>
-          <button onClick={onClose} disabled={isSavingStages} className="p-2 hover:bg-bg-surface-3 rounded-full transition-colors text-fg-4 disabled:opacity-50">
-            <X size={20} />
-          </button>
-        </div>
+    <AppModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Etapas de "${pipeline.name}"`}
+      description="Defina ordem, nomes e regras de conclusão deste funil."
+      icon={<GitBranch size={20} />}
+      size="lg"
+      isDismissDisabled={isSavingStages}
+    >
+      <div className="p-8 space-y-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
+          <span className="inline-flex text-[10px] px-2 py-0.5 rounded-full bg-accent-primary-soft text-accent-primary border border-accent-primary/20 font-black uppercase tracking-widest">
+            {pipeline.module}
+          </span>
 
-        {/* Content */}
-        <div className="p-8 space-y-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
           {error && (
             <div className="rounded-[6px] border border-signal-danger/30 bg-signal-danger/10 px-4 py-3 text-sm text-signal-danger">
               {error}
@@ -192,7 +222,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
           )}
 
           {/* Add Step Input */}
-          <div className="flex gap-2 p-4 bg-bg-surface-2 rounded-[8px] border border-border-1">
+          <div className="flex flex-col gap-3 p-4 bg-bg-surface-2 rounded-[8px] border border-border-1 sm:flex-row">
             <input
               type="text"
               value={newStepName}
@@ -202,6 +232,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
               className="flex-1 px-4 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium"
             />
             <button
+              type="button"
               onClick={handleAddStep}
               disabled={isSavingStages || !newStepName.trim()}
               className="flex items-center gap-2 px-6 py-2 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black hover:bg-accent-primary-hover transition-colors disabled:opacity-50"
@@ -221,40 +252,42 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
               </span>
             </div>
 
-            {isLoading ? (
-              <div className="flex items-center justify-center gap-2 py-12 text-fg-3">
-                <Loader2 className="animate-spin" size={18} /> Carregando etapas...
-              </div>
-            ) : (
-              steps.map((step, index) => (
+            {steps.map((step, index) => (
                 <div
                   key={step.id}
                   draggable
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
-                  className={`flex items-center gap-3 p-4 bg-bg-surface border border-border-1 rounded-[8px] group transition-all ${
+                  className={`grid grid-cols-[auto,1fr,auto] gap-3 p-4 bg-bg-surface border border-border-1 rounded-[8px] transition-all lg:grid-cols-[auto,1fr,auto,auto,auto] ${
                     draggedIndex === index
                       ? 'opacity-50 border-accent-primary scale-95'
                       : 'hover:border-accent-primary/30 shadow-[var(--shadow-1)]'
                   }`}
                 >
-                  <div className="cursor-grab active:cursor-grabbing p-1 text-fg-4 hover:text-fg-2">
+                  <button
+                    type="button"
+                    className="cursor-grab active:cursor-grabbing p-1 text-fg-4 hover:text-fg-2"
+                    aria-label={`Arrastar etapa ${step.name}`}
+                  >
                     <GripVertical size={18} />
-                  </div>
+                  </button>
 
-                  <div className={`w-4 h-4 rounded-full ${step.color} shrink-0`} />
+                  <label className="min-w-0 space-y-1">
+                    <span className="block text-[9px] font-black uppercase tracking-widest text-fg-4">
+                      Ordem {index + 1} / nome da etapa
+                    </span>
+                    <input
+                      type="text"
+                      value={step.name}
+                      onChange={(e) => handleUpdate(step.id, { name: e.target.value })}
+                      className="w-full min-w-0 bg-transparent border-none text-sm font-bold text-fg-1 focus:outline-none focus:ring-2 focus:ring-accent-primary/30 rounded-[4px]"
+                    />
+                  </label>
 
-                  <input
-                    type="text"
-                    value={step.name}
-                    onChange={(e) => handleUpdate(step.id, { name: e.target.value })}
-                    className="flex-1 min-w-0 bg-transparent border-none text-sm font-bold text-fg-1 focus:outline-none"
-                  />
-
-                  {/* Flags */}
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                     <button
+                      type="button"
                       onClick={() =>
                         handleUpdate(step.id, { is_win_eligible: !step.is_win_eligible })
                       }
@@ -263,15 +296,17 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
                           ? 'Cards podem ser concluídos como GANHO desta etapa'
                           : 'Marcar etapa como elegível para GANHO'
                       }
-                      className={`p-1.5 rounded-lg transition-all ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
                         step.is_win_eligible
                           ? 'bg-signal-success/15 text-signal-success'
                           : 'bg-bg-surface-2 text-fg-4 hover:text-fg-2'
                       }`}
                     >
                       <Trophy size={13} />
+                      Ganho
                     </button>
                     <button
+                      type="button"
                       onClick={() =>
                         handleUpdate(step.id, { is_loss_eligible: !step.is_loss_eligible })
                       }
@@ -280,22 +315,25 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
                           ? 'Cards podem ser concluídos como PERDIDO desta etapa'
                           : 'Marcar etapa como elegível para PERDA'
                       }
-                      className={`p-1.5 rounded-lg transition-all ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
                         step.is_loss_eligible
                           ? 'bg-signal-danger/15 text-signal-danger'
                           : 'bg-bg-surface-2 text-fg-4 hover:text-fg-2'
                       }`}
                     >
                       <ShieldOff size={13} />
+                      Perda
                     </button>
                   </div>
 
-                  {/* Color Picker */}
-                  <div className="flex gap-1">
+                  <div className="col-span-full flex flex-wrap items-center gap-1 lg:col-span-1 lg:justify-end">
+                    <span className="mr-1 text-[9px] font-black uppercase tracking-widest text-fg-4">Cor</span>
                     {COLORS.map((c) => (
                       <button
                         key={c}
+                        type="button"
                         onClick={() => handleUpdate(step.id, { color: c })}
+                        aria-label={`Aplicar cor ${c.replace('bg-', '').replace('-500', '')} na etapa ${step.name}`}
                         className={`w-3 h-3 rounded-full ${c} transition-all ${
                           step.color === c
                             ? 'ring-2 ring-offset-2 ring-accent-primary scale-125'
@@ -306,26 +344,27 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => handleRemoveStep(step.id)}
-                    className="p-2 text-fg-4 hover:text-signal-danger hover:bg-signal-danger/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-2 text-fg-4 hover:text-signal-danger hover:bg-signal-danger/10 rounded-lg transition-colors"
+                    aria-label={`Remover etapa ${step.name}`}
                   >
                     <Trash2 size={16} />
                   </button>
                 </div>
-              ))
-            )}
+              ))}
 
-            {!isLoading && steps.length === 0 && (
+            {steps.length === 0 && (
               <div className="text-center py-8 text-sm text-fg-4 italic">
                 Nenhuma etapa cadastrada. Adicione a primeira acima.
               </div>
             )}
           </div>
-        </div>
+      </div>
 
-        {/* Footer */}
-        <div className="px-8 py-6 border-t border-border-1 bg-bg-surface-2 flex justify-end gap-3">
+      <div className="px-8 py-6 border-t border-border-1 bg-bg-surface-2 flex justify-end gap-3">
           <button
+            type="button"
             onClick={onClose}
             disabled={isSavingStages}
             className="px-6 py-2.5 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[6px] transition-all disabled:opacity-50"
@@ -333,6 +372,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
             Cancelar
           </button>
           <button
+            type="button"
             onClick={handleSave}
             disabled={isSavingStages || steps.length === 0}
             className="flex items-center gap-2 px-8 py-2.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black hover:bg-accent-primary-hover transition-all shadow-[var(--shadow-brand)] disabled:opacity-50"
@@ -340,8 +380,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
             {isSavingStages ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
             {isSavingStages ? 'Salvando...' : 'Salvar Configuração'}
           </button>
-        </div>
       </div>
-    </div>
+    </AppModal>
   )
 }

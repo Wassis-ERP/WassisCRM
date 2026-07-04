@@ -32,6 +32,29 @@
 - Use o status do macro plano de forma consistente: `[ ]` pendente, `[~]` em andamento e `[x]` concluido.
 - Registre decisoes de legado no subplano: reconstruir sobre o esqueleto, refatorar no lugar ou manter temporariamente.
 
+## Ritmo das automacoes de engenharia
+- Ate o fechamento da Fase 0, as automacoes devem permanecer conservadoras:
+  priorizar recortes pequenos, respeitar a ordem do macro plano e bloquear quando
+  houver mudanca local no mesmo arquivo, fluxo, hook, tipo, mock, plano ou
+  contrato que o proximo trabalho precise tocar.
+- Depois que a Fase 0 estiver concluida e a base de Configuracoes/Funis estiver
+  estabilizada, as automacoes podem operar em modo acelerado com trilhos:
+  criar ou ajustar micro-planos pequenos e implementar na mesma rodada quando o
+  escopo estiver claro, seguro e alinhado ao DBML/instrucoes.
+- No modo acelerado, e permitido tocar arquivos ja assumidos pelo recorte/epic
+  ativo sem parar a cada mudanca local conhecida da propria automacao. Mudancas
+  de terceiros no mesmo recorte continuam exigindo classificacao; bloqueie apenas
+  se houver conflito real de produto, contrato, validacao ou autoria.
+- Para a Fase 1, preferir fatiamento por sub-recortes executaveis, por exemplo:
+  definicoes de campos personalizados, preenchimento de valores, contrato/mock de
+  guias polimorficas e UI reutilizavel das guias.
+- Nao acelerar os limites estruturais: nunca pular micro-plano obrigatorio, nunca
+  alterar contrato sem comparar com DBML/instrucoes, nunca misturar backend, SQL
+  ou migrations, e nunca concluir tela/subtela sem validar o fluxo principal.
+- Dividas catalogadas fora do escopo podem ser toleradas quando nao impedirem
+  build, testes relevantes nem o fluxo principal do recorte atual. Registre o
+  risco residual e siga com o proximo passo seguro.
+
 ## Regra para endpoints
 - Ao finalizar uma tela ou subtela funcional, pergunte ao usuario se pode criar o Relatorio de Endpoints & Campos.
 - Nao crie automaticamente novos relatorios de endpoints sem essa confirmacao.

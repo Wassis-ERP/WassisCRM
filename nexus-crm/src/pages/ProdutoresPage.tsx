@@ -1,4 +1,4 @@
-import { Edit, Search, Trash2, UserPlus, X, BadgeDollarSign, Link2 } from 'lucide-react'
+import { Edit, Search, Trash2, UserPlus, BadgeDollarSign, Link2 } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { useProdutoresAdmin } from '../hooks/useProdutoresAdmin'
 import { useTeamAdmin } from '../hooks/useTeamAdmin'
@@ -6,6 +6,7 @@ import type { Produtor, ProdutorInput } from '../types/platform'
 import { formatCpfCnpj } from '../utils/documento'
 import { formatTelefone } from '../utils/masks'
 import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
+import AppModal from '../components/modals/AppModal'
 
 const EMPTY: ProdutorInput = {
   profile_id: null,
@@ -82,23 +83,15 @@ function ProdutorModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-bg-surface w-full max-w-3xl rounded-[12px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="px-8 py-6 border-b border-border-1 flex items-center justify-between bg-bg-surface-2">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-accent-primary-soft rounded-[6px] text-accent-primary">
-              {produtor ? <Edit size={20} /> : <UserPlus size={20} />}
-            </div>
-            <h2 className="text-xl font-black text-fg-1 uppercase tracking-tight">
-              {produtor ? 'Editar Produtor' : 'Novo Produtor'}
-            </h2>
-          </div>
-          <button onClick={onClose} disabled={isSaving} className="p-2 hover:bg-bg-surface-3 rounded-full transition-colors text-fg-4 disabled:opacity-50">
-            <X size={20} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
+    <AppModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={produtor ? 'Editar Produtor' : 'Novo Produtor'}
+      icon={produtor ? <Edit size={20} /> : <UserPlus size={20} />}
+      size="lg"
+      isDismissDisabled={isSaving}
+    >
+      <form onSubmit={handleSubmit}>
           <div className="p-8 overflow-y-auto max-h-[70vh] custom-scrollbar grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
             <h3 className="text-[11px] font-black text-fg-3 uppercase tracking-widest md:col-span-3">Vínculo</h3>
             <label className="space-y-1.5 md:col-span-3">
@@ -176,9 +169,8 @@ function ProdutorModal({
               {isSaving ? 'Salvando...' : produtor ? 'Atualizar' : 'Criar Produtor'}
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </AppModal>
   )
 }
 
@@ -310,10 +302,10 @@ export default function ProdutoresPage() {
                     </td>
                     <td className="px-6 py-5 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openModal(p)} className="p-2 text-fg-4 hover:text-accent-primary hover:bg-accent-primary-soft rounded-[6px] transition-all" title="Editar produtor">
+                        <button onClick={() => openModal(p)} className="p-2 text-fg-4 hover:text-accent-primary hover:bg-accent-primary-soft rounded-[6px] transition-all" title="Editar produtor" aria-label={`Editar produtor ${p.nome}`}>
                           <Edit size={18} />
                         </button>
-                        <button disabled={isRemoving} onClick={() => handleRemove(p)} className="p-2 text-fg-4 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[6px] transition-all disabled:opacity-50" title="Inativar produtor">
+                        <button disabled={isRemoving} onClick={() => handleRemove(p)} className="p-2 text-fg-4 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[6px] transition-all disabled:opacity-50" title="Inativar produtor" aria-label={`Inativar produtor ${p.nome}`}>
                           <Trash2 size={18} />
                         </button>
                       </div>

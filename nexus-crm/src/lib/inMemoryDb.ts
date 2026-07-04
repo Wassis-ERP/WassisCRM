@@ -9,6 +9,8 @@
  * podem ser deletados; o adapter em lib/supabase.ts volta a apontar para HTTP.
  */
 
+// O mock in-memory precisa aceitar linhas heterogeneas de todas as tabelas.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Row = Record<string, any>;
 
 const TABLES = [
@@ -26,7 +28,6 @@ const TABLES = [
   'profile_filiais',
   'perfis',
   'produtores',
-  'user_roles',
   'role_permissions',
   'ramos',
   'seguradoras',
@@ -159,7 +160,7 @@ export function seed(): void {
     });
   });
 
-  // role_permissions agora pendura no PERFIL (D18), não no enum app_role.
+  // role_permissions agora pendura no PERFIL (D18), não em papel global fixo.
   // [can_read, can_create, can_update, can_delete] por perfil-sistema.
   const PERFIL_DEFAULTS: Record<string, [boolean, boolean, boolean, boolean]> = {
     Master: [true, true, true, true],
