@@ -399,10 +399,16 @@ describe('useCampoDefinicoesAdmin payload', () => {
       tipo_dado: 'DECIMAL',
       formato: 'MOEDA',
       chave: 'Valor Segurado',
+      min_valor: 0,
+      max_valor: 300,
+      tamanho_max: 30,
     })).toMatchObject({
       chave: 'valor_segurado',
       tipo_dado: 'DECIMAL',
       formato: 'MOEDA',
+      min_valor: 0,
+      max_valor: 300,
+      tamanho_max: null,
     });
   });
 

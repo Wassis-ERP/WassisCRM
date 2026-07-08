@@ -442,6 +442,7 @@ export function buildRepasseRegraInsertPayload(input: RepasseRegraInput, tenantI
 
 export function buildCampoDefinicaoUpdatePayload(input: CampoDefinicaoInput) {
   const numericType = input.tipo_dado === 'INTEIRO' || input.tipo_dado === 'DECIMAL';
+  const textType = input.tipo_dado === 'TEXTO_CURTO' || input.tipo_dado === 'TEXTO_LONGO';
   return {
     filial_id: input.filial_id,
     entidade_tipo: input.entidade_tipo,
@@ -453,9 +454,9 @@ export function buildCampoDefinicaoUpdatePayload(input: CampoDefinicaoInput) {
     ativo: input.ativo,
     ordem: input.ordem,
     ajuda: textOrNull(input.ajuda),
-    min_valor: input.min_valor,
-    max_valor: input.max_valor,
-    tamanho_max: input.tamanho_max,
+    min_valor: numericType ? input.min_valor : null,
+    max_valor: numericType ? input.max_valor : null,
+    tamanho_max: textType ? input.tamanho_max : null,
     mascara: textOrNull(input.mascara),
     placeholder: textOrNull(input.placeholder),
     agrupamento: textOrNull(input.agrupamento),
