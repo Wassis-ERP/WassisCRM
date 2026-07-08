@@ -55,6 +55,8 @@ export const queryKeys = {
   campoDefinicoes: ['campo_definicoes'] as const,
   campoOpcoes: (campoDefinicaoId: string | null | undefined) =>
     ['campo_opcoes', campoDefinicaoId] as const,
+  campoValores: (entidadeTipo: string, entidadeId: string | null | undefined) =>
+    ['campo_valores', entidadeTipo, entidadeId] as const,
   filiais: ['filiais', 'admin'] as const,
   produtores: ['produtores', 'admin'] as const,
   perfis: ['perfis'] as const,

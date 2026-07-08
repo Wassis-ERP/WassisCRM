@@ -569,12 +569,12 @@ export default function SettingsPage() {
     },
     {
       title: 'Campos',
-      description: 'Campos personalizados tipados e suas opções de seleção.',
+      description: 'Campos personalizados tipados por módulo.',
       tabs: [
         {
           id: 'campos_personalizados',
           label: 'Campos Personalizados',
-          description: 'Crie definições por entidade, tipo de dado, validações e opções de lista.',
+          description: 'Crie campos por módulo, tipo de dado, validações e valores de lista.',
           icon: FileCog,
           component: <CamposPersonalizadosTab />,
           meta: '20 campos V2',

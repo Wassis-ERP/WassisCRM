@@ -421,6 +421,102 @@ export type Database = {
           },
         ]
       }
+      campo_valores: {
+        Row: {
+          campo_definicao_id: string
+          entidade_id: string
+          id: string
+          origem: string | null
+          preenchido_em: string | null
+          validado_em: string | null
+          valor_booleano: boolean | null
+          valor_data: string | null
+          valor_datahora: string | null
+          valor_numero: number | null
+          valor_opcao_id: string | null
+          valor_texto: string | null
+        }
+        Insert: {
+          campo_definicao_id: string
+          entidade_id: string
+          id?: string
+          origem?: string | null
+          preenchido_em?: string | null
+          validado_em?: string | null
+          valor_booleano?: boolean | null
+          valor_data?: string | null
+          valor_datahora?: string | null
+          valor_numero?: number | null
+          valor_opcao_id?: string | null
+          valor_texto?: string | null
+        }
+        Update: {
+          campo_definicao_id?: string
+          entidade_id?: string
+          id?: string
+          origem?: string | null
+          preenchido_em?: string | null
+          validado_em?: string | null
+          valor_booleano?: boolean | null
+          valor_data?: string | null
+          valor_datahora?: string | null
+          valor_numero?: number | null
+          valor_opcao_id?: string | null
+          valor_texto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campo_valores_campo_definicao_id_fkey"
+            columns: ["campo_definicao_id"]
+            isOneToOne: false
+            referencedRelation: "campo_definicoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campo_valores_valor_opcao_id_fkey"
+            columns: ["valor_opcao_id"]
+            isOneToOne: false
+            referencedRelation: "campo_opcoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campo_valor_opcoes: {
+        Row: {
+          campo_opcao_id: string
+          campo_valor_id: string
+          id: string
+          ordem: number | null
+        }
+        Insert: {
+          campo_opcao_id: string
+          campo_valor_id: string
+          id?: string
+          ordem?: number | null
+        }
+        Update: {
+          campo_opcao_id?: string
+          campo_valor_id?: string
+          id?: string
+          ordem?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campo_valor_opcoes_campo_opcao_id_fkey"
+            columns: ["campo_opcao_id"]
+            isOneToOne: false
+            referencedRelation: "campo_opcoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campo_valor_opcoes_campo_valor_id_fkey"
+            columns: ["campo_valor_id"]
+            isOneToOne: false
+            referencedRelation: "campo_valores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emissoes: {
         Row: {
           concluded_at: string | null

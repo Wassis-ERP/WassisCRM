@@ -329,7 +329,7 @@ export default function SeguradoDetalhePage() {
           <TarefasTab tarefas={tabsState.tarefas} onAdd={tabsState.addTarefa} onToggle={tabsState.toggleTarefa} />
         )}
         {tab === 'personalizados' && (
-          <CamposPersonalizadosTab campos={tabsState.campos} onAdd={tabsState.addCampo} tipoEntidade={segurado.tipo} />
+          <CamposPersonalizadosTab entidadeTipo="segurado" entidadeId={segurado.id} />
         )}
         {tab === 'anexos' && (
           <AnexosLogsTab

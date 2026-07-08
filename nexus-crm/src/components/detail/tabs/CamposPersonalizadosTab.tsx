@@ -1,77 +1,270 @@
 /**
- * Guia padrão "Campos personalizados" — entity-agnostic. Lista campos extras
- * configuráveis pela corretora e permite adicionar valores em sessão.
+ * Guia "Campos personalizados" baseada no contrato EAV tipado.
+ *
+ * A definição do campo nasce em Configurações (`campo_definicoes` +
+ * `campo_opcoes`). Aqui o usuário apenas preenche valores do registro atual
+ * (`campo_valores` + `campo_valor_opcoes`).
  */
-import { useState } from 'react'
-import { Sliders, Hash, Calendar, ShieldCheck, Plus } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-import { DetailCard, EmptyState, GhostButton } from '../primitives'
-import type { CampoPersonalizado, CampoTipo } from '../types'
-
-const CAMPO_ICON: Record<CampoTipo, LucideIcon> = {
-  texto: Hash,
-  numero: Hash,
-  moeda: Hash,
-  data: Calendar,
-  lista: Sliders,
-  booleano: ShieldCheck,
-}
+import { useMemo, useState } from 'react'
+import { Calendar, Check, Hash, ListChecks, Loader2, Save, ShieldCheck, Sliders, X } from 'lucide-react'
+import { DetailCard, EmptyState } from '../primitives'
+import {
+  isCampoValorInputEmpty,
+  type CampoPersonalizadoOperacional,
+  type CampoValorInput,
+  useCamposPersonalizados,
+} from '../../../hooks/useCamposPersonalizados'
+import type { CampoEntidadeTipo } from '../../../hooks/useLookupsAdmin'
 
 const inputCls =
-  'w-full px-3 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30'
+  'w-full px-3 py-2.5 bg-bg-surface text-fg-1 border border-border-1 rounded-[6px] text-sm font-semibold placeholder:text-fg-4 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 disabled:opacity-50'
 
-function NovoCampoForm({
-  onSubmit,
-  onCancel,
+const chipClass = 'inline-flex h-6 items-center justify-center rounded-full px-2.5 text-[10px] font-black uppercase leading-none tracking-widest'
+
+function valueFromCampo(campo: CampoPersonalizadoOperacional): CampoValorInput {
+  const valor = campo.valor
+  if (!valor) return campo.tipo_dado === 'LISTA_MULTIPLA' ? [] : null
+
+  switch (campo.tipo_dado) {
+    case 'TEXTO_CURTO':
+    case 'TEXTO_LONGO':
+      return valor.valor_texto ?? ''
+    case 'INTEIRO':
+    case 'DECIMAL':
+      return valor.valor_numero ?? ''
+    case 'BOOLEANO':
+      return valor.valor_booleano
+    case 'DATA':
+      return valor.valor_data ?? ''
+    case 'DATA_HORA':
+      return valor.valor_datahora ? valor.valor_datahora.slice(0, 16) : ''
+    case 'LISTA_UNICA':
+      return valor.valor_opcao_id ?? ''
+    case 'LISTA_MULTIPLA':
+      return campo.valorOpcoes.map((opcao) => opcao.campo_opcao_id)
+    default:
+      return null
+  }
+}
+
+function tipoLabel(tipo: string) {
+  const labels: Record<string, string> = {
+    TEXTO_CURTO: 'Texto',
+    TEXTO_LONGO: 'Texto longo',
+    INTEIRO: 'Número inteiro',
+    DECIMAL: 'Número decimal',
+    BOOLEANO: 'Sim/Não',
+    DATA: 'Data',
+    DATA_HORA: 'Data e hora',
+    LISTA_UNICA: 'Seleção única',
+    LISTA_MULTIPLA: 'Seleção múltipla',
+  }
+  return labels[tipo] ?? tipo
+}
+
+function CampoIcon({ tipo }: { tipo: string }) {
+  if (tipo === 'DATA' || tipo === 'DATA_HORA') return <Calendar size={16} />
+  if (tipo === 'BOOLEANO') return <ShieldCheck size={16} />
+  if (tipo === 'LISTA_UNICA' || tipo === 'LISTA_MULTIPLA') return <ListChecks size={16} />
+  return <Hash size={16} />
+}
+
+function CampoEditor({
+  campo,
+  isSaving,
+  onSave,
+  onClear,
 }: {
-  onSubmit: (c: Omit<CampoPersonalizado, 'id'>) => void
-  onCancel: () => void
+  campo: CampoPersonalizadoOperacional
+  isSaving: boolean
+  onSave: (campo: CampoPersonalizadoOperacional, value: CampoValorInput) => Promise<unknown>
+  onClear: (campoDefinicaoId: string) => Promise<unknown>
 }) {
-  const [label, setLabel] = useState('')
-  const [valor, setValor] = useState('')
-  const [tipo, setTipo] = useState<CampoTipo>('texto')
+  const [value, setValue] = useState<CampoValorInput>(() => valueFromCampo(campo))
+  const [error, setError] = useState<string | null>(null)
 
-  const submit = () => {
-    if (!label.trim()) return
-    onSubmit({ label: label.trim(), valor: valor.trim(), tipo })
-    onCancel()
+  const selectedIds = Array.isArray(value) ? value : []
+  const visibleOpcoes = campo.opcoes.filter((opcao) => opcao.ativo || selectedIds.includes(opcao.id) || value === opcao.id)
+  const hasValue = !isCampoValorInputEmpty(campo, value)
+
+  const save = async () => {
+    if (campo.obrigatorio && isCampoValorInputEmpty(campo, value)) {
+      setError('Campo obrigatório.')
+      return
+    }
+    setError(null)
+    await onSave(campo, value)
+  }
+
+  const clear = async () => {
+    setError(null)
+    setValue(campo.tipo_dado === 'LISTA_MULTIPLA' ? [] : null)
+    await onClear(campo.id)
+  }
+
+  const toggleOption = (optionId: string) => {
+    setValue((prev) => {
+      const current = Array.isArray(prev) ? prev : []
+      return current.includes(optionId)
+        ? current.filter((id) => id !== optionId)
+        : [...current, optionId]
+    })
+  }
+
+  const renderInput = () => {
+    switch (campo.tipo_dado) {
+      case 'TEXTO_LONGO':
+        return (
+          <textarea
+            value={typeof value === 'string' ? value : ''}
+            onChange={(event) => setValue(event.target.value)}
+            rows={3}
+            maxLength={campo.tamanho_max ?? undefined}
+            placeholder={campo.placeholder ?? 'Texto'}
+            className={`${inputCls} resize-none`}
+          />
+        )
+      case 'INTEIRO':
+      case 'DECIMAL':
+        return (
+          <input
+            type="number"
+            step={campo.tipo_dado === 'INTEIRO' ? 1 : 'any'}
+            min={campo.min_valor ?? undefined}
+            max={campo.max_valor ?? undefined}
+            value={typeof value === 'number' || typeof value === 'string' ? value : ''}
+            onChange={(event) => setValue(event.target.value)}
+            placeholder={campo.placeholder ?? (campo.formato === 'PERCENTUAL' ? 'Ex: 12,5' : '0')}
+            className={inputCls}
+          />
+        )
+      case 'BOOLEANO':
+        return (
+          <label className="flex h-[42px] items-center gap-2 rounded-[6px] border border-border-1 bg-bg-surface px-3 text-sm font-black text-fg-2">
+            <input
+              type="checkbox"
+              checked={Boolean(value)}
+              onChange={(event) => setValue(event.target.checked)}
+              className="h-4 w-4 accent-accent-primary"
+            />
+            Sim
+          </label>
+        )
+      case 'DATA':
+        return (
+          <input
+            type="date"
+            value={typeof value === 'string' ? value : ''}
+            onChange={(event) => setValue(event.target.value)}
+            className={inputCls}
+          />
+        )
+      case 'DATA_HORA':
+        return (
+          <input
+            type="datetime-local"
+            value={typeof value === 'string' ? value : ''}
+            onChange={(event) => setValue(event.target.value)}
+            className={inputCls}
+          />
+        )
+      case 'LISTA_UNICA':
+        return (
+          <select
+            value={typeof value === 'string' ? value : ''}
+            onChange={(event) => setValue(event.target.value)}
+            className={inputCls}
+          >
+            <option value="">Selecione</option>
+            {visibleOpcoes.map((opcao) => (
+              <option key={opcao.id} value={opcao.id} disabled={!opcao.ativo}>
+                {opcao.rotulo}{!opcao.ativo ? ' (inativa)' : ''}
+              </option>
+            ))}
+          </select>
+        )
+      case 'LISTA_MULTIPLA':
+        return (
+          <div className="rounded-[6px] border border-border-1 bg-bg-surface p-3">
+            {visibleOpcoes.length ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {visibleOpcoes.map((opcao) => (
+                  <label key={opcao.id} className="flex items-center gap-2 text-sm font-semibold text-fg-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(opcao.id)}
+                      disabled={!opcao.ativo && !selectedIds.includes(opcao.id)}
+                      onChange={() => toggleOption(opcao.id)}
+                      className="h-4 w-4 accent-accent-primary"
+                    />
+                    {opcao.rotulo}{!opcao.ativo ? ' (inativa)' : ''}
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm font-semibold text-fg-4">Nenhuma opção ativa para este campo.</p>
+            )}
+          </div>
+        )
+      case 'TEXTO_CURTO':
+      default:
+        return (
+          <input
+            value={typeof value === 'string' ? value : ''}
+            onChange={(event) => setValue(event.target.value)}
+            maxLength={campo.tamanho_max ?? undefined}
+            placeholder={campo.placeholder ?? 'Texto'}
+            className={inputCls}
+          />
+        )
+    }
   }
 
   return (
-    <div className="mb-4 p-4 bg-bg-surface-2 rounded-xl border border-border-1 space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <input
-          autoFocus
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="Nome do campo"
-          className={inputCls}
-        />
-        <select value={tipo} onChange={(e) => setTipo(e.target.value as CampoTipo)} className={inputCls}>
-          {Object.keys(CAMPO_ICON).map((k) => (
-            <option key={k} value={k}>
-              {k}
-            </option>
-          ))}
-        </select>
+    <div className="rounded-[8px] border border-border-1 bg-bg-surface-2 p-4">
+      <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="flex min-w-0 gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-accent-primary-soft text-accent-primary">
+            <CampoIcon tipo={campo.tipo_dado} />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h4 className="text-sm font-black text-fg-1">{campo.nome}</h4>
+              {campo.obrigatorio && <span className={`${chipClass} bg-signal-warning/15 text-signal-warning`}>Obrigatório</span>}
+              {campo.valor?.validado_em && <span className={`${chipClass} bg-signal-success/15 text-signal-success`}>Validado</span>}
+            </div>
+            <p className="mt-1 font-mono text-[11px] font-semibold text-fg-4">{campo.chave}</p>
+            {campo.ajuda && <p className="mt-1 text-xs font-semibold text-fg-3">{campo.ajuda}</p>}
+          </div>
+        </div>
+        <span className={`${chipClass} w-fit bg-bg-surface text-fg-3`}>{tipoLabel(campo.tipo_dado)}</span>
       </div>
-      <input
-        value={valor}
-        onChange={(e) => setValor(e.target.value)}
-        placeholder="Valor"
-        className={inputCls}
-      />
-      <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-fg-3 hover:text-fg-1">
-          Cancelar
+
+      {renderInput()}
+
+      {error && (
+        <div className="mt-3 rounded-[6px] border border-signal-danger/30 bg-signal-danger/10 px-3 py-2 text-xs font-semibold text-signal-danger">
+          {error}
+        </div>
+      )}
+
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          onClick={clear}
+          disabled={isSaving || !hasValue}
+          className="inline-flex items-center justify-center gap-2 rounded-[6px] px-3 py-2 text-xs font-black text-fg-3 transition-colors hover:bg-bg-surface-3 hover:text-fg-1 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <X size={14} /> Limpar
         </button>
         <button
           type="button"
-          onClick={submit}
-          disabled={!label.trim()}
-          className="px-4 py-1.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-semibold hover:bg-accent-primary-hover disabled:opacity-50"
+          onClick={save}
+          disabled={isSaving}
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-accent-primary px-4 py-2 text-xs font-black text-fg-on-brand shadow-[var(--shadow-brand)] transition-colors hover:bg-accent-primary-hover disabled:opacity-50"
         >
-          Adicionar
+          {isSaving ? <Loader2 size={15} className="animate-spin" /> : hasValue ? <Save size={15} /> : <Check size={15} />}
+          Salvar
         </button>
       </div>
     </div>
@@ -79,65 +272,64 @@ function NovoCampoForm({
 }
 
 export default function CamposPersonalizadosTab({
-  campos,
-  onAdd,
-  tipoEntidade,
+  entidadeTipo,
+  entidadeId,
 }: {
-  campos: CampoPersonalizado[]
-  onAdd: (c: Omit<CampoPersonalizado, 'id'>) => void
-  tipoEntidade?: string
+  entidadeTipo: CampoEntidadeTipo
+  entidadeId: string
 }) {
-  const [adding, setAdding] = useState(false)
+  const { campos, isLoading, isSaving, saveValue, clearValue } = useCamposPersonalizados(entidadeTipo, entidadeId)
+  const grupos = useMemo(() => {
+    const map = new Map<string, CampoPersonalizadoOperacional[]>()
+    campos.forEach((campo) => {
+      const key = campo.agrupamento?.trim() || 'Campos gerais'
+      map.set(key, [...(map.get(key) ?? []), campo])
+    })
+    return Array.from(map.entries())
+  }, [campos])
 
   return (
     <div className="space-y-4">
-      <DetailCard
-        title="Campos personalizados"
-        icon={Sliders}
-        action={
-          !adding && (
-            <GhostButton icon={Plus} onClick={() => setAdding(true)}>
-              Adicionar campo
-            </GhostButton>
-          )
-        }
-      >
-        {adding && <NovoCampoForm onSubmit={onAdd} onCancel={() => setAdding(false)} />}
-        {campos.length ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {campos.map((c) => {
-              const Icon = CAMPO_ICON[c.tipo] ?? Hash
-              return (
-                <div
-                  key={c.id}
-                  className="flex items-center gap-3 px-4 py-3 bg-bg-surface-2 rounded-xl"
-                >
-                  <span className="w-8 h-8 rounded-lg bg-accent-primary-soft text-accent-primary flex items-center justify-center shrink-0">
-                    <Icon size={15} />
+      <DetailCard title="Campos personalizados" icon={Sliders}>
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-2 py-10 text-sm font-semibold text-fg-3">
+            <Loader2 className="animate-spin" size={18} /> Carregando campos personalizados...
+          </div>
+        ) : campos.length ? (
+          <div className="space-y-5">
+            {grupos.map(([grupo, itens]) => (
+              <section key={grupo} className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-fg-4">{grupo}</h4>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">
+                    {itens.length} campos
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] text-fg-4 uppercase tracking-widest font-bold">{c.label}</p>
-                    <p className="text-sm font-medium text-fg-1 truncate">{c.valor || '—'}</p>
-                  </div>
-                  <span className="text-[10px] text-fg-4 uppercase font-bold shrink-0">{c.tipo}</span>
                 </div>
-              )
-            })}
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {itens.map((campo) => (
+                    <CampoEditor
+                      key={`${campo.id}-${campo.valor?.id ?? 'novo'}-${campo.valor?.preenchido_em ?? ''}-${campo.valorOpcoes.map((item) => item.campo_opcao_id).join('.')}`}
+                      campo={campo}
+                      isSaving={isSaving}
+                      onSave={(definicao, value) => saveValue({ definicao, value })}
+                      onClear={clearValue}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
         ) : (
-          !adding && (
-            <EmptyState
-              icon={Sliders}
-              title="Nenhum campo personalizado"
-              hint="Adicione campos extras para guardar informações específicas deste cadastro."
-            />
-          )
+          <EmptyState
+            icon={Sliders}
+            title="Nenhum campo personalizado configurado"
+            hint="Crie campos em Configurações > Campos para que apareçam nesta guia."
+          />
         )}
       </DetailCard>
-      <p className="flex items-start gap-2 text-xs text-fg-4 px-1">
-        <Sliders size={14} className="shrink-0 mt-0.5" />
-        Campos personalizados são configurados pela corretora em Configurações → Campos. Aparecem
-        para todos os cadastros do mesmo tipo{tipoEntidade ? ` (${tipoEntidade})` : ''}.
+      <p className="flex items-start gap-2 px-1 text-xs text-fg-4">
+        <Sliders size={14} className="mt-0.5 shrink-0" />
+        Campos e opções são definidos em Configurações. Esta guia preenche apenas os valores deste registro.
       </p>
     </div>
   )
