@@ -28,7 +28,7 @@ const COLORS = [
   'bg-rose-500',
 ]
 
-type LocalStage = Pick<PipelineStageRow, 'id' | 'name' | 'color' | 'is_win_eligible' | 'is_loss_eligible'> & {
+type LocalStage = Pick<PipelineStageRow, 'id' | 'nome' | 'cor' | 'finaliza_com_sucesso' | 'finaliza_com_perda'> & {
   __isNew?: boolean
 }
 
@@ -42,10 +42,10 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
     () =>
       (dbStages ?? []).map((s) => ({
         id: s.id,
-        name: s.name,
-        color: s.color,
-        is_win_eligible: s.is_win_eligible,
-        is_loss_eligible: s.is_loss_eligible,
+        nome: s.nome,
+        cor: s.cor,
+        finaliza_com_sucesso: s.finaliza_com_sucesso,
+        finaliza_com_perda: s.finaliza_com_perda,
       })),
     [dbStages]
   )
@@ -57,7 +57,7 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
       <AppModal
         isOpen={isOpen}
         onClose={onClose}
-        title={`Etapas de "${pipeline.name}"`}
+        title={`Etapas de "${pipeline.nome}"`}
         description="Defina ordem, nomes e regras de conclusão deste funil."
         icon={<GitBranch size={20} />}
         size="lg"
@@ -110,10 +110,10 @@ function StepsConfigEditor({
       ...steps,
       {
         id: tempId(),
-        name: newStepName.trim(),
-        color: COLORS[steps.length % COLORS.length],
-        is_win_eligible: false,
-        is_loss_eligible: true,
+        nome: newStepName.trim(),
+        cor: COLORS[steps.length % COLORS.length],
+        finaliza_com_sucesso: false,
+        finaliza_com_perda: true,
         __isNew: true,
       },
     ])
@@ -161,29 +161,29 @@ function StepsConfigEditor({
         if (s.__isNew) {
           const created = await createStage({
             pipelineId,
-            name: s.name,
-            color: s.color,
+            name: s.nome,
+            color: s.cor ?? 'bg-slate-400',
             order: idx,
-            is_win_eligible: s.is_win_eligible,
-            is_loss_eligible: s.is_loss_eligible,
+            is_win_eligible: s.finaliza_com_sucesso,
+            is_loss_eligible: s.finaliza_com_perda,
           })
           finalSteps.push({
             id: created.id,
             patch: {
-              name: s.name,
-              color: s.color,
-              is_win_eligible: s.is_win_eligible,
-              is_loss_eligible: s.is_loss_eligible,
+              nome: s.nome,
+              cor: s.cor,
+              finaliza_com_sucesso: s.finaliza_com_sucesso,
+              finaliza_com_perda: s.finaliza_com_perda,
             },
           })
         } else {
           finalSteps.push({
             id: s.id,
             patch: {
-              name: s.name,
-              color: s.color,
-              is_win_eligible: s.is_win_eligible,
-              is_loss_eligible: s.is_loss_eligible,
+              nome: s.nome,
+              cor: s.cor,
+              finaliza_com_sucesso: s.finaliza_com_sucesso,
+              finaliza_com_perda: s.finaliza_com_perda,
             },
           })
         }
@@ -204,7 +204,7 @@ function StepsConfigEditor({
     <AppModal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Etapas de "${pipeline.name}"`}
+      title={`Etapas de "${pipeline.nome}"`}
       description="Defina ordem, nomes e regras de conclusão deste funil."
       icon={<GitBranch size={20} />}
       size="lg"
@@ -212,7 +212,7 @@ function StepsConfigEditor({
     >
       <div className="p-8 space-y-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
           <span className="inline-flex text-[10px] px-2 py-0.5 rounded-full bg-accent-primary-soft text-accent-primary border border-accent-primary/20 font-black uppercase tracking-widest">
-            {pipeline.module}
+            {pipeline.entidade_tipo}
           </span>
 
           {error && (
@@ -268,7 +268,7 @@ function StepsConfigEditor({
                   <button
                     type="button"
                     className="cursor-grab active:cursor-grabbing p-1 text-fg-4 hover:text-fg-2"
-                    aria-label={`Arrastar etapa ${step.name}`}
+                    aria-label={`Arrastar etapa ${step.nome}`}
                   >
                     <GripVertical size={18} />
                   </button>
@@ -279,8 +279,8 @@ function StepsConfigEditor({
                     </span>
                     <input
                       type="text"
-                      value={step.name}
-                      onChange={(e) => handleUpdate(step.id, { name: e.target.value })}
+                      value={step.nome}
+                      onChange={(e) => handleUpdate(step.id, { nome: e.target.value })}
                       className="w-full min-w-0 bg-transparent border-none text-sm font-bold text-fg-1 focus:outline-none focus:ring-2 focus:ring-accent-primary/30 rounded-[4px]"
                     />
                   </label>
@@ -289,15 +289,15 @@ function StepsConfigEditor({
                     <button
                       type="button"
                       onClick={() =>
-                        handleUpdate(step.id, { is_win_eligible: !step.is_win_eligible })
+                        handleUpdate(step.id, { finaliza_com_sucesso: !step.finaliza_com_sucesso })
                       }
                       title={
-                        step.is_win_eligible
+                        step.finaliza_com_sucesso
                           ? 'Cards podem ser concluídos como GANHO desta etapa'
                           : 'Marcar etapa como elegível para GANHO'
                       }
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
-                        step.is_win_eligible
+                        step.finaliza_com_sucesso
                           ? 'bg-signal-success/15 text-signal-success'
                           : 'bg-bg-surface-2 text-fg-4 hover:text-fg-2'
                       }`}
@@ -308,15 +308,15 @@ function StepsConfigEditor({
                     <button
                       type="button"
                       onClick={() =>
-                        handleUpdate(step.id, { is_loss_eligible: !step.is_loss_eligible })
+                        handleUpdate(step.id, { finaliza_com_perda: !step.finaliza_com_perda })
                       }
                       title={
-                        step.is_loss_eligible
+                        step.finaliza_com_perda
                           ? 'Cards podem ser concluídos como PERDIDO desta etapa'
                           : 'Marcar etapa como elegível para PERDA'
                       }
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
-                        step.is_loss_eligible
+                        step.finaliza_com_perda
                           ? 'bg-signal-danger/15 text-signal-danger'
                           : 'bg-bg-surface-2 text-fg-4 hover:text-fg-2'
                       }`}
@@ -332,10 +332,10 @@ function StepsConfigEditor({
                       <button
                         key={c}
                         type="button"
-                        onClick={() => handleUpdate(step.id, { color: c })}
-                        aria-label={`Aplicar cor ${c.replace('bg-', '').replace('-500', '')} na etapa ${step.name}`}
+                        onClick={() => handleUpdate(step.id, { cor: c })}
+                        aria-label={`Aplicar cor ${c.replace('bg-', '').replace('-500', '')} na etapa ${step.nome}`}
                         className={`w-3 h-3 rounded-full ${c} transition-all ${
-                          step.color === c
+                          step.cor === c
                             ? 'ring-2 ring-offset-2 ring-accent-primary scale-125'
                             : 'opacity-40 hover:opacity-100'
                         }`}
@@ -347,7 +347,7 @@ function StepsConfigEditor({
                     type="button"
                     onClick={() => handleRemoveStep(step.id)}
                     className="p-2 text-fg-4 hover:text-signal-danger hover:bg-signal-danger/10 rounded-lg transition-colors"
-                    aria-label={`Remover etapa ${step.name}`}
+                    aria-label={`Remover etapa ${step.nome}`}
                   >
                     <Trash2 size={16} />
                   </button>

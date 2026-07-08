@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryClient';
-import type { PipelineRow, PipelineStageRow } from '../modules/types';
+import type { PipelineDbRow, PipelineRow, PipelineStageDbRow, PipelineStageRow } from '../modules/types';
+import { normalizePipelineRow, normalizePipelineStageRow } from '../modules/types';
 import { useAuth } from './useAuth';
 import { comparePipelinesForBranch, isPipelineVisibleForBranch } from './pipelineScope';
 
@@ -9,8 +10,8 @@ export interface PipelineWithStages extends PipelineRow {
   stages: PipelineStageRow[];
 }
 
-type PipelineSelectRow = PipelineRow & {
-  pipeline_stages?: PipelineStageRow[] | null;
+type PipelineSelectRow = PipelineDbRow & {
+  pipeline_stages?: PipelineStageDbRow[] | null;
 };
 
 export function usePipelines() {
@@ -27,20 +28,25 @@ export function usePipelines() {
           *,
           pipeline_stages (*)
         `)
-        .eq('is_active', true)
-        .order('module', { ascending: true })
-        .order('name', { ascending: true });
+        .eq('ativo', true)
+        .order('entidade_tipo', { ascending: true })
+        .order('nome', { ascending: true });
 
       if (error) {
         throw error;
       }
 
       const rows = ((data ?? []) as PipelineSelectRow[])
+        .map((row) => {
+          const { pipeline_stages, ...pipeline } = row;
+          return {
+            ...normalizePipelineRow(pipeline),
+            stages: [...(pipeline_stages ?? [])]
+              .map((stage) => normalizePipelineStageRow(stage))
+              .sort((a, b) => a.ordem - b.ordem),
+          };
+        })
         .filter((row) => isPipelineVisibleForBranch(row, activeBranchId))
-        .map(({ pipeline_stages, ...row }) => ({
-          ...row,
-          stages: [...(pipeline_stages ?? [])].sort((a, b) => a.order - b.order),
-        }))
         .sort((a: PipelineRow, b: PipelineRow) => comparePipelinesForBranch(activeBranchId, a, b)) as PipelineWithStages[];
       
       return rows;

@@ -47,6 +47,14 @@ export const queryKeys = {
     filiais: ['filiais', 'lookup'] as const,
     produtores: ['produtores', 'lookup'] as const,
   },
+  coberturasCatalogo: ['coberturas_catalogo'] as const,
+  recebimentoGrades: ['recebimento_grades'] as const,
+  recebimentoGradeParcelas: (gradeId: string | null | undefined) =>
+    ['recebimento_grade_parcelas', gradeId] as const,
+  repasseRegras: ['repasse_regras'] as const,
+  campoDefinicoes: ['campo_definicoes'] as const,
+  campoOpcoes: (campoDefinicaoId: string | null | undefined) =>
+    ['campo_opcoes', campoDefinicaoId] as const,
   filiais: ['filiais', 'admin'] as const,
   produtores: ['produtores', 'admin'] as const,
   perfis: ['perfis'] as const,

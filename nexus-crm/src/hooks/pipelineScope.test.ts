@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PipelineRow } from '../modules/types';
+import { moduleToPipelineEntityTipo, normalizePipelineRow } from '../modules/types';
 import {
   comparePipelinesForBranch,
   getPipelineScopeLabel,
@@ -7,19 +8,20 @@ import {
 } from './pipelineScope';
 
 function pipeline(overrides: Partial<PipelineRow>): PipelineRow {
-  return {
+  const module = overrides.module ?? 'comercial';
+  return normalizePipelineRow({
     id: overrides.id ?? crypto.randomUUID(),
     tenant_id: 'tenant-test',
     filial_id: null,
-    name: 'Funil',
-    module: 'comercial',
-    is_active: true,
-    won_label: 'Ganho',
-    lost_label: 'Perdido',
-    created_at: '2026-07-03T00:00:00.000Z',
-    updated_at: '2026-07-03T00:00:00.000Z',
+    nome: overrides.nome ?? overrides.name ?? 'Funil',
+    entidade_tipo: overrides.entidade_tipo ?? moduleToPipelineEntityTipo(module),
+    ativo: true,
+    ordem: null,
+    descricao: null,
+    modelo_fabrica: false,
+    permite_customizacao: true,
     ...overrides,
-  };
+  });
 }
 
 describe('pipelineScope', () => {

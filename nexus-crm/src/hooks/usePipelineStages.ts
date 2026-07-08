@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryClient';
-import type { PipelineStageRow } from '../modules/types';
+import type { PipelineStageDbRow, PipelineStageRow } from '../modules/types';
+import { normalizePipelineStageRow } from '../modules/types';
 
 /**
- * Stages de um pipeline, ordenadas por `order`.
+ * Stages de um pipeline, ordenadas por `ordem`.
  */
 export function usePipelineStages(pipelineId: string | null | undefined) {
   return useQuery({
@@ -15,10 +16,11 @@ export function usePipelineStages(pipelineId: string | null | undefined) {
         .from('pipeline_stages')
         .select('*')
         .eq('pipeline_id', pipelineId as string)
-        .order('order', { ascending: true });
+        .eq('ativo', true)
+        .order('ordem', { ascending: true });
 
       if (error) throw error;
-      return (data ?? []) as PipelineStageRow[];
+      return ((data ?? []) as PipelineStageDbRow[]).map((row) => normalizePipelineStageRow(row));
     },
   });
 }
