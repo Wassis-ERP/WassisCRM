@@ -3,11 +3,85 @@ import type { Database } from '../types/database';
 
 // NOTA: tipos auxiliares abaixo.
 
-export type PipelineModule = Database['public']['Enums']['pipeline_module'];
+export type PipelineModule = 'comercial' | 'emissao' | 'pos_venda' | 'financeiro' | 'sinistro';
+export type PipelineEntityTipo = 'oportunidade' | 'proposta' | 'pos_venda' | 'cobranca' | 'sinistro';
 export type CardStatus = Database['public']['Enums']['card_status'];
 
-export type PipelineRow = Database['public']['Tables']['pipelines']['Row'];
-export type PipelineStageRow = Database['public']['Tables']['pipeline_stages']['Row'];
+export type PipelineDbRow = Database['public']['Tables']['pipelines']['Row'];
+export type PipelineStageDbRow = Database['public']['Tables']['pipeline_stages']['Row'];
+
+export type PipelineRow = PipelineDbRow & {
+  module: PipelineModule;
+  name: string;
+  is_active: boolean;
+};
+
+export type PipelineStageRow = PipelineStageDbRow & {
+  name: string;
+  color: string;
+  order: number;
+  is_win_eligible: boolean;
+  is_loss_eligible: boolean;
+};
+
+const MODULE_TO_ENTITY: Record<PipelineModule, PipelineEntityTipo> = {
+  comercial: 'oportunidade',
+  emissao: 'proposta',
+  pos_venda: 'pos_venda',
+  financeiro: 'cobranca',
+  sinistro: 'sinistro',
+};
+
+const ENTITY_TO_MODULE: Record<PipelineEntityTipo, PipelineModule> = {
+  oportunidade: 'comercial',
+  proposta: 'emissao',
+  pos_venda: 'pos_venda',
+  cobranca: 'financeiro',
+  sinistro: 'sinistro',
+};
+
+export function moduleToPipelineEntityTipo(module: PipelineModule): PipelineEntityTipo {
+  return MODULE_TO_ENTITY[module];
+}
+
+export function entityTipoToPipelineModule(entityTipo: string | null | undefined): PipelineModule {
+  if (entityTipo && entityTipo in ENTITY_TO_MODULE) {
+    return ENTITY_TO_MODULE[entityTipo as PipelineEntityTipo];
+  }
+  return 'comercial';
+}
+
+export function normalizePipelineRow(row: PipelineDbRow | (Partial<PipelineDbRow> & Record<string, unknown>)): PipelineRow {
+  const legacyRow = row as Record<string, unknown>;
+  const entityTipo = typeof row.entidade_tipo === 'string' ? row.entidade_tipo : legacyRow.module as string | undefined;
+  const module = entityTipoToPipelineModule(entityTipo);
+  return {
+    ...row,
+    module,
+    name: (row.nome as string | undefined) ?? (legacyRow.name as string | undefined) ?? '',
+    is_active: (row.ativo as boolean | undefined) ?? (legacyRow.is_active as boolean | undefined) ?? true,
+  } as PipelineRow;
+}
+
+export function normalizePipelineStageRow(
+  row: PipelineStageDbRow | (Partial<PipelineStageDbRow> & Record<string, unknown>),
+): PipelineStageRow {
+  const legacyRow = row as Record<string, unknown>;
+  return {
+    ...row,
+    name: (row.nome as string | undefined) ?? (legacyRow.name as string | undefined) ?? '',
+    color: (row.cor as string | undefined) ?? (legacyRow.color as string | undefined) ?? 'bg-slate-400',
+    order: (row.ordem as number | undefined) ?? (legacyRow.order as number | undefined) ?? 0,
+    is_win_eligible:
+      (row.finaliza_com_sucesso as boolean | undefined) ??
+      (legacyRow.is_win_eligible as boolean | undefined) ??
+      false,
+    is_loss_eligible:
+      (row.finaliza_com_perda as boolean | undefined) ??
+      (legacyRow.is_loss_eligible as boolean | undefined) ??
+      false,
+  } as PipelineStageRow;
+}
 
 /**
  * Shape generico que o <KanbanBoard /> renderiza. Cada adapter de modulo

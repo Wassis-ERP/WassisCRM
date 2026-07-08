@@ -117,7 +117,7 @@ export function useOportunidade(id: string | undefined) {
         .select(`
           *,
           segurados:segurado_id ( id, nome, cpf_cnpj, telefone, email ),
-          ramos:ramo_id ( id, nome, comissao_padrao ),
+          ramos:ramo_id ( id, nome, risk_type, grupo_operacional, forma_calculo ),
           seguradoras:seguradora_id ( id, nome ),
           origens:origem_id ( id, nome ),
           motivos_perda:motivo_perda_id ( id, nome )

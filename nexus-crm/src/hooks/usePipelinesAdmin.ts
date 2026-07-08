@@ -3,22 +3,45 @@ import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryClient';
 import { useAuth } from './useAuth';
 import type { PipelineModule, PipelineRow, PipelineStageRow } from '../modules/types';
-import type { TablesUpdate } from '../types/database';
+import { moduleToPipelineEntityTipo, normalizePipelineRow, normalizePipelineStageRow } from '../modules/types';
+import type { TablesInsert, TablesUpdate } from '../types/database';
 
-type PipelinePatch = Pick<TablesUpdate<'pipelines'>, 'name' | 'is_active' | 'won_label' | 'lost_label'>;
+type PipelinePatch = Pick<TablesUpdate<'pipelines'>, 'nome' | 'ativo' | 'descricao' | 'ordem' | 'permite_customizacao'>;
 type StagePatch = Pick<
   TablesUpdate<'pipeline_stages'>,
-  'name' | 'color' | 'is_win_eligible' | 'is_loss_eligible' | 'order'
+  'nome' | 'cor' | 'finaliza_com_sucesso' | 'finaliza_com_perda' | 'ordem' | 'ativo'
 >;
 
 export function buildPipelineInsertPayload(input: { name: string; module: PipelineModule }, tenantId: string) {
   return {
-    name: input.name.trim(),
-    module: input.module,
+    nome: input.name.trim(),
+    entidade_tipo: moduleToPipelineEntityTipo(input.module),
     tenant_id: tenantId,
     filial_id: null,
-    is_active: true,
-  };
+    ativo: true,
+    ordem: null,
+    modelo_fabrica: false,
+    permite_customizacao: true,
+  } satisfies TablesInsert<'pipelines'>;
+}
+
+export function buildStageInsertPayload(input: {
+  pipelineId: string;
+  name: string;
+  color?: string;
+  order?: number;
+  is_win_eligible?: boolean;
+  is_loss_eligible?: boolean;
+}) {
+  return {
+    pipeline_id: input.pipelineId,
+    nome: input.name.trim(),
+    cor: input.color ?? 'bg-slate-400',
+    ordem: input.order ?? 0,
+    finaliza_com_sucesso: input.is_win_eligible ?? false,
+    finaliza_com_perda: input.is_loss_eligible ?? true,
+    ativo: true,
+  } satisfies TablesInsert<'pipeline_stages'>;
 }
 
 /**
@@ -51,7 +74,7 @@ export function usePipelinesAdmin() {
         .select()
         .single();
       if (error) throw error;
-      return data as PipelineRow;
+      return normalizePipelineRow(data);
     },
     onSuccess: () => invalidatePipelines(),
   });
@@ -65,7 +88,7 @@ export function usePipelinesAdmin() {
         .select()
         .single();
       if (error) throw error;
-      return data as PipelineRow;
+      return normalizePipelineRow(data);
     },
     onSuccess: () => invalidatePipelines(),
   });
@@ -74,7 +97,7 @@ export function usePipelinesAdmin() {
     mutationFn: async (id: string): Promise<void> => {
       const { error } = await supabase
         .from('pipelines')
-        .update({ is_active: false })
+        .update({ ativo: false })
         .eq('id', id);
       if (error) throw error;
     },
@@ -94,18 +117,11 @@ export function usePipelinesAdmin() {
     }): Promise<PipelineStageRow> => {
       const { data, error } = await supabase
         .from('pipeline_stages')
-        .insert({
-          pipeline_id: input.pipelineId,
-          name: input.name.trim(),
-          color: input.color ?? 'bg-slate-400',
-          order: input.order ?? 0,
-          is_win_eligible: input.is_win_eligible ?? false,
-          is_loss_eligible: input.is_loss_eligible ?? true,
-        })
+        .insert(buildStageInsertPayload(input))
         .select()
         .single();
       if (error) throw error;
-      return data as PipelineStageRow;
+      return normalizePipelineStageRow(data);
     },
     onSuccess: (_data, vars) => invalidateStages(vars.pipelineId),
   });
@@ -132,7 +148,7 @@ export function usePipelinesAdmin() {
     mutationFn: async (input: { id: string; pipelineId: string }): Promise<void> => {
       const { error } = await supabase
         .from('pipeline_stages')
-        .delete()
+        .update({ ativo: false })
         .eq('id', input.id);
       if (error) throw error;
     },
@@ -141,7 +157,7 @@ export function usePipelinesAdmin() {
 
   /**
    * Reordena todas as stages de um pipeline em uma unica mutation.
-   * Recebe a lista ja na ordem desejada; atualiza `order` sequencialmente (0..n-1).
+   * Recebe a lista ja na ordem desejada; atualiza `ordem` sequencialmente (0..n-1).
    * Tambem aceita patches parciais por stage (ex.: nome, cor, flags) para "Salvar Configuracao" de uma so vez.
    */
   const saveStagesBatch = useMutation({
@@ -152,7 +168,7 @@ export function usePipelinesAdmin() {
       const updates = input.stages.map((s, idx) =>
         supabase
           .from('pipeline_stages')
-          .update({ ...s.patch, order: idx })
+          .update({ ...s.patch, ordem: idx })
           .eq('id', s.id)
       );
       const results = await Promise.all(updates);

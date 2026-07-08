@@ -1,16 +1,14 @@
-﻿import { useMemo, useState, type ComponentType } from 'react'
-import { useEffect } from 'react'
+﻿import { useEffect, useMemo, useState, type ComponentType } from 'react'
 import type { ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
+  ArrowLeft,
   Users,
   GitBranch,
   ShieldCheck,
   Building2,
-  Target,
   XCircle,
   Plus,
-  Trash2,
   ChevronRight,
   Briefcase,
   FileSignature,
@@ -20,20 +18,30 @@ import {
   Loader2,
   Archive,
   BadgeDollarSign,
-  Edit3,
-  X,
+  FileCog,
+  Landmark,
+  Layers3,
+  Percent,
+  Search,
+  SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react'
 import EquipeAcessosPage from './EquipeAcessosPage'
 import ProdutoresPage from './ProdutoresPage'
 import StepsConfigModal from '../components/modals/StepsConfigModal'
 import { PermissionsMatrix } from '../components/admin/PermissionsMatrix'
+import CamposPersonalizadosTab from '../components/settings/CamposPersonalizadosTab'
+import CoberturasCatalogoTab from '../components/settings/CoberturasCatalogoTab'
+import CatalogoEnxutoTab from '../components/settings/CatalogoEnxutoTab'
 import FiliaisTab from '../components/settings/FiliaisTab'
+import {
+  FinanceiroGradesRecebimentoTab,
+  FinanceiroRegrasRepasseTab,
+} from '../components/settings/FinanceiroConfiguravelTab'
+import RamosTab from '../components/settings/RamosTab'
+import SeguradorasTab from '../components/settings/SeguradorasTab'
 import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
 
-import { useRamos, useOrigens, useSeguradoras, useMotivosPerda } from '../hooks/useLookups'
-import type { RamoGrupoOperacional, RamoRiskType } from '../hooks/useLookups'
-import { useLookupsAdmin, useRamosAdmin } from '../hooks/useLookupsAdmin'
 import { usePipelines } from '../hooks/usePipelines'
 import { usePipelinesAdmin } from '../hooks/usePipelinesAdmin'
 import { usePipelineStages } from '../hooks/usePipelineStages'
@@ -50,50 +58,22 @@ const MODULE_META: Record<PipelineModule, { label: string; icon: ComponentType<{
   sinistro: { label: 'Sinistro', icon: AlertTriangle, tone: 'text-ramo-empresarial bg-ramo-empresarial/12' },
 }
 
-const MODULE_ORDER: PipelineModule[] = ['comercial', 'emissao', 'pos_venda', 'financeiro', 'sinistro']
+const MODULE_ORDER: PipelineModule[] = ['comercial', 'emissao', 'financeiro', 'sinistro']
 
 type SettingsTab = {
   id: string
   label: string
   description: string
   icon: LucideIcon
-  component: ReactNode
+  component?: ReactNode
+  meta?: string
+  status?: 'available' | 'planned'
 }
 
 type SettingsGroup = {
   title: string
   description: string
   tabs: SettingsTab[]
-}
-
-const RISK_TYPES: Array<{ value: RamoRiskType; label: string }> = [
-  { value: 'VEICULO', label: 'Veículo' },
-  { value: 'IMOVEL', label: 'Imóvel' },
-  { value: 'VIDA', label: 'Vida' },
-  { value: 'EMPRESA', label: 'Empresa' },
-  { value: 'CARGA', label: 'Carga' },
-  { value: 'SAUDE', label: 'Saúde' },
-  { value: 'DIVERSOS', label: 'Diversos' },
-]
-
-const riskTypeLabel = (value: RamoRiskType) => RISK_TYPES.find((item) => item.value === value)?.label ?? value
-
-const riskTypeToGrupoOperacional = (value: RamoRiskType): RamoGrupoOperacional => {
-  switch (value) {
-    case 'VEICULO':
-      return 'Auto e Frota'
-    case 'IMOVEL':
-      return 'Patrimonial'
-    case 'VIDA':
-    case 'SAUDE':
-      return 'Pessoas'
-    case 'EMPRESA':
-      return 'Empresarial'
-    case 'CARGA':
-      return 'Transporte'
-    case 'DIVERSOS':
-      return 'Diversos'
-  }
 }
 
 const PipelineStagesPreview = ({ pipelineId }: { pipelineId: string }) => {
@@ -106,7 +86,7 @@ const PipelineStagesPreview = ({ pipelineId }: { pipelineId: string }) => {
   return (
     <div className="flex gap-1 mt-1 opacity-60">
       {stages.map((step) => (
-        <div key={step.id} className={`h-1 flex-1 rounded-full ${step.color}`} title={step.name} />
+        <div key={step.id} className={`h-1 flex-1 rounded-full ${step.cor ?? 'bg-slate-400'}`} title={step.nome} />
       ))}
     </div>
   )
@@ -152,7 +132,7 @@ const FunisEtapasTab = () => {
   const handleArchive = async (p: PipelineRow) => {
     const shouldArchive = await confirm({
       title: 'Arquivar funil',
-      description: `Arquivar o funil "${p.name}"? Cards já existentes não serão removidos, mas ele deixa de aparecer no Kanban.`,
+      description: `Arquivar o funil "${p.nome}"? Cards já existentes não serão removidos, mas ele deixa de aparecer no Kanban.`,
       confirmLabel: 'Arquivar',
       tone: 'warning',
     })
@@ -261,7 +241,7 @@ const FunisEtapasTab = () => {
                           <Icon size={14} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-fg-2 group-hover:text-accent-primary transition-colors truncate">{p.name}</p>
+                          <p className="font-bold text-fg-2 group-hover:text-accent-primary transition-colors truncate">{p.nome}</p>
                           <div className="mt-1 flex flex-wrap items-center gap-2">
                             <span className="rounded-full bg-bg-surface-2 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-fg-4">
                               {getPipelineScopeLabel(p)}
@@ -277,7 +257,7 @@ const FunisEtapasTab = () => {
                           }}
                           disabled={isArchivingPipeline}
                           title="Arquivar funil"
-                          aria-label={`Arquivar funil ${p.name}`}
+                          aria-label={`Arquivar funil ${p.nome}`}
                           className="p-2 text-fg-4 hover:text-signal-warning hover:bg-signal-warning/10 rounded-lg transition-colors disabled:opacity-50"
                         >
                           <Archive size={16} />
@@ -302,298 +282,125 @@ const FunisEtapasTab = () => {
   )
 }
 
-const RamosTab = () => {
-  const { data, isLoading } = useRamos()
-  const { add, update, remove, isAdding, isUpdating, isRemoving } = useRamosAdmin()
-  const confirm = useConfirm()
-  const { notify } = useSystemFeedback()
+const SettingsHub = ({
+  groups,
+  search,
+  onSearchChange,
+  onOpen,
+}: {
+  groups: SettingsGroup[]
+  search: string
+  onSearchChange: (value: string) => void
+  onOpen: (tab: SettingsTab) => void
+}) => {
+  const needle = search.trim().toLowerCase()
+  const visibleGroups = groups
+    .map((group) => ({
+      ...group,
+      tabs: group.tabs.filter((tab) => {
+        if (!needle) return true
+        return [group.title, group.description, tab.label, tab.description, tab.meta]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(needle)
+      }),
+    }))
+    .filter((group) => group.tabs.length > 0)
 
-  const [nome, setNome] = useState('')
-  const [riskType, setRiskType] = useState<RamoRiskType>('VEICULO')
-  const [isMonthly, setIsMonthly] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const isSaving = isAdding || isUpdating
-
-  const resetForm = () => {
-    setNome('')
-    setRiskType('VEICULO')
-    setIsMonthly(false)
-    setEditingId(null)
-    setError(null)
-  }
-
-  const handleSave = async () => {
-    const trimmedName = nome.trim()
-    if (!trimmedName || isSaving) return
-    setError(null)
-    try {
-      const input = {
-        nome: trimmedName,
-        risk_type: riskType,
-        grupo_operacional: riskTypeToGrupoOperacional(riskType),
-        is_monthly: isMonthly,
-      }
-      if (editingId) {
-        await update({ id: editingId, input })
-      } else {
-        await add(input)
-      }
-      resetForm()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar ramo')
-    }
-  }
-
-  const handleEdit = (ramo: NonNullable<ReturnType<typeof useRamos>['data']>[number]) => {
-    setEditingId(ramo.id)
-    setNome(ramo.nome)
-    setRiskType(ramo.risk_type)
-    setIsMonthly(ramo.is_monthly)
-    setError(null)
-  }
-
-  const handleRemove = async (id: string, ramoNome: string) => {
-    const shouldRemove = await confirm({
-      title: 'Inativar ramo',
-      description: `Inativar o ramo "${ramoNome}"? Registros históricos continuam preservados.`,
-      confirmLabel: 'Inativar',
-      tone: 'danger',
-    })
-    if (!shouldRemove) return
-    try {
-      await remove(id)
-    } catch (err) {
-      notify({
-        title: 'Erro ao inativar ramo',
-        description: err instanceof Error ? err.message : 'Tente novamente.',
-        tone: 'danger',
-      })
-    }
-  }
+  const availableCount = groups.flatMap((group) => group.tabs).filter((tab) => tab.component).length
+  const totalCount = groups.flatMap((group) => group.tabs).length
 
   return (
-    <div className="animate-fade-in space-y-6">
-      <div className="bg-bg-surface p-6 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-        <h3 className="text-xs font-bold text-fg-3 uppercase tracking-wider mb-4">Adicionar Ramo</h3>
-        <div className="flex flex-wrap gap-3">
-          <label className="min-w-0 flex-[1_1_260px] space-y-1.5">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-fg-4">Nome do ramo</span>
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <label className="block w-full max-w-xl space-y-2">
+          <span className="text-xs font-black uppercase tracking-widest text-fg-4">
+            Busque por uma configuração
+          </span>
+          <span className="relative block">
+            <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
             <input
-              type="text"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
-              disabled={isSaving}
-              placeholder="Ex: Vida em Grupo PME"
-              className="w-full px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
+              value={search}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Digite parte do título, descrição ou campo..."
+              className="w-full rounded-[8px] border border-border-1 bg-bg-surface py-3 pl-10 pr-4 text-sm font-semibold text-fg-1 shadow-[var(--shadow-1)] placeholder:text-fg-4 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
             />
-          </label>
-          <label className="min-w-0 flex-[1_1_220px] space-y-1.5">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-fg-4">Categoria do risco</span>
-            <select
-              value={riskType}
-              onChange={(e) => setRiskType(e.target.value as RamoRiskType)}
-              disabled={isSaving}
-              className="w-full px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm font-bold focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
-            >
-              {RISK_TYPES.map((item) => (
-                <option key={item.value} value={item.value}>{item.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="mt-auto flex h-[42px] items-center gap-2 px-3 bg-bg-surface-2 border border-border-1 rounded-[6px] text-sm font-bold text-fg-2 whitespace-nowrap">
-            <input
-              type="checkbox"
-              checked={isMonthly}
-              onChange={(e) => setIsMonthly(e.target.checked)}
-              disabled={isSaving}
-              className="h-4 w-4 accent-accent-primary"
-            />
-            Mensal
-          </label>
-          <button
-            onClick={handleSave}
-            disabled={isSaving || !nome.trim()}
-            className="mt-auto flex h-[42px] w-full sm:w-[180px] items-center justify-center gap-2 px-6 bg-accent-primary text-fg-on-brand rounded-full text-sm font-bold hover:bg-accent-primary-hover transition-colors disabled:opacity-50 whitespace-nowrap"
-          >
-            <Plus size={18} /> {isSaving ? 'Salvando...' : editingId ? 'Atualizar' : 'Adicionar'}
-          </button>
+          </span>
+        </label>
+        <div className="rounded-[8px] border border-border-1 bg-bg-surface px-4 py-3 text-right shadow-[var(--shadow-1)]">
+          <p className="text-lg font-black text-fg-1">{availableCount}/{totalCount}</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-fg-4">cadastros operáveis</p>
         </div>
-        {editingId && (
-          <button
-            onClick={resetForm}
-            className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-fg-3 hover:text-accent-primary transition-colors"
-          >
-            <X size={14} /> Cancelar edição
-          </button>
-        )}
-        {error && (
-          <p className="mt-3 text-xs text-signal-danger font-medium">{error}</p>
-        )}
       </div>
 
-      {isLoading ? (
-        <div className="text-center py-8 text-fg-4 font-medium">Carregando ramos...</div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {data?.map((ramo) => (
-            <div key={ramo.id} className="flex items-start justify-between gap-4 p-4 bg-bg-surface border border-border-1 rounded-[8px] group hover:shadow-[var(--shadow-1)] transition-all">
-              <div className="flex items-start gap-3 min-w-0">
-                <div className="p-2 bg-bg-surface-2 rounded-lg text-fg-4 group-hover:text-accent-primary transition-colors">
-                  <ShieldCheck size={16} />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-fg-2">{ramo.nome}</span>
-                    {ramo.is_monthly && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-accent-primary bg-accent-primary-soft px-2 py-0.5 rounded-full">
-                        Mensal
+      {visibleGroups.map((group) => (
+        <section key={group.title} className="space-y-3">
+          <div>
+            <h2 className="!text-[24px] !leading-tight font-black uppercase tracking-widest text-fg-4">{group.title}</h2>
+            <p className="mt-1 text-sm font-semibold text-fg-3">{group.description}</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {group.tabs.map((tab) => {
+              const Icon = tab.icon
+              const isAvailable = Boolean(tab.component)
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => onOpen(tab)}
+                  disabled={!isAvailable}
+                  className={`group min-h-[154px] rounded-[8px] border border-border-1 bg-bg-surface p-5 text-left shadow-[var(--shadow-1)] transition-all ${
+                    isAvailable
+                      ? 'hover:-translate-y-0.5 hover:border-accent-primary/50 hover:shadow-[var(--shadow-2)]'
+                      : 'cursor-not-allowed opacity-70'
+                  }`}
+                >
+                  <span className="flex items-start gap-4">
+                    <span className="rounded-[8px] bg-accent-primary-soft p-3 text-accent-primary">
+                      <Icon size={20} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-start justify-between gap-3">
+                        <span className="text-base font-black text-fg-1">{tab.label}</span>
+                        <ChevronRight
+                          size={16}
+                          className={`mt-1 shrink-0 text-fg-4 transition-colors ${
+                            isAvailable ? 'group-hover:text-accent-primary' : ''
+                          }`}
+                        />
+                      </span>
+                      <span className="mt-3 block text-sm font-semibold leading-relaxed text-fg-3">
+                        {tab.description}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="mt-5 flex flex-wrap gap-2">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${
+                        isAvailable
+                          ? 'bg-accent-primary-soft text-accent-primary'
+                          : 'border border-border-1 bg-bg-surface-2 text-fg-4'
+                      }`}
+                    >
+                      {isAvailable ? 'Disponível' : 'Planejado V2'}
+                    </span>
+                    {tab.meta && (
+                      <span className="rounded-full border border-border-1 bg-bg-surface-2 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-fg-4">
+                        {tab.meta}
                       </span>
                     )}
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-wider text-fg-4">
-                    <span className="px-2 py-1 rounded-[6px] bg-bg-surface-2">
-                      Categoria: {riskTypeLabel(ramo.risk_type)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => handleEdit(ramo)}
-                  disabled={isSaving}
-                  className="p-2 text-fg-4 hover:text-accent-primary hover:bg-accent-primary-soft rounded-lg transition-colors disabled:opacity-50"
-                  title="Editar ramo"
-                  aria-label={`Editar ramo ${ramo.nome}`}
-                >
-                  <Edit3 size={14} />
+                  </span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleRemove(ramo.id, ramo.nome)}
-                  disabled={isRemoving}
-                  className="p-2 text-fg-4 hover:text-signal-danger hover:bg-signal-danger/10 rounded-lg transition-colors disabled:opacity-50"
-                  title="Inativar ramo"
-                  aria-label={`Inativar ramo ${ramo.nome}`}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          ))}
-          {data?.length === 0 && (
-            <div className="col-span-full text-center py-8 text-fg-4 font-medium text-sm">
-              Nenhum ramo encontrado.
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
+              )
+            })}
+          </div>
+        </section>
+      ))}
 
-// --- Componente DB Lookup ---
-const DBLookupListTab = ({ 
-  title, 
-  table,
-  useDataHook,
-  icon: Icon
-}: { 
-  title: string,
-  table: 'ramos' | 'origens' | 'seguradoras' | 'motivos_perda',
-  useDataHook: () => { data: {id: string, nome: string}[] | undefined, isLoading: boolean },
-  icon: ComponentType<{ size?: number; className?: string }>
-}) => {
-  const [newValue, setNewValue] = useState('')
-  const { data, isLoading } = useDataHook()
-  const { add, remove, isAdding, isRemoving } = useLookupsAdmin(table)
-  const confirm = useConfirm()
-  const { notify } = useSystemFeedback()
-
-  const handleAdd = async () => {
-    if (newValue.trim() && !isAdding) { 
-      try {
-        await add(newValue.trim())
-        setNewValue('')
-      } catch (err) {
-        console.error("Erro ao adicionar:", err)
-      }
-    }
-  }
-
-  const handleRemove = async (id: string, nome: string) => {
-    const shouldRemove = await confirm({
-      title: `Inativar ${title.toLowerCase()}`,
-      description: `Tem certeza que deseja inativar "${nome}"?`,
-      confirmLabel: 'Inativar',
-      tone: 'danger',
-    })
-    if (!shouldRemove) return
-    try {
-      await remove(id)
-    } catch (err) {
-      notify({
-        title: `Erro ao inativar ${title.toLowerCase()}`,
-        description: err instanceof Error ? err.message : 'Tente novamente.',
-        tone: 'danger',
-      })
-    }
-  }
-
-  return (
-    <div className="animate-fade-in space-y-6">
-      <div className="bg-bg-surface p-6 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-        <h3 className="text-xs font-bold text-fg-3 uppercase tracking-wider mb-4">Adicionar {title}</h3>
-        <div className="flex gap-2">
-          <input 
-            type="text" 
-            value={newValue}
-            onChange={(e) => setNewValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
-            disabled={isAdding}
-            placeholder={`Novo(a) ${title.toLowerCase()}...`} 
-            className="flex-1 px-4 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all disabled:opacity-50"
-          />
-          <button 
-            onClick={handleAdd}
-            disabled={isAdding || !newValue.trim()}
-            className="flex items-center gap-2 px-6 py-2.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-bold hover:bg-accent-primary-hover transition-colors disabled:opacity-50"
-          >
-            <Plus size={18} /> {isAdding ? 'Adicionando...' : 'Adicionar'}
-          </button>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="text-center py-8 text-fg-4 font-medium">Carregando {title.toLowerCase()}...</div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {data?.map((item) => (
-            <div key={item.id} className="flex items-center justify-between p-4 bg-bg-surface border border-border-1 rounded-[8px] group hover:shadow-[var(--shadow-1)] transition-all">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-bg-surface-2 rounded-lg text-fg-4 group-hover:text-accent-primary transition-colors">
-                  <Icon size={16} />
-                </div>
-                <span className="font-semibold text-fg-2">{item.nome}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleRemove(item.id, item.nome)}
-                disabled={isRemoving}
-                className="p-2 text-fg-4 hover:text-signal-danger hover:bg-signal-danger/10 rounded-lg transition-colors disabled:opacity-50"
-                aria-label={`Inativar ${title.toLowerCase()} ${item.nome}`}
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          ))}
-          {data?.length === 0 && (
-            <div className="col-span-full text-center py-8 text-fg-4 font-medium text-sm">
-              Nenhum registro encontrado.
-            </div>
-          )}
+      {visibleGroups.length === 0 && (
+        <div className="rounded-[8px] border border-border-1 bg-bg-surface p-10 text-center text-sm font-semibold text-fg-4 shadow-[var(--shadow-1)]">
+          Nenhuma configuração encontrada.
         </div>
       )}
     </div>
@@ -602,17 +409,18 @@ const DBLookupListTab = ({
 
 export default function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const initialTab = searchParams.get('tab') || 'corretoras'
-  const [activeTab, setActiveTab] = useState(initialTab)
+  const [hubSearch, setHubSearch] = useState('')
+  const activeTabId = searchParams.get('tab')
+  const canonicalActiveTabId = activeTabId === 'financeiro_configuravel' ? 'financeiro_grades_recebimento' : activeTabId
 
   useEffect(() => {
-    setActiveTab(searchParams.get('tab') || 'corretoras')
-  }, [searchParams])
+    window.scrollTo({ top: 0, left: 0 })
+  }, [canonicalActiveTabId])
 
   const settingsGroups: SettingsGroup[] = [
     {
       title: 'Organização',
-      description: 'Corretoras, filiais e produtores do grupo',
+      description: 'Estrutura jurídica, unidades e força comercial do grupo.',
       tabs: [
         {
           id: 'corretoras',
@@ -620,6 +428,7 @@ export default function SettingsPage() {
           description: 'Cadastre unidades, matriz, contatos e dados fiscais.',
           icon: Building2,
           component: <FiliaisTab />,
+          meta: 'grupo e filiais',
         },
         {
           id: 'produtores',
@@ -627,12 +436,13 @@ export default function SettingsPage() {
           description: 'Gerencie produtores internos e parceiros externos.',
           icon: BadgeDollarSign,
           component: <ProdutoresPage />,
+          meta: 'cadastro comercial',
         },
       ],
     },
     {
       title: 'Acessos',
-      description: 'Usuários, perfis e permissões',
+      description: 'Controle de usuários, perfis, filiais e permissões operacionais.',
       tabs: [
         {
           id: 'equipe',
@@ -640,6 +450,7 @@ export default function SettingsPage() {
           description: 'Vincule usuários às corretoras e aos perfis por unidade.',
           icon: Users,
           component: <EquipeAcessosPage />,
+          meta: 'multiunidade',
         },
         {
           id: 'permissoes',
@@ -647,12 +458,13 @@ export default function SettingsPage() {
           description: 'Autorize leitura, criação, edição e exclusão por perfil.',
           icon: ShieldCheck,
           component: <PermissionsMatrix />,
+          meta: 'RBAC front',
         },
       ],
     },
     {
       title: 'Operação',
-      description: 'Funis e ramos operacionais',
+      description: 'Funis, etapas, ramos e coberturas usados nos fluxos de seguros.',
       tabs: [
         {
           id: 'funis',
@@ -660,6 +472,7 @@ export default function SettingsPage() {
           description: 'Configure pipelines, etapas e regras de conclusão.',
           icon: GitBranch,
           component: <FunisEtapasTab />,
+          meta: 'pipelines',
         },
         {
           id: 'ramos',
@@ -667,115 +480,173 @@ export default function SettingsPage() {
           description: 'Cadastre ramos comerciais e classificação do risco.',
           icon: ShieldCheck,
           component: <RamosTab />,
+          meta: '17 campos V2',
+        },
+        {
+          id: 'coberturas',
+          label: 'Coberturas',
+          description: 'Estruture garantias, capitais, franquias e regras por ramo.',
+          icon: Layers3,
+          component: <CoberturasCatalogoTab />,
+          meta: '16 campos V2',
         },
       ],
     },
     {
       title: 'Catálogos',
-      description: 'Listas auxiliares compartilhadas',
+      description: 'Tabelas auxiliares compartilhadas entre corretoras do grupo.',
       tabs: [
         {
           id: 'seguradoras',
           label: 'Seguradoras',
-          description: 'Mantenha o catálogo de seguradoras do grupo.',
+          description: 'Mantenha dados cadastrais, canais e flags de automação.',
           icon: Building2,
-          component: <DBLookupListTab title="Seguradora" table="seguradoras" useDataHook={useSeguradoras} icon={Building2} />,
+          component: <SeguradorasTab />,
+          meta: '16 campos V2',
         },
         {
           id: 'origens',
           label: 'Origem de Lead',
           description: 'Padronize origens usadas nos funis comerciais.',
-          icon: Target,
-          component: <DBLookupListTab title="Origem" table="origens" useDataHook={useOrigens} icon={Target} />,
+          icon: SlidersHorizontal,
+          component: (
+            <CatalogoEnxutoTab
+              title="Origens de Lead"
+              singular="Origem"
+              description="Classifique as entradas comerciais por tipo."
+              table="origens"
+              field="tipo"
+              fieldLabel="Tipo"
+              fieldPlaceholder="Ex: indicação, campanha, site..."
+              newLabel="Nova Origem"
+              icon={SlidersHorizontal}
+            />
+          ),
+          meta: 'tipo',
         },
         {
           id: 'perda',
           label: 'Motivos de Perda',
           description: 'Defina motivos usados ao encerrar oportunidades.',
           icon: XCircle,
-          component: <DBLookupListTab title="Motivo de Perda" table="motivos_perda" useDataHook={useMotivosPerda} icon={XCircle} />,
+          component: (
+            <CatalogoEnxutoTab
+              title="Motivos de Perda"
+              singular="Motivo"
+              description="Agrupe motivos de perda por categoria para apoiar leitura comercial."
+              table="motivos_perda"
+              field="categoria"
+              fieldLabel="Categoria"
+              fieldPlaceholder="Ex: preço, cobertura..."
+              icon={XCircle}
+            />
+          ),
+          meta: 'categoria',
+        },
+      ],
+    },
+    {
+      title: 'Financeiro',
+      description: 'Moldes separados para comissão recebida e pagamentos de repasse.',
+      tabs: [
+        {
+          id: 'financeiro_grades_recebimento',
+          label: 'Grades de Recebimento',
+          description: 'Configure a comissão que a corretora recebe das seguradoras.',
+          icon: Landmark,
+          component: <FinanceiroGradesRecebimentoTab />,
+          meta: 'recebimento',
+        },
+        {
+          id: 'financeiro_regras_repasse',
+          label: 'Regras de Repasse',
+          description: 'Configure pagamentos para produtores, vendedores e gerentes.',
+          icon: Percent,
+          component: <FinanceiroRegrasRepasseTab />,
+          meta: 'repasse',
+        },
+      ],
+    },
+    {
+      title: 'Campos',
+      description: 'Campos personalizados tipados e suas opções de seleção.',
+      tabs: [
+        {
+          id: 'campos_personalizados',
+          label: 'Campos Personalizados',
+          description: 'Crie definições por entidade, tipo de dado, validações e opções de lista.',
+          icon: FileCog,
+          component: <CamposPersonalizadosTab />,
+          meta: '20 campos V2',
         },
       ],
     },
   ]
 
   const tabs = settingsGroups.flatMap((group) => group.tabs)
-  const activeTabDetails = tabs.find(t => t.id === activeTab) ?? tabs[0]
-  const activeGroup = settingsGroups.find((group) => group.tabs.some((tab) => tab.id === activeTabDetails.id))
-  const ActiveIcon = activeTabDetails.icon
+  const activeTabDetails = canonicalActiveTabId ? tabs.find((tab) => tab.id === canonicalActiveTabId) ?? null : null
+  const activeGroup = activeTabDetails
+    ? settingsGroups.find((group) => group.tabs.some((tab) => tab.id === activeTabDetails.id))
+    : null
+  const ActiveIcon = activeTabDetails?.icon
+
+  const openTab = (tab: SettingsTab) => {
+    if (!tab.component) return
+    setSearchParams({ tab: tab.id })
+  }
 
   return (
-    <div className="animate-fade-in flex flex-col min-h-full">
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">Configurações</h1>
-          <p className="text-fg-3 font-medium tracking-tight">
-            Administre cadastros, acessos, catálogos e fluxos operacionais do CRM.
+    <div className="animate-fade-in min-h-full space-y-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
+          {activeTabDetails && (
+            <button
+              type="button"
+              onClick={() => setSearchParams({})}
+              className="mb-3 inline-flex items-center gap-2 rounded-full px-1 py-1 text-sm font-black text-fg-3 transition-colors hover:text-accent-primary"
+            >
+              <ArrowLeft size={17} /> Configurações
+            </button>
+          )}
+          <div className="flex flex-wrap items-center gap-3">
+            {ActiveIcon && (
+              <span className="rounded-[8px] bg-accent-primary-soft p-2 text-accent-primary">
+                <ActiveIcon size={20} />
+              </span>
+            )}
+            <h1 className="!text-[32px] !leading-tight font-black tracking-tight text-fg-1">
+              {activeTabDetails?.label ?? 'Configurações'}
+            </h1>
+            {activeGroup && (
+              <span className="rounded-full bg-bg-surface-2 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-fg-4">
+                {activeGroup.title}
+              </span>
+            )}
+          </div>
+          <p className="mt-2 text-fg-3 font-medium tracking-tight">
+            {activeTabDetails?.description ?? 'Administre cadastros, acessos, catálogos e fluxos operacionais do CRM.'}
           </p>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row bg-bg-surface rounded-[8px] shadow-[var(--shadow-1)] border border-border-1 overflow-hidden min-h-[600px]">
-        <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-border-1 bg-bg-surface flex flex-col p-4 gap-5 overflow-y-auto custom-scrollbar shrink-0">
-          {settingsGroups.map((group) => (
-            <section key={group.title} className="space-y-1.5">
-              <div className="px-2">
-                <h2 className="text-[10px] font-black uppercase tracking-widest text-fg-4">{group.title}</h2>
-                <p className="mt-0.5 text-[11px] font-semibold text-fg-4 leading-snug">{group.description}</p>
-              </div>
-              {group.tabs.map((tab) => {
-                const Icon = tab.icon
-                const isActive = activeTabDetails.id === tab.id
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => {
-                      setActiveTab(tab.id)
-                      setSearchParams(tab.id === 'corretoras' ? {} : { tab: tab.id })
-                    }}
-                    className={`flex w-full items-center justify-between group px-3 py-3 rounded-[8px] text-left text-sm font-bold transition-all ${
-                      isActive
-                        ? 'bg-accent-primary text-fg-on-brand shadow-[var(--shadow-brand)]'
-                        : 'text-fg-3 hover:bg-bg-surface-2 hover:text-fg-1'
-                    }`}
-                    aria-current={isActive ? 'page' : undefined}
-                  >
-                    <span className="flex min-w-0 items-center gap-3">
-                      <Icon size={18} className={`${isActive ? 'text-fg-on-brand' : 'text-fg-4 group-hover:text-accent-primary'} transition-colors shrink-0`} />
-                      <span className="truncate">{tab.label}</span>
-                    </span>
-                    <ChevronRight size={14} className={`${isActive ? 'text-fg-on-brand/70' : 'text-fg-4 opacity-60'} transition-all shrink-0`} />
-                  </button>
-                )
-              })}
-            </section>
-          ))}
-        </div>
-
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-5 lg:p-8 bg-bg-app">
-          <div className="max-w-6xl">
-            <div className="mb-6 flex flex-col gap-3 border-b border-border-1 pb-5 sm:flex-row sm:items-start sm:justify-between">
-              <div className="flex items-start gap-3">
-                <div className="rounded-[8px] bg-accent-primary-soft p-2 text-accent-primary">
-                  <ActiveIcon size={18} />
-                </div>
-                <div>
-                  <div className="mb-1 flex flex-wrap items-center gap-2">
-                    <h2 className="text-xl font-bold text-fg-1">{activeTabDetails.label}</h2>
-                    {activeGroup && (
-                      <span className="rounded-full bg-bg-surface-2 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-fg-4">
-                        {activeGroup.title}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm font-medium text-fg-3">{activeTabDetails.description}</p>
-                </div>
-              </div>
+      <div className="max-w-7xl">
+        {activeTabDetails ? (
+          activeTabDetails.component ?? (
+            <div className="rounded-[8px] border border-border-1 bg-bg-surface p-8 shadow-[var(--shadow-1)]">
+              <p className="text-sm font-black uppercase tracking-widest text-fg-4">Planejado V2</p>
+              <p className="mt-2 max-w-2xl text-sm font-semibold leading-relaxed text-fg-3">
+                Este cadastro já está mapeado no esqueleto, mas será implementado em um recorte próprio para preservar as regras de negócio e a validação visual.
+              </p>
             </div>
-            {activeTabDetails.component}
-          </div>
-        </div>
+          )
+        ) : (
+          <SettingsHub
+            groups={settingsGroups}
+            search={hubSearch}
+            onSearchChange={setHubSearch}
+            onOpen={openTab}
+          />
+        )}
       </div>
     </div>
   )

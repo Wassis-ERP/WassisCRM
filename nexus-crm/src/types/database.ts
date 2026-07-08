@@ -240,6 +240,187 @@ export type Database = {
           },
         ]
       }
+      coberturas_catalogo: {
+        Row: {
+          ativo: boolean
+          capital_lmi_padrao: number | null
+          carencia_dias: number | null
+          caracteristica: string | null
+          codigo: string | null
+          codigo_susep: string | null
+          descricao: string | null
+          franquia_padrao: number | null
+          id: string
+          modalidade: string | null
+          nome: string
+          obrigatoria: boolean
+          ordem: number | null
+          ramo_id: string
+          tipo_cobertura: string | null
+          tipo_risco: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          capital_lmi_padrao?: number | null
+          carencia_dias?: number | null
+          caracteristica?: string | null
+          codigo?: string | null
+          codigo_susep?: string | null
+          descricao?: string | null
+          franquia_padrao?: number | null
+          id?: string
+          modalidade?: string | null
+          nome: string
+          obrigatoria?: boolean
+          ordem?: number | null
+          ramo_id: string
+          tipo_cobertura?: string | null
+          tipo_risco?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          capital_lmi_padrao?: number | null
+          carencia_dias?: number | null
+          caracteristica?: string | null
+          codigo?: string | null
+          codigo_susep?: string | null
+          descricao?: string | null
+          franquia_padrao?: number | null
+          id?: string
+          modalidade?: string | null
+          nome?: string
+          obrigatoria?: boolean
+          ordem?: number | null
+          ramo_id?: string
+          tipo_cobertura?: string | null
+          tipo_risco?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coberturas_catalogo_ramo_id_fkey"
+            columns: ["ramo_id"]
+            isOneToOne: false
+            referencedRelation: "ramos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campo_definicoes: {
+        Row: {
+          agrupamento: string | null
+          ajuda: string | null
+          ativo: boolean
+          chave: string
+          entidade_tipo: string
+          filial_id: string | null
+          formato: string | null
+          id: string
+          mascara: string | null
+          max_valor: number | null
+          min_valor: number | null
+          nome: string
+          obrigatorio: boolean
+          ordem: number | null
+          placeholder: string | null
+          tamanho_max: number | null
+          tenant_id: string
+          tipo_dado: string
+          visivel_em_listagem: boolean
+        }
+        Insert: {
+          agrupamento?: string | null
+          ajuda?: string | null
+          ativo?: boolean
+          chave: string
+          entidade_tipo: string
+          filial_id?: string | null
+          formato?: string | null
+          id?: string
+          mascara?: string | null
+          max_valor?: number | null
+          min_valor?: number | null
+          nome: string
+          obrigatorio?: boolean
+          ordem?: number | null
+          placeholder?: string | null
+          tamanho_max?: number | null
+          tenant_id: string
+          tipo_dado: string
+          visivel_em_listagem?: boolean
+        }
+        Update: {
+          agrupamento?: string | null
+          ajuda?: string | null
+          ativo?: boolean
+          chave?: string
+          entidade_tipo?: string
+          filial_id?: string | null
+          formato?: string | null
+          id?: string
+          mascara?: string | null
+          max_valor?: number | null
+          min_valor?: number | null
+          nome?: string
+          obrigatorio?: boolean
+          ordem?: number | null
+          placeholder?: string | null
+          tamanho_max?: number | null
+          tenant_id?: string
+          tipo_dado?: string
+          visivel_em_listagem?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campo_definicoes_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campo_definicoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campo_opcoes: {
+        Row: {
+          ativo: boolean
+          campo_definicao_id: string
+          id: string
+          ordem: number | null
+          rotulo: string
+          valor: string
+        }
+        Insert: {
+          ativo?: boolean
+          campo_definicao_id: string
+          id?: string
+          ordem?: number | null
+          rotulo: string
+          valor: string
+        }
+        Update: {
+          ativo?: boolean
+          campo_definicao_id?: string
+          id?: string
+          ordem?: number | null
+          rotulo?: string
+          valor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campo_opcoes_campo_definicao_id_fkey"
+            columns: ["campo_definicao_id"]
+            isOneToOne: false
+            referencedRelation: "campo_definicoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emissoes: {
         Row: {
           concluded_at: string | null
@@ -310,6 +491,199 @@ export type Database = {
           },
           {
             foreignKeyName: "emissoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recebimento_grades: {
+        Row: {
+          ativo: boolean
+          base_calculo: string | null
+          considera_adicional_fracionamento: boolean
+          considera_iof: boolean
+          id: string
+          nome: string
+          observacoes: string | null
+          percentual_default: number | null
+          qtd_parcelas: number
+          ramo_id: string
+          seguradora_id: string
+          tipo: string
+          vitalicio: boolean
+        }
+        Insert: {
+          ativo?: boolean
+          base_calculo?: string | null
+          considera_adicional_fracionamento?: boolean
+          considera_iof?: boolean
+          id?: string
+          nome: string
+          observacoes?: string | null
+          percentual_default?: number | null
+          qtd_parcelas: number
+          ramo_id: string
+          seguradora_id: string
+          tipo: string
+          vitalicio?: boolean
+        }
+        Update: {
+          ativo?: boolean
+          base_calculo?: string | null
+          considera_adicional_fracionamento?: boolean
+          considera_iof?: boolean
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          percentual_default?: number | null
+          qtd_parcelas?: number
+          ramo_id?: string
+          seguradora_id?: string
+          tipo?: string
+          vitalicio?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recebimento_grades_ramo_id_fkey"
+            columns: ["ramo_id"]
+            isOneToOne: false
+            referencedRelation: "ramos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimento_grades_seguradora_id_fkey"
+            columns: ["seguradora_id"]
+            isOneToOne: false
+            referencedRelation: "seguradoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recebimento_grade_parcelas: {
+        Row: {
+          ativo: boolean
+          dias_apos_vencimento: number | null
+          grade_id: string
+          id: string
+          numero: number
+          percentual: number | null
+          percentual_sobre: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          dias_apos_vencimento?: number | null
+          grade_id: string
+          id?: string
+          numero: number
+          percentual?: number | null
+          percentual_sobre?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          dias_apos_vencimento?: number | null
+          grade_id?: string
+          id?: string
+          numero?: number
+          percentual?: number | null
+          percentual_sobre?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recebimento_grade_parcelas_grade_id_fkey"
+            columns: ["grade_id"]
+            isOneToOne: false
+            referencedRelation: "recebimento_grades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      repasse_regras: {
+        Row: {
+          ativo: boolean
+          base: string
+          filial_id: string | null
+          fim_vigencia: string | null
+          gatilho: string
+          id: string
+          inicio_vigencia: string | null
+          limite_parcelas: number | null
+          observacoes: string | null
+          papel: string
+          percentual: number | null
+          prioridade: number
+          produtor_id: string | null
+          qtd_parcelas: number | null
+          ramo_id: string | null
+          tenant_id: string
+          tipo_documento: string | null
+          valor_fixo: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          base: string
+          filial_id?: string | null
+          fim_vigencia?: string | null
+          gatilho: string
+          id?: string
+          inicio_vigencia?: string | null
+          limite_parcelas?: number | null
+          observacoes?: string | null
+          papel: string
+          percentual?: number | null
+          prioridade?: number
+          produtor_id?: string | null
+          qtd_parcelas?: number | null
+          ramo_id?: string | null
+          tenant_id: string
+          tipo_documento?: string | null
+          valor_fixo?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          base?: string
+          filial_id?: string | null
+          fim_vigencia?: string | null
+          gatilho?: string
+          id?: string
+          inicio_vigencia?: string | null
+          limite_parcelas?: number | null
+          observacoes?: string | null
+          papel?: string
+          percentual?: number | null
+          prioridade?: number
+          produtor_id?: string | null
+          qtd_parcelas?: number | null
+          ramo_id?: string | null
+          tenant_id?: string
+          tipo_documento?: string | null
+          valor_fixo?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repasse_regras_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repasse_regras_produtor_id_fkey"
+            columns: ["produtor_id"]
+            isOneToOne: false
+            referencedRelation: "produtores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repasse_regras_ramo_id_fkey"
+            columns: ["ramo_id"]
+            isOneToOne: false
+            referencedRelation: "ramos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "repasse_regras_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -397,24 +771,27 @@ export type Database = {
       motivos_perda: {
         Row: {
           ativo: boolean
-          created_at: string
+          categoria: string | null
           id: string
           nome: string
-          tenant_id: string | null
+          ordem: number | null
+          tenant_id: string
         }
         Insert: {
           ativo?: boolean
-          created_at?: string
+          categoria?: string | null
           id?: string
           nome: string
-          tenant_id?: string | null
+          ordem?: number | null
+          tenant_id: string
         }
         Update: {
           ativo?: boolean
-          created_at?: string
+          categoria?: string | null
           id?: string
           nome?: string
-          tenant_id?: string | null
+          ordem?: number | null
+          tenant_id?: string
         }
         Relationships: [
           {
@@ -579,24 +956,27 @@ export type Database = {
       origens: {
         Row: {
           ativo: boolean
-          created_at: string
           id: string
           nome: string
-          tenant_id: string | null
+          ordem: number | null
+          tenant_id: string
+          tipo: string | null
         }
         Insert: {
           ativo?: boolean
-          created_at?: string
           id?: string
           nome: string
-          tenant_id?: string | null
+          ordem?: number | null
+          tenant_id: string
+          tipo?: string | null
         }
         Update: {
           ativo?: boolean
-          created_at?: string
           id?: string
           nome?: string
-          tenant_id?: string | null
+          ordem?: number | null
+          tenant_id?: string
+          tipo?: string | null
         }
         Relationships: [
           {
@@ -610,34 +990,46 @@ export type Database = {
       }
       pipeline_stages: {
         Row: {
-          color: string
-          created_at: string
+          ativo: boolean
+          codigo: string | null
+          cor: string | null
+          finaliza_com_perda: boolean
+          finaliza_com_sucesso: boolean
           id: string
-          is_loss_eligible: boolean
-          is_win_eligible: boolean
-          name: string
-          order: number
+          nome: string
+          ordem: number
           pipeline_id: string
+          probabilidade: number | null
+          sla_dias: number | null
+          tipo_stage: string | null
         }
         Insert: {
-          color?: string
-          created_at?: string
+          ativo?: boolean
+          codigo?: string | null
+          cor?: string | null
+          finaliza_com_perda?: boolean
+          finaliza_com_sucesso?: boolean
           id?: string
-          is_loss_eligible?: boolean
-          is_win_eligible?: boolean
-          name: string
-          order?: number
+          nome: string
+          ordem?: number
           pipeline_id: string
+          probabilidade?: number | null
+          sla_dias?: number | null
+          tipo_stage?: string | null
         }
         Update: {
-          color?: string
-          created_at?: string
+          ativo?: boolean
+          codigo?: string | null
+          cor?: string | null
+          finaliza_com_perda?: boolean
+          finaliza_com_sucesso?: boolean
           id?: string
-          is_loss_eligible?: boolean
-          is_win_eligible?: boolean
-          name?: string
-          order?: number
+          nome?: string
+          ordem?: number
           pipeline_id?: string
+          probabilidade?: number | null
+          sla_dias?: number | null
+          tipo_stage?: string | null
         }
         Relationships: [
           {
@@ -651,42 +1043,49 @@ export type Database = {
       }
       pipelines: {
         Row: {
-          created_at: string
+          ativo: boolean
+          descricao: string | null
+          entidade_tipo: string
           filial_id: string | null
           id: string
-          is_active: boolean
-          lost_label: string
-          module: Database["public"]["Enums"]["pipeline_module"]
-          name: string
+          modelo_fabrica: boolean
+          nome: string
+          ordem: number | null
+          permite_customizacao: boolean
           tenant_id: string
-          updated_at: string
-          won_label: string
         }
         Insert: {
-          created_at?: string
+          ativo?: boolean
+          descricao?: string | null
+          entidade_tipo: string
           filial_id?: string | null
           id?: string
-          is_active?: boolean
-          lost_label?: string
-          module: Database["public"]["Enums"]["pipeline_module"]
-          name: string
+          modelo_fabrica?: boolean
+          nome: string
+          ordem?: number | null
+          permite_customizacao?: boolean
           tenant_id: string
-          updated_at?: string
-          won_label?: string
         }
         Update: {
-          created_at?: string
+          ativo?: boolean
+          descricao?: string | null
+          entidade_tipo?: string
           filial_id?: string | null
           id?: string
-          is_active?: boolean
-          lost_label?: string
-          module?: Database["public"]["Enums"]["pipeline_module"]
-          name?: string
+          modelo_fabrica?: boolean
+          nome?: string
+          ordem?: number | null
+          permite_customizacao?: boolean
           tenant_id?: string
-          updated_at?: string
-          won_label?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pipelines_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pipelines_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -817,39 +1216,54 @@ export type Database = {
       ramos: {
         Row: {
           ativo: boolean
-          comissao_padrao: number
-          created_at: string
+          codigo_susep: string | null
+          exige_coberturas: boolean
+          exige_item: boolean
+          forma_calculo: string | null
           grupo_operacional: string
           id: string
           is_monthly: boolean
           nome: string
+          observacoes: string | null
+          ordem: number | null
+          permite_endosso: boolean
+          renovavel: boolean
           risk_type: string
-          tenant_id: string | null
-          updated_at: string | null
+          tenant_id: string
         }
         Insert: {
           ativo?: boolean
-          comissao_padrao?: number
-          created_at?: string
+          codigo_susep?: string | null
+          exige_coberturas?: boolean
+          exige_item?: boolean
+          forma_calculo?: string | null
           grupo_operacional?: string
           id?: string
           is_monthly?: boolean
           nome: string
+          observacoes?: string | null
+          ordem?: number | null
+          permite_endosso?: boolean
+          renovavel?: boolean
           risk_type?: string
-          tenant_id?: string | null
-          updated_at?: string | null
+          tenant_id: string
         }
         Update: {
           ativo?: boolean
-          comissao_padrao?: number
-          created_at?: string
+          codigo_susep?: string | null
+          exige_coberturas?: boolean
+          exige_item?: boolean
+          forma_calculo?: string | null
           grupo_operacional?: string
           id?: string
           is_monthly?: boolean
           nome?: string
+          observacoes?: string | null
+          ordem?: number | null
+          permite_endosso?: boolean
+          renovavel?: boolean
           risk_type?: string
-          tenant_id?: string | null
-          updated_at?: string | null
+          tenant_id?: string
         }
         Relationships: [
           {
@@ -897,27 +1311,57 @@ export type Database = {
       seguradoras: {
         Row: {
           ativo: boolean
+          aceita_busca_automatica: boolean
+          aceita_importacao_pdf: boolean
+          cnpj: string | null
+          codigo_interno: string | null
           codigo_susep: string | null
-          created_at: string
+          email: string | null
           id: string
           nome: string
-          tenant_id: string | null
+          nome_curto: string | null
+          observacoes: string | null
+          portal_url: string | null
+          site: string | null
+          telefone_assistencia: string | null
+          telefone_sac: string | null
+          tenant_id: string
         }
         Insert: {
           ativo?: boolean
+          aceita_busca_automatica?: boolean
+          aceita_importacao_pdf?: boolean
+          cnpj?: string | null
+          codigo_interno?: string | null
           codigo_susep?: string | null
-          created_at?: string
+          email?: string | null
           id?: string
           nome: string
-          tenant_id?: string | null
+          nome_curto?: string | null
+          observacoes?: string | null
+          portal_url?: string | null
+          site?: string | null
+          telefone_assistencia?: string | null
+          telefone_sac?: string | null
+          tenant_id: string
         }
         Update: {
           ativo?: boolean
+          aceita_busca_automatica?: boolean
+          aceita_importacao_pdf?: boolean
+          cnpj?: string | null
+          codigo_interno?: string | null
           codigo_susep?: string | null
-          created_at?: string
+          email?: string | null
           id?: string
           nome?: string
-          tenant_id?: string | null
+          nome_curto?: string | null
+          observacoes?: string | null
+          portal_url?: string | null
+          site?: string | null
+          telefone_assistencia?: string | null
+          telefone_sac?: string | null
+          tenant_id?: string
         }
         Relationships: [
           {

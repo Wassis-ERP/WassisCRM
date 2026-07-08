@@ -21,5 +21,8 @@ export function comparePipelinesForBranch(
 
   const moduleOrder = a.module.localeCompare(b.module, 'pt-BR');
   if (moduleOrder !== 0) return moduleOrder;
+  const aOrder = a.ordem ?? Number.MAX_SAFE_INTEGER;
+  const bOrder = b.ordem ?? Number.MAX_SAFE_INTEGER;
+  if (aOrder !== bOrder) return aOrder - bOrder;
   return a.name.localeCompare(b.name, 'pt-BR');
 }
