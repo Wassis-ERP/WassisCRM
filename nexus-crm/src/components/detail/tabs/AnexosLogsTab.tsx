@@ -1,10 +1,10 @@
 /**
  * Guia padrão "Anexos e logs" — entity-agnostic. Duas colunas: anexos do
- * cadastro e linha do tempo de eventos. Como o app é frontend-puro, o upload
- * apenas registra metadados do arquivo (nome/tamanho/tipo) na sessão.
+ * cadastro e linha do tempo de eventos. Como o app é frontend-puro, o arquivo
+ * selecionado apenas vira metadado no mock, sem upload real.
  */
-import { useRef, useState } from 'react'
-import { FileText, Image, Archive, Download, Clock, Plus } from 'lucide-react'
+import { useRef } from 'react'
+import { FileText, Image, Archive, Download, Clock, Plus, SlidersHorizontal } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { DetailCard, EmptyState, GhostButton, Timeline } from '../primitives'
 import { fmtDate } from '../../../utils/date'
@@ -31,77 +31,21 @@ function humanSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-const inputCls =
-  'w-full px-3 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30'
-
-function NovoLogForm({
-  onSubmit,
-  onCancel,
-}: {
-  onSubmit: (l: Omit<LogEntry, 'id'>) => void
-  onCancel: () => void
-}) {
-  const [titulo, setTitulo] = useState('')
-  const [detalhe, setDetalhe] = useState('')
-
-  const submit = () => {
-    if (!titulo.trim()) return
-    onSubmit({
-      titulo: titulo.trim(),
-      detalhe: detalhe.trim() || undefined,
-      quando: new Date().toISOString(),
-      tipo: 'nota',
-    })
-    onCancel()
-  }
-
-  return (
-    <div className="mb-4 p-4 bg-bg-surface-2 rounded-xl border border-border-1 space-y-3">
-      <input
-        autoFocus
-        value={titulo}
-        onChange={(e) => setTitulo(e.target.value)}
-        placeholder="Título do registro"
-        className={inputCls}
-      />
-      <textarea
-        value={detalhe}
-        onChange={(e) => setDetalhe(e.target.value)}
-        placeholder="Detalhe (opcional)"
-        rows={2}
-        className={inputCls}
-      />
-      <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-fg-3 hover:text-fg-1">
-          Cancelar
-        </button>
-        <button
-          type="button"
-          onClick={submit}
-          disabled={!titulo.trim()}
-          className="px-4 py-1.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-semibold hover:bg-accent-primary-hover disabled:opacity-50"
-        >
-          Registrar
-        </button>
-      </div>
-    </div>
-  )
-}
-
 export default function AnexosLogsTab({
   anexos,
   logs,
   onAddAnexo,
-  onAddLog,
   autorPadrao,
+  showAuditLogs,
+  onToggleAuditLogs,
 }: {
   anexos: Anexo[]
   logs: LogEntry[]
   onAddAnexo: (a: Omit<Anexo, 'id'>) => void
-  onAddLog: (l: Omit<LogEntry, 'id'>) => void
   autorPadrao?: string
+  showAuditLogs: boolean
+  onToggleAuditLogs: (show: boolean) => void
 }) {
-  const [addingLog, setAddingLog] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const handleFiles = (files: FileList | null) => {
@@ -111,6 +55,7 @@ export default function AnexosLogsTab({
         nome: f.name,
         tipo: extToTipo(f.name),
         tamanho: humanSize(f.size),
+        tamanhoBytes: f.size,
         data: new Date().toISOString(),
         autor: autorPadrao,
       }),
@@ -125,7 +70,7 @@ export default function AnexosLogsTab({
         icon={FileText}
         action={
           <GhostButton icon={Plus} onClick={() => fileRef.current?.click()}>
-            Enviar
+            Adicionar
           </GhostButton>
         }
         bodyClassName=""
@@ -174,7 +119,7 @@ export default function AnexosLogsTab({
           <EmptyState
             icon={FileText}
             title="Nenhum anexo"
-            hint="Envie documentos, apólices e comprovantes deste cadastro."
+            hint="Registre metadados de documentos, apólices e comprovantes deste cadastro."
           />
         )}
       </DetailCard>
@@ -183,24 +128,29 @@ export default function AnexosLogsTab({
         title="Linha do tempo"
         icon={Clock}
         action={
-          !addingLog && (
-            <GhostButton icon={Plus} onClick={() => setAddingLog(true)}>
-              Novo log
-            </GhostButton>
-          )
+          <button
+            type="button"
+            onClick={() => onToggleAuditLogs(!showAuditLogs)}
+            className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+              showAuditLogs
+                ? 'bg-signal-warning/15 text-signal-warning'
+                : 'bg-bg-surface-2 text-fg-3 hover:text-accent-primary'
+            }`}
+            aria-pressed={showAuditLogs}
+          >
+            <SlidersHorizontal size={14} />
+            Todos os eventos
+          </button>
         }
       >
-        {addingLog && <NovoLogForm onSubmit={onAddLog} onCancel={() => setAddingLog(false)} />}
         {logs.length ? (
           <Timeline entries={logs} />
         ) : (
-          !addingLog && (
-            <EmptyState
-              icon={Clock}
-              title="Sem registros"
-              hint="Eventos e anotações do cadastro aparecem aqui em ordem cronológica."
-            />
-          )
+          <EmptyState
+            icon={Clock}
+            title="Sem registros"
+            hint="Alterações das guias aparecem aqui em ordem cronológica."
+          />
         )}
       </DetailCard>
     </div>

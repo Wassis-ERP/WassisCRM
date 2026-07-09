@@ -16,86 +16,57 @@ export type Database = {
     Tables: {
       anexos: {
         Row: {
-          arquivo_url: string
-          cobranca_id: string | null
-          created_at: string
-          emissao_id: string | null
+          anexado_em: string | null
+          categoria: string | null
+          descricao: string | null
+          entidade_id: string
+          entidade_tipo: string
+          filial_id: string | null
+          hash_sha256: string | null
           id: string
-          nome: string
-          oportunidade_id: string | null
-          pos_venda_id: string | null
-          sinistro_id: string | null
-          tamanho: number | null
-          tenant_id: string | null
-          tipo: string | null
-          uploaded_by: string
+          mime_type: string | null
+          nome_arquivo: string
+          origem: string | null
+          status: string | null
+          tamanho_bytes: number | null
+          tenant_id: string
+          url_armazenamento: string | null
         }
         Insert: {
-          arquivo_url: string
-          cobranca_id?: string | null
-          created_at?: string
-          emissao_id?: string | null
+          anexado_em?: string | null
+          categoria?: string | null
+          descricao?: string | null
+          entidade_id: string
+          entidade_tipo: string
+          filial_id?: string | null
+          hash_sha256?: string | null
           id?: string
-          nome: string
-          oportunidade_id?: string | null
-          pos_venda_id?: string | null
-          sinistro_id?: string | null
-          tamanho?: number | null
-          tenant_id?: string | null
-          tipo?: string | null
-          uploaded_by: string
+          mime_type?: string | null
+          nome_arquivo: string
+          origem?: string | null
+          status?: string | null
+          tamanho_bytes?: number | null
+          tenant_id: string
+          url_armazenamento?: string | null
         }
         Update: {
-          arquivo_url?: string
-          cobranca_id?: string | null
-          created_at?: string
-          emissao_id?: string | null
+          anexado_em?: string | null
+          categoria?: string | null
+          descricao?: string | null
+          entidade_id?: string
+          entidade_tipo?: string
+          filial_id?: string | null
+          hash_sha256?: string | null
           id?: string
-          nome?: string
-          oportunidade_id?: string | null
-          pos_venda_id?: string | null
-          sinistro_id?: string | null
-          tamanho?: number | null
-          tenant_id?: string | null
-          tipo?: string | null
-          uploaded_by?: string
+          mime_type?: string | null
+          nome_arquivo?: string
+          origem?: string | null
+          status?: string | null
+          tamanho_bytes?: number | null
+          tenant_id?: string
+          url_armazenamento?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "anexos_cobranca_id_fkey"
-            columns: ["cobranca_id"]
-            isOneToOne: false
-            referencedRelation: "financeiro_cobrancas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "anexos_emissao_id_fkey"
-            columns: ["emissao_id"]
-            isOneToOne: false
-            referencedRelation: "emissoes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "anexos_oportunidade_id_fkey"
-            columns: ["oportunidade_id"]
-            isOneToOne: false
-            referencedRelation: "oportunidades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "anexos_pos_venda_id_fkey"
-            columns: ["pos_venda_id"]
-            isOneToOne: false
-            referencedRelation: "pos_vendas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "anexos_sinistro_id_fkey"
-            columns: ["sinistro_id"]
-            isOneToOne: false
-            referencedRelation: "sinistros"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "anexos_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -107,80 +78,69 @@ export type Database = {
       }
       atividades: {
         Row: {
-          cobranca_id: string | null
-          created_at: string
+          canal: string | null
+          concluida_em: string | null
           descricao: string | null
-          emissao_id: string | null
+          entidade_id: string
+          entidade_tipo: string
+          filial_id: string | null
+          fixada_em: string | null
           id: string
-          oportunidade_id: string | null
-          pos_venda_id: string | null
-          sinistro_id: string | null
-          tenant_id: string | null
+          lembrete_em: string | null
+          observacoes: string | null
+          origem: string | null
+          prioridade: string | null
+          recorrente: boolean | null
+          responsavel_id: string | null
+          status: string | null
+          tenant_id: string
           tipo: string
-          user_id: string
+          titulo: string | null
+          vencimento: string | null
         }
         Insert: {
-          cobranca_id?: string | null
-          created_at?: string
+          canal?: string | null
+          concluida_em?: string | null
           descricao?: string | null
-          emissao_id?: string | null
+          entidade_id: string
+          entidade_tipo: string
+          filial_id?: string | null
+          fixada_em?: string | null
           id?: string
-          oportunidade_id?: string | null
-          pos_venda_id?: string | null
-          sinistro_id?: string | null
-          tenant_id?: string | null
+          lembrete_em?: string | null
+          observacoes?: string | null
+          origem?: string | null
+          prioridade?: string | null
+          recorrente?: boolean | null
+          responsavel_id?: string | null
+          status?: string | null
+          tenant_id: string
           tipo: string
-          user_id: string
+          titulo?: string | null
+          vencimento?: string | null
         }
         Update: {
-          cobranca_id?: string | null
-          created_at?: string
+          canal?: string | null
+          concluida_em?: string | null
           descricao?: string | null
-          emissao_id?: string | null
+          entidade_id?: string
+          entidade_tipo?: string
+          filial_id?: string | null
+          fixada_em?: string | null
           id?: string
-          oportunidade_id?: string | null
-          pos_venda_id?: string | null
-          sinistro_id?: string | null
-          tenant_id?: string | null
+          lembrete_em?: string | null
+          observacoes?: string | null
+          origem?: string | null
+          prioridade?: string | null
+          recorrente?: boolean | null
+          responsavel_id?: string | null
+          status?: string | null
+          tenant_id?: string
           tipo?: string
-          user_id?: string
+          titulo?: string | null
+          vencimento?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "atividades_cobranca_id_fkey"
-            columns: ["cobranca_id"]
-            isOneToOne: false
-            referencedRelation: "financeiro_cobrancas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "atividades_emissao_id_fkey"
-            columns: ["emissao_id"]
-            isOneToOne: false
-            referencedRelation: "emissoes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "atividades_oportunidade_id_fkey"
-            columns: ["oportunidade_id"]
-            isOneToOne: false
-            referencedRelation: "oportunidades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "atividades_pos_venda_id_fkey"
-            columns: ["pos_venda_id"]
-            isOneToOne: false
-            referencedRelation: "pos_vendas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "atividades_sinistro_id_fkey"
-            columns: ["sinistro_id"]
-            isOneToOne: false
-            referencedRelation: "sinistros"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "atividades_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -188,47 +148,93 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "atividades_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atividade_mencoes: {
+        Row: {
+          atividade_id: string
+          id: string
+          lida_em: string | null
+          notificada_em: string | null
+          profile_id: string
+        }
+        Insert: {
+          atividade_id: string
+          id?: string
+          lida_em?: string | null
+          notificada_em?: string | null
+          profile_id: string
+        }
+        Update: {
+          atividade_id?: string
+          id?: string
+          lida_em?: string | null
+          notificada_em?: string | null
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividade_mencoes_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atividade_mencoes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       audit_logs: {
         Row: {
-          action: string
-          created_at: string | null
-          entity_id: string | null
-          entity_type: string
+          acao: string
+          campo: string | null
+          entidade_id: string
+          entidade_tipo: string
           id: string
-          ip_address: string | null
-          new_data: Json | null
-          old_data: Json | null
-          tenant_id: string | null
+          ocorrido_em: string | null
+          tenant_id: string
           user_agent: string | null
           user_id: string | null
+          valor_antigo: string | null
+          valor_novo: string | null
         }
         Insert: {
-          action: string
-          created_at?: string | null
-          entity_id?: string | null
-          entity_type: string
+          acao: string
+          campo?: string | null
+          entidade_id: string
+          entidade_tipo: string
           id?: string
-          ip_address?: string | null
-          new_data?: Json | null
-          old_data?: Json | null
-          tenant_id?: string | null
+          ocorrido_em?: string | null
+          tenant_id: string
           user_agent?: string | null
           user_id?: string | null
+          valor_antigo?: string | null
+          valor_novo?: string | null
         }
         Update: {
-          action?: string
-          created_at?: string | null
-          entity_id?: string | null
-          entity_type?: string
+          acao?: string
+          campo?: string | null
+          entidade_id?: string
+          entidade_tipo?: string
           id?: string
-          ip_address?: string | null
-          new_data?: Json | null
-          old_data?: Json | null
-          tenant_id?: string | null
+          ocorrido_em?: string | null
+          tenant_id?: string
           user_agent?: string | null
           user_id?: string | null
+          valor_antigo?: string | null
+          valor_novo?: string | null
         }
         Relationships: [
           {

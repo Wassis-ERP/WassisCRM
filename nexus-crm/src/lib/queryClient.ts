@@ -57,6 +57,9 @@ export const queryKeys = {
     ['campo_opcoes', campoDefinicaoId] as const,
   campoValores: (entidadeTipo: string, entidadeId: string | null | undefined) =>
     ['campo_valores', entidadeTipo, entidadeId] as const,
+  entityTabs: (entidadeTipo: string, entidadeId: string | null | undefined) =>
+    ['entity_tabs', entidadeTipo, entidadeId] as const,
+  notifications: (profileId: string | null | undefined) => ['notifications', profileId] as const,
   filiais: ['filiais', 'admin'] as const,
   produtores: ['produtores', 'admin'] as const,
   perfis: ['perfis'] as const,

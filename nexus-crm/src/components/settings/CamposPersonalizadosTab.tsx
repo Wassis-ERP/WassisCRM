@@ -632,9 +632,8 @@ export default function CamposPersonalizadosTab() {
               </label>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <ToggleField label="Obrigatório" checked={defForm.obrigatorio} onChange={(checked) => setDefField('obrigatorio', checked)} />
-              <ToggleField label="Visível em lista" checked={defForm.visivel_em_listagem} onChange={(checked) => setDefField('visivel_em_listagem', checked)} />
               <ToggleField label="Ativo" checked={defForm.ativo} onChange={(checked) => setDefField('ativo', checked)} />
             </div>
 
@@ -970,7 +969,6 @@ export default function CamposPersonalizadosTab() {
                   </div>
                   <div className="flex flex-wrap items-center self-center gap-1.5 text-fg-3">
                     {def.obrigatorio && <span className={`${chipClass} bg-signal-warning/15 text-signal-warning`}>Obrigatório</span>}
-                    {def.visivel_em_listagem && <span className={`${chipClass} bg-accent-primary-soft text-accent-primary`}>Listagem</span>}
                     {isListType(def.tipo_dado) && <span className={`${chipClass} bg-bg-surface-2 text-fg-3`}>Lista</span>}
                   </div>
                   <StatusPill active={def.ativo} />
