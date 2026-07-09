@@ -1,11 +1,14 @@
-import { Building2, LogOut, Search } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Bell, Building2, Check, LogOut, Search } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ProfileModal from './ProfileModal'
 import { useAuth } from '../../hooks/useAuth'
 import { useFilialLabelMap } from '../../hooks/useFiliais'
 import { useMyBranches } from '../../hooks/useMyBranches'
 import { useProfileFiliais } from '../../hooks/useProfileFiliais'
 import { usePerfis } from '../../hooks/usePerfis'
+import { useNotifications } from '../../hooks/useNotifications'
+import { fmtDateTime } from '../../utils/date'
 
 /**
  * Header principal do CRM.
@@ -13,7 +16,11 @@ import { usePerfis } from '../../hooks/usePerfis'
  */
 export default function Header() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const notificationsRef = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
   const { activeBranchId, setActiveBranchId, user, signOut } = useAuth()
+  const notifications = useNotifications()
   const { map: filialLabels } = useFilialLabelMap()
   const labelFor = (branchId: string) => filialLabels.get(branchId) ?? formatBranchLabel(branchId)
   const displayName = user?.fullName || user?.email || 'Usuario'
@@ -45,6 +52,24 @@ export default function Header() {
     const ok = activeBranchId === null ? branches.length > 1 : branches.some((b) => b.id === activeBranchId)
     if (!ok) setActiveBranchId(branches.find((b) => b.principal)?.id ?? branches[0].id)
   }, [activeBranchId, branches, setActiveBranchId])
+
+  useEffect(() => {
+    if (!notificationsOpen) return undefined
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!notificationsRef.current?.contains(event.target as Node)) {
+        setNotificationsOpen(false)
+      }
+    }
+    window.addEventListener('pointerdown', handlePointerDown)
+    return () => window.removeEventListener('pointerdown', handlePointerDown)
+  }, [notificationsOpen])
+
+  const openNotification = async (id: string, href: string | null) => {
+    await notifications.markRead(id, true)
+    setNotificationsOpen(false)
+    if (href) navigate(href)
+    else navigate('/notificacoes')
+  }
 
   return (
     <>
@@ -90,6 +115,76 @@ export default function Header() {
               <span className="max-w-44 truncate text-fg-1 font-semibold">{activeBranchLabel}</span>
             </div>
           )}
+          <div className="relative" ref={notificationsRef}>
+            <button
+              type="button"
+              onClick={() => setNotificationsOpen((open) => !open)}
+              className="relative p-2 text-fg-4 hover:text-accent-primary hover:bg-bg-surface-2 rounded-xl transition-all"
+              title="Notificações"
+              aria-label="Notificações"
+              aria-expanded={notificationsOpen}
+            >
+              <Bell size={18} />
+              {notifications.unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 min-w-4 h-4 px-1 rounded-full bg-signal-danger text-white text-[10px] font-bold flex items-center justify-center">
+                  {notifications.unreadCount > 9 ? '9+' : notifications.unreadCount}
+                </span>
+              )}
+            </button>
+            {notificationsOpen && (
+              <div className="absolute right-0 top-12 z-50 w-[min(360px,calc(100vw-2rem))] rounded-[8px] border border-border-1 bg-bg-surface shadow-[var(--shadow-3)] overflow-hidden">
+                <div className="px-4 py-3 border-b border-border-1 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-fg-1">Notificações</p>
+                    <p className="text-xs text-fg-4">{notifications.unreadCount} não lidas</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/notificacoes')}
+                    className="text-xs font-semibold text-accent-primary hover:underline"
+                  >
+                    Ver todas
+                  </button>
+                </div>
+                <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                  {notifications.recent.length > 0 ? (
+                    notifications.recent.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => void openNotification(item.id, item.href)}
+                        className="flex w-full gap-3 px-4 py-3 text-left hover:bg-bg-surface-2 border-b border-border-1 last:border-b-0"
+                      >
+                        <span
+                          className={`mt-1 h-2 w-2 rounded-full shrink-0 ${
+                            item.lidaEm ? 'bg-border-2' : 'bg-accent-primary'
+                          }`}
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold text-fg-1 truncate">{item.titulo}</span>
+                          <span className="block text-xs text-fg-3 line-clamp-2">{item.trecho}</span>
+                          <span className="mt-1 flex items-center gap-1.5 text-[11px] text-fg-4">
+                            {item.origemLabel} · {fmtDateTime(item.quando)}
+                          </span>
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-8 text-center text-sm text-fg-4">Nenhuma notificação.</div>
+                  )}
+                </div>
+                {notifications.unreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => void notifications.markAllRead()}
+                    className="flex w-full items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold text-accent-primary hover:bg-bg-surface-2"
+                  >
+                    <Check size={14} /> Marcar todas como lidas
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setIsProfileModalOpen(true)}
             className="flex items-center gap-3 p-1.5 pr-3 hover:bg-bg-surface-2 rounded-full transition-all group"

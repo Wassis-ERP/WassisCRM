@@ -1,5 +1,5 @@
-import { useParams, useNavigate } from 'react-router-dom'
-import { useMemo, useState } from 'react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft, ChevronRight, Phone, Mail, MapPin, Edit, Clock, TrendingUp,
   ShieldCheck, ShieldAlert, Users, Building2, User, Globe, Star, Plus, Trash2,
@@ -76,6 +76,7 @@ function onlyDigits(v?: string): string {
 export default function SeguradoDetalhePage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const confirm = useConfirm()
   const { data: row, isLoading, isError, refetch } = useSegurado(id)
   const updateSegurado = useUpdateSegurado()
@@ -85,6 +86,31 @@ export default function SeguradoDetalhePage() {
   const [vinculoModalOpen, setVinculoModalOpen] = useState(false)
   const [tab, setTab] = useState<TabId>('visao')
 
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab')
+    if (
+      requestedTab === 'visao' ||
+      requestedTab === 'apolices' ||
+      requestedTab === 'cadastrais' ||
+      requestedTab === 'corretora' ||
+      requestedTab === 'tarefas' ||
+      requestedTab === 'personalizados' ||
+      requestedTab === 'anexos' ||
+      requestedTab === 'observacoes'
+    ) {
+      setTab(requestedTab)
+    }
+  }, [searchParams])
+
+  const handleTabChange = (nextTab: TabId) => {
+    setTab(nextTab)
+    if (searchParams.has('tab')) {
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.delete('tab')
+      setSearchParams(nextParams, { replace: true })
+    }
+  }
+
   const segurado = useMemo(() => (row ? mapSeguradoRowToView(row) : undefined), [row])
 
   const { data: vinculos = [] } = usePessoaContatos(id)
@@ -92,7 +118,7 @@ export default function SeguradoDetalhePage() {
   const updateVinculo = useUpdatePessoaContato()
   const deleteVinculo = useDeletePessoaContato()
 
-  const tabsState = useEntityTabsState(id)
+  const tabsState = useEntityTabsState('segurado', id, { filialId: row?.filial_id ?? null })
   const { data: oportunidades = [] } = useOportunidadesBySegurado(id)
   const { data: apolices = [] } = useApolicesBySegurado(id)
   const { proposals } = usePropostas()
@@ -296,7 +322,7 @@ export default function SeguradoDetalhePage() {
       </div>
 
       {/* Guias */}
-      <EntityTabsBar tabs={tabs} active={tab} onChange={setTab} />
+      <EntityTabsBar tabs={tabs} active={tab} onChange={handleTabChange} />
 
       <div role="tabpanel">
         {tab === 'visao' && (
@@ -336,7 +362,9 @@ export default function SeguradoDetalhePage() {
             anexos={tabsState.anexos}
             logs={tabsState.logs}
             onAddAnexo={tabsState.addAnexo}
-            onAddLog={tabsState.addLog}
+            autorPadrao="Usuário da sessão"
+            showAuditLogs={tabsState.showAuditLogs}
+            onToggleAuditLogs={tabsState.setShowAuditLogs}
           />
         )}
         {tab === 'observacoes' && (
@@ -344,6 +372,7 @@ export default function SeguradoDetalhePage() {
             observacoes={tabsState.observacoes}
             onAdd={tabsState.addObservacao}
             onTogglePin={tabsState.togglePin}
+            mentionCandidates={tabsState.mentionCandidates}
           />
         )}
       </div>

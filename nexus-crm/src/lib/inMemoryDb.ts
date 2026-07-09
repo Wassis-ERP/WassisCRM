@@ -43,6 +43,7 @@ const TABLES = [
   'motivos_perda',
   'anexos',
   'atividades',
+  'atividade_mencoes',
   'audit_logs',
   'tenants',
 ] as const;
@@ -150,6 +151,14 @@ export function seed(): void {
     avatar_url: null,
     tenant_id: MOCK_TENANT_ID,
     email: 'dev@wassis.com',
+    created_at: nowIso(),
+  });
+  db.profiles.push({
+    id: 'mock-user-renato',
+    full_name: 'Renato Assis',
+    avatar_url: null,
+    tenant_id: MOCK_TENANT_ID,
+    email: 'renato@wassis.com',
     created_at: nowIso(),
   });
 
@@ -290,6 +299,7 @@ export function seed(): void {
 
   const PRODUTOR_INTERNO_ID = 'mock-produtor-interno';
   const PRODUTOR_EXTERNO_ID = 'mock-produtor-externo';
+  const SEGURADO_DEMO_ID = 'mock-segurado-joao';
   db.produtores.push({
     id: PRODUTOR_INTERNO_ID,
     tenant_id: MOCK_TENANT_ID,
@@ -336,6 +346,181 @@ export function seed(): void {
       f.gerente = 'Marina Costa';
     }
   });
+
+  db.segurados.push({
+    id: SEGURADO_DEMO_ID,
+    tenant_id: MOCK_TENANT_ID,
+    filial_id: MATRIZ_ID,
+    tipo: 'PF',
+    nome: 'João Almeida',
+    nome_fantasia: null,
+    cpf_cnpj: '12345678909',
+    email: 'joao.almeida@example.com',
+    telefone: '11987654321',
+    data_nascimento: '1985-04-12',
+    sexo: 'M',
+    estado_civil: 'Casado',
+    porte: null,
+    cnae: null,
+    site: null,
+    chatwoot_id: null,
+    lgpd_autorizado: true,
+    status: 'Ativo',
+    produtor_id: PRODUTOR_INTERNO_ID,
+    gerente_id: PRODUTOR_INTERNO_ID,
+    logradouro: 'Rua das Acácias',
+    endereco: 'Rua das Acácias',
+    numero: '120',
+    complemento: 'Apto 42',
+    bairro: 'Jardim Paulista',
+    cidade: 'São Paulo',
+    estado: 'SP',
+    cep: '01415000',
+    observacoes: 'Cadastro demo para validação das guias transversais.',
+    created_by: MOCK_USER_ID,
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  });
+
+  const tarefaPendenteId = newId();
+  const tarefaConcluidaId = newId();
+  const notaFixadaId = newId();
+  db.atividades.push(
+    {
+      id: tarefaPendenteId,
+      tenant_id: MOCK_TENANT_ID,
+      filial_id: MATRIZ_ID,
+      responsavel_id: MOCK_USER_ID,
+      entidade_tipo: 'segurado',
+      entidade_id: SEGURADO_DEMO_ID,
+      tipo: 'tarefa',
+      titulo: 'Conferir documentação da renovação',
+      descricao: 'Confirmar CNH e comprovante de residência antes da próxima cotação.',
+      status: 'pendente',
+      prioridade: 'alta',
+      vencimento: '2026-07-15',
+      concluida_em: null,
+      fixada_em: null,
+      canal: null,
+      origem: 'mock',
+      lembrete_em: null,
+      recorrente: false,
+      observacoes: null,
+      created_at: nowIso(),
+      updated_at: nowIso(),
+    },
+    {
+      id: tarefaConcluidaId,
+      tenant_id: MOCK_TENANT_ID,
+      filial_id: MATRIZ_ID,
+      responsavel_id: MOCK_USER_ID,
+      entidade_tipo: 'segurado',
+      entidade_id: SEGURADO_DEMO_ID,
+      tipo: 'followup',
+      titulo: 'Retorno sobre proposta de saúde',
+      descricao: null,
+      status: 'concluida',
+      prioridade: 'media',
+      vencimento: '2026-07-05',
+      concluida_em: nowIso(),
+      fixada_em: null,
+      canal: 'whatsapp',
+      origem: 'mock',
+      lembrete_em: null,
+      recorrente: false,
+      observacoes: null,
+      created_at: nowIso(),
+      updated_at: nowIso(),
+    },
+    {
+      id: notaFixadaId,
+      tenant_id: MOCK_TENANT_ID,
+      filial_id: MATRIZ_ID,
+      responsavel_id: MOCK_USER_ID,
+      entidade_tipo: 'segurado',
+      entidade_id: SEGURADO_DEMO_ID,
+      tipo: 'nota',
+      titulo: 'Preferência de contato',
+      descricao: 'Prefere atendimento por WhatsApp após 17h. Mencionar @Dev em renovações de saúde.',
+      status: 'concluida',
+      prioridade: 'baixa',
+      vencimento: null,
+      concluida_em: nowIso(),
+      fixada_em: nowIso(),
+      canal: 'whatsapp',
+      origem: 'mock',
+      lembrete_em: null,
+      recorrente: false,
+      observacoes: null,
+      created_at: nowIso(),
+      updated_at: nowIso(),
+    },
+  );
+  db.atividade_mencoes.push({
+    id: newId(),
+    atividade_id: notaFixadaId,
+    profile_id: MOCK_USER_ID,
+    lida_em: null,
+    notificada_em: nowIso(),
+  });
+  db.atividade_mencoes.push({
+    id: newId(),
+    atividade_id: notaFixadaId,
+    profile_id: 'mock-user-renato',
+    lida_em: nowIso(),
+    notificada_em: nowIso(),
+  });
+  db.anexos.push({
+    id: newId(),
+    tenant_id: MOCK_TENANT_ID,
+    filial_id: MATRIZ_ID,
+    entidade_tipo: 'segurado',
+    entidade_id: SEGURADO_DEMO_ID,
+    nome_arquivo: 'documentos-renovacao.pdf',
+    mime_type: 'application/pdf',
+    tamanho_bytes: 245_760,
+    url_armazenamento: null,
+    categoria: 'documento',
+    descricao: 'Metadado demo, sem upload real no front.',
+    origem: 'mock',
+    status: 'ativo',
+    hash_sha256: null,
+    anexado_em: nowIso(),
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  });
+  db.audit_logs.push(
+    {
+      id: newId(),
+      tenant_id: MOCK_TENANT_ID,
+      user_id: MOCK_USER_ID,
+      entidade_tipo: 'segurado',
+      entidade_id: SEGURADO_DEMO_ID,
+      campo: 'telefone',
+      valor_antigo: '11911112222',
+      valor_novo: '11987654321',
+      acao: 'UPDATE',
+      ocorrido_em: nowIso(),
+      user_agent: 'mock',
+      created_at: nowIso(),
+      updated_at: nowIso(),
+    },
+    {
+      id: newId(),
+      tenant_id: MOCK_TENANT_ID,
+      user_id: MOCK_USER_ID,
+      entidade_tipo: 'segurado',
+      entidade_id: SEGURADO_DEMO_ID,
+      campo: 'status',
+      valor_antigo: 'Prospecto',
+      valor_novo: 'Ativo',
+      acao: 'UPDATE',
+      ocorrido_em: nowIso(),
+      user_agent: 'mock',
+      created_at: nowIso(),
+      updated_at: nowIso(),
+    },
+  );
 
   const ramoIds: Record<string, string> = {};
   const seguradoraIds: Record<string, string> = {};

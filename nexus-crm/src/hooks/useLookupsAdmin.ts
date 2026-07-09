@@ -9,6 +9,7 @@ import {
   type RamoGrupoOperacional,
   type RamoRiskType,
 } from './useLookups';
+import type { EntidadeTipo } from '../types/entidade';
 
 type LookupTable = 'ramos' | 'origens' | 'seguradoras' | 'motivos_perda';
 
@@ -183,16 +184,7 @@ export type RepasseRegraInput = Omit<RepasseRegraRow, 'id' | 'tenant_id' | 'inic
   observacoes: string;
 };
 
-export type CampoEntidadeTipo =
-  | 'segurado'
-  | 'oportunidade'
-  | 'cotacao'
-  | 'apolice'
-  | 'proposta'
-  | 'apolice_item'
-  | 'sinistro'
-  | 'cobranca'
-  | 'pos_venda';
+export type CampoEntidadeTipo = EntidadeTipo;
 
 export type CampoTipoDado =
   | 'TEXTO_CURTO'

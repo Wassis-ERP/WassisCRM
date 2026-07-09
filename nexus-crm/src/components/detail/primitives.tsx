@@ -183,6 +183,7 @@ export interface TimelineEntry {
   detalhe?: string
   quando: string
   autor?: string
+  origem?: 'atividade' | 'audit_log' | 'anexo'
 }
 
 export function Timeline({ entries }: { entries: TimelineEntry[] }) {
@@ -190,17 +191,31 @@ export function Timeline({ entries }: { entries: TimelineEntry[] }) {
     <div className="relative">
       <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-border-1" />
       <div className="space-y-6">
-        {entries.map((e, i) => (
+        {entries.map((e, i) => {
+          const isAudit = e.origem === 'audit_log'
+          return (
           <div key={i} className="relative pl-6">
-            <div className="absolute left-0 top-1.5 w-3.5 h-3.5 rounded-full bg-accent-primary border-2 border-bg-surface" />
+            <div
+              className={`absolute left-0 top-1.5 w-3.5 h-3.5 rounded-full border-2 border-bg-surface ${
+                isAudit ? 'bg-signal-warning' : 'bg-accent-primary'
+              }`}
+            />
             <div className="flex items-baseline justify-between gap-3 flex-wrap">
-              <p className="text-sm font-medium text-fg-1">{e.titulo}</p>
+              <p className="text-sm font-medium text-fg-1">
+                {e.titulo}
+                {isAudit && (
+                  <span className="ml-2 align-middle text-[10px] font-bold uppercase tracking-wide text-signal-warning">
+                    Log técnico
+                  </span>
+                )}
+              </p>
               <span className="text-xs text-fg-4">{fmtDateTime(e.quando)}</span>
             </div>
             {e.detalhe && <p className="text-xs text-fg-3 mt-0.5">{e.detalhe}</p>}
             {e.autor && <span className="text-xs text-fg-4 mt-0.5 block">{e.autor}</span>}
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

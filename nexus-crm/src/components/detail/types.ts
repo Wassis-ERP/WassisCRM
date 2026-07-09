@@ -3,9 +3,8 @@
  * Anexos e logs, Observações). Entity-agnostic — qualquer módulo (Segurados,
  * Oportunidades, Sinistros…) reutiliza estes contratos.
  *
- * Hoje o app é frontend-puro (BFF) e estas coleções começam vazias, geridas em
- * estado de sessão (ver `useEntityTabsState`). Quando houver persistência, basta
- * trocar a origem dos dados — os componentes de UI não mudam.
+ * O app é frontend-puro (BFF), mas estas coleções já são lidas/escritas no mock
+ * in-memory usando o contrato polimórfico `entidade_tipo + entidade_id`.
  */
 
 export interface Responsavel {
@@ -49,8 +48,10 @@ export interface Anexo {
   nome: string
   tipo: AnexoTipo
   tamanho: string
+  tamanhoBytes?: number
   data?: string
   autor?: string
+  descricao?: string
 }
 
 export type LogTipo =
@@ -59,6 +60,7 @@ export type LogTipo =
   | 'oportunidade'
   | 'cadastro'
   | 'sistema'
+  | 'audit_log'
 
 export interface LogEntry {
   id: string
@@ -67,6 +69,7 @@ export interface LogEntry {
   detalhe?: string
   autor?: string
   tipo: LogTipo
+  origem?: 'atividade' | 'audit_log' | 'anexo'
 }
 
 export interface Observacao {
@@ -77,6 +80,17 @@ export interface Observacao {
   pinned: boolean
 }
 
+export interface MentionCandidate {
+  id: string
+  nome: string
+  email?: string | null
+}
+
+export interface ResolvedMention {
+  profileId: string
+  marcador: string
+}
+
 /** Conjunto de coleções de uma entidade, exposto por `useEntityTabsState`. */
 export interface EntityTabsData {
   tarefas: Tarefa[]
@@ -84,4 +98,5 @@ export interface EntityTabsData {
   anexos: Anexo[]
   logs: LogEntry[]
   observacoes: Observacao[]
+  mentionCandidates: MentionCandidate[]
 }
