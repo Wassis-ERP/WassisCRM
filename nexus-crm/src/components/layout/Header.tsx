@@ -190,7 +190,11 @@ export default function Header() {
             className="flex items-center gap-3 p-1.5 pr-3 hover:bg-bg-surface-2 rounded-full transition-all group"
           >
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-primary to-brand-primary-deep flex items-center justify-center text-fg-on-brand font-semibold text-sm shadow-[var(--shadow-1)] group-hover:shadow-[var(--shadow-2)] transition-shadow">
-              {initials || 'U'}
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt={displayName} className="h-full w-full rounded-full object-cover" />
+              ) : (
+                initials || 'U'
+              )}
             </div>
             <div className="text-right hidden sm:block">
               <p className="text-sm font-semibold text-fg-1 leading-tight">{displayName}</p>

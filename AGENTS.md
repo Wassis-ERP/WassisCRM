@@ -13,7 +13,7 @@
 - Antes de planejar ou implementar qualquer tela nova, fluxo, tipo, mock, relatorio ou contrato, leia os artefatos mais atuais em `.codex\artefatos`.
 - Observe sempre `instrucoes_projeto_wassis_v2_0.md` e `wassis_erp_esqueleto_v2_0.dbml`, ou arquivos equivalentes com versao mais recente.
 - As instrucoes do projeto e o DBML sobem juntos e compartilham o mesmo numero de versao. Se existir `v1_2`, `v2_0` ou versao superior, use a mais recente.
-- Consulte tambem `relatorio-endpoints-campos.md` na raiz do projeto para o hand-off versionavel atual; `.codex\artefatos\endpoints` guarda historicos ja emitidos.
+- Consulte `relatorio-endpoints-campos.md` na raiz como snapshot parcial do hand-off ja consolidado. Por decisao de 2026-07-10, ele nao acompanha cada tela e pode estar defasado em relacao ao front; valide sempre contra DBML/instrucoes, macro/micro-plano e codigo atual. `.codex\artefatos\endpoints` guarda historicos ja emitidos.
 - Consulte tambem `.contextos-mercado\portal_ajuda_quiver` e `.contextos-mercado\portal_ajuda_segfy` quando o trabalho envolver mapeamento de campos, contratos ou validacao de lacunas no esqueleto.
 - Respeite as decisoes fechadas do contrato, especialmente: grupo x corretoras, contrato x documento x item, multi-calculo, comissao diferente de repasse, EAV tipado para campos personalizados, zero JSON para dado de negocio e fusao apenas na leitura.
 
@@ -90,12 +90,12 @@
   risco residual e siga com o proximo passo seguro.
 
 ## Regra para endpoints
-- Ao finalizar uma tela ou subtela funcional, pergunte ao usuario se pode criar o Relatorio de Endpoints & Campos.
-- Nao crie automaticamente novos relatorios de endpoints sem essa confirmacao.
-- Quando autorizado, crie ou atualize o relatorio unico versionavel na raiz: `relatorio-endpoints-campos.md`.
+- Nao atualize o Relatorio de Endpoints & Campos ao finalizar cada tela ou subtela.
+- Durante o desenvolvimento, registre no micro-plano as entidades, campos, operacoes, filtros, lookups, validacoes e responsabilidades de backend que deverao alimentar o hand-off final.
+- Consolide ou atualize o relatorio unico versionavel na raiz, `relatorio-endpoints-campos.md`, quando as telas e contratos estiverem estabilizados, antes da entrega ao backend, ou mediante pedido explicito do usuario.
 - Use `.codex\artefatos\endpoints` apenas para historicos ou anexos antigos, salvo instrucao explicita diferente.
 - O relatorio deve mapear entidades do esqueleto, campos de negocio, endpoints esperados, filtros, lookups, regras de validacao e responsabilidades do backend.
-- Depois de criar o relatorio, atualize o item correspondente no macro plano.
+- Depois de consolidar o relatorio, atualize o estado documental correspondente no macro plano.
 
 ## Design de telas e UI/UX
 - Sempre que for desenhar, redesenhar ou implementar alguma tela no frontend, use a skill `wassis-design-uiux`.
@@ -111,12 +111,24 @@
 
 ## Escopo tecnico
 - Este projeto e puramente frontend. O backend sera desenvolvido por outra equipe.
-- O front roda contra mock em memoria e deve evoluir o minimo necessario para demonstrar a tela.
-- Tudo que for relacionado ao backend deve ser tratado apenas como contrato, hand-off ou requisito em Relatorio de Endpoints & Campos.
+- Os dados de dominio do front rodam contra mock em memoria e devem evoluir o minimo necessario para demonstrar a tela. A autenticacao ja pode consumir o WAssisBE quando `VITE_AUTH_MODE=backend`; isso nao autoriza implementar outras APIs reais neste repositorio.
+- Tudo que for relacionado ao backend deve ser tratado apenas como contrato/hand-off: durante o desenvolvimento, registrar no micro-plano; na consolidacao final, levar ao Relatorio de Endpoints & Campos.
 - Nao implementar backend, SQL, migrations, APIs reais, funcoes de servidor, RLS/RBAC de banco ou codigo .NET neste projeto.
-- O entregavel de hand-off para o backend e `relatorio-endpoints-campos.md` na raiz do projeto.
+- O entregavel final de hand-off para o backend e `relatorio-endpoints-campos.md` na raiz do projeto; durante o desenvolvimento ele permanece como snapshot parcial.
 - Antes de criar abstracoes novas, procure reaproveitar hooks, componentes, adapters, tabs e padroes existentes.
 - Preserve a separacao entre autoria no front e enforcement no backend quando o contrato assim definir, especialmente RBAC/RLS.
+
+## Qualidade de tipos e lint
+- Nao introduzir novos `any` em codigo de producao, hooks, adapters, mocks, testes ou componentes.
+- Preferir tipos explicitos, generics, `unknown`, `Record<string, unknown>`, `Partial<T>` ou tipos derivados de `database.ts`/DBML conforme o caso.
+- Se um `any` parecer inevitavel por integracao externa ou API ainda instavel, limitar ao menor ponto possivel, documentar o motivo e converter para tipo seguro logo na fronteira.
+- Nao silenciar regras de ESLint com `eslint-disable` sem justificativa explicita.
+- Ao mexer em arquivo que ja possui divida de lint, nao ampliar a divida existente; corrigir o trecho tocado quando isso couber no escopo seguro.
+- Quando `eslint .` falhar por problemas legados fora do recorte, classificar como divida tolerada, mas garantir que o recorte atual nao introduziu novos erros.
+- Evitar `setState` sincronamente dentro de `useEffect` quando o estado puder ser derivado de props, params ou dados carregados.
+- Manter dependencias de hooks estaveis; quando necessario, usar `useMemo`/`useCallback` com criterio.
+- Arquivos de componentes devem exportar componentes; constantes ou helpers compartilhados devem ir para arquivos separados quando o Fast Refresh reclamar.
+- Testes novos devem ser tipados com os mesmos contratos usados pelo codigo testado, evitando mocks soltos com `any`.
 
 ## Verificacao
 - Ao concluir mudancas de codigo, execute as verificacoes relevantes do projeto.
@@ -137,6 +149,6 @@
 ## Contexto rapido
 - Artefatos principais: `.codex\artefatos\instrucoes_projeto_wassis_v2_0.md` e `.codex\artefatos\wassis_erp_esqueleto_v2_0.dbml`.
 - Planos: `.codex\plans\macro_plano.md` e micro-planos na mesma pasta.
-- Relatorio de endpoints versionavel: `relatorio-endpoints-campos.md`; historicos em `.codex\artefatos\endpoints`.
+- Relatorio de endpoints versionavel e parcial durante o desenvolvimento: `relatorio-endpoints-campos.md`; historicos em `.codex\artefatos\endpoints`.
 - Skill de UI/UX: `.agents\skills\wassis-design-uiux`.
 - Aplicacao principal: `nexus-crm`.

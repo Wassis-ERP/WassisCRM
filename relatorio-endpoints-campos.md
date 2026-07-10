@@ -3,10 +3,12 @@
 > Contrato de referencia: `.codex/artefatos/wassis_erp_esqueleto_v2_0.dbml` e
 > `.codex/artefatos/instrucoes_projeto_wassis_v2_0.md`.
 >
-> Este arquivo e o hand-off incremental e versionavel na raiz do projeto. O
-> projeto segue frontend puro: o front autora e simula contra mock em memoria;
-> backend, RLS/RBAC, APIs reais, SQL, migrations e enforcement ficam fora deste
-> repositorio.
+> Este arquivo e o snapshot parcial e versionavel do hand-off ja consolidado.
+> Por decisao de 2026-07-10, ele nao sera atualizado a cada tela: a proxima
+> consolidacao ampla acontecera quando telas e contratos estiverem estabilizados,
+> antes da entrega ao backend, ou mediante pedido explicito. O projeto segue
+> frontend puro para dados de dominio; backend, RLS/RBAC, APIs de dominio reais,
+> SQL, migrations e enforcement ficam fora deste repositorio.
 
 ## Historico consolidado
 
@@ -27,6 +29,8 @@ Os documentos abaixo permanecem como fonte historica detalhada:
 | 0.4b | Catalogos auxiliares | Absorvido pela consolidacao G8 |
 | G8 | Configuracoes V2 como hub de cadastros | Consolidado em 2026-07-08 |
 | 0.5 | Funis & Etapas reconciliados | Consolidado em 2026-07-08 |
+| 1.1 | Campos personalizados EAV tipado | Implementado; hand-off adiado para consolidacao final |
+| 1.2a-1.2d | Guias, atividades, timeline e notificacoes | Implementado; hand-off adiado para consolidacao final |
 
 ---
 
@@ -524,8 +528,8 @@ Os documentos abaixo permanecem como fonte historica detalhada:
 - `pipelines.entidade_tipo` e o campo contratual do modulo do funil.
 - Tipos oficiais hoje usados no front: `comercial`, `emissao`, `financeiro` e
   `sinistro`, com camada pequena de compatibilidade para nomes legados.
-- Nao adicionar nem expandir suporte a `pos_venda` no 0.5; o modulo sera
-  aposentado em micro-plano proprio.
+- O recorte 0.5 nao adicionou `pos_venda`. O modulo permanece no produto e sera
+  reintroduzido/reconciliado nos funis durante a Fase 4.2.
 - `filial_id = NULL` significa modelo do grupo e deve aparecer para qualquer
   corretora ativa.
 - `filial_id` preenchido significa funil proprio da corretora e so deve aparecer
@@ -546,17 +550,19 @@ Os documentos abaixo permanecem como fonte historica detalhada:
 - `pipeline_id` ainda existe em processos legados do front como drift tolerado
   deste recorte. A regra contratual futura e derivar o funil por `stage_id`, mas
   essa migracao deve ser fase propria.
-- Pos-venda ficou fora do escopo por decisao de produto.
+- Pos-venda ficou fora do escopo do recorte 0.5, mas permanece no produto e
+  sera reconciliado sobre `apolices` na Fase 4.2.
 
 ---
 
 ## Pendencias e limites atuais
 
-- `campo_valores` e `campo_valor_opcoes` ainda nao estao implementados no front;
-  fazem parte do proximo recorte recomendado, 1.1.
-- Guias transversais ainda usam estado de sessao; 1.2 deve mover para
-  `entidade_tipo + entidade_id`.
+- `campo_valores` e `campo_valor_opcoes` ja foram implementados no primeiro fluxo
+  operacional de Segurado; a documentacao detalhada fica para a consolidacao final.
+- Guias transversais ja usam `entidade_tipo + entidade_id` no fluxo de Segurado;
+  a expansao ocorre conforme cada modulo for reconstruido.
 - Processos legados ainda preservam `pipeline_id`; a migracao para derivacao por
   `stage_id` deve acontecer em fase propria.
-- Pos-venda sera aposentado por decisao de produto; nao investir em novos
-  contratos, funis ou telas desse modulo antes do micro-plano de remocao.
+- Pos-venda permanece no produto para onboarding do segurado e acompanhamentos
+  mensais de ramos faturaveis; o legado deve migrar de `oportunidade_id` para
+  `apolice_id` na Fase 4.2.
