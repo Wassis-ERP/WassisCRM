@@ -16,6 +16,7 @@ import type { Proposal, ProposalStatus, ProposalType } from '../types/proposta'
 import { usePropostas } from '../contexts/usePropostas'
 import { PropostasListView } from '../components/propostas/PropostasListView'
 import { initials } from '../components/propostas/propostaFormat'
+import { isPipelineProposal } from '../components/propostas/propostaSelectors'
 import { useSystemFeedback } from '../components/feedback/systemFeedbackContext'
 
 /* =========================================================================
@@ -88,6 +89,16 @@ export default function PropostasPage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [showFilterPanel, setShowFilterPanel] = useState(false)
 
+  const setManyExpanded = (ids: string[], open: boolean) =>
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      for (const id of ids) {
+        if (open) next.add(id)
+        else next.delete(id)
+      }
+      return next
+    })
+
   const lastUpdated = useMemo(() => {
     const d = new Date()
     return `${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
@@ -100,11 +111,13 @@ export default function PropostasPage() {
     const todayISO = today.toISOString().slice(0, 10)
     const in30ISO = in30.toISOString().slice(0, 10)
     return {
-      emAndamento: proposals.filter(p => p.status === 'Em Análise' || p.status === 'Pendente').length,
-      vigentes: proposals.filter(p => p.currentStatus === 'Vigente').length,
-      renovacoesPendentes: proposals.filter(p => p.proposalType === 'Renovação' && p.status === 'Pendente').length,
+      emAndamento: proposals.filter(isPipelineProposal).length,
+      vigentes: proposals.filter(p => p.entityType === 'apolice' && p.currentStatus === 'Vigente').length,
+      renovacoesPendentes: proposals.filter(
+        p => p.entityType === 'apolice' && p.proposalType === 'Renovação' && p.status === 'Pendente',
+      ).length,
       renovacoes30d: proposals.filter(
-        p => p.vigenciaFinal && p.vigenciaFinal >= todayISO && p.vigenciaFinal <= in30ISO,
+        p => p.entityType === 'apolice' && p.vigenciaFinal && p.vigenciaFinal >= todayISO && p.vigenciaFinal <= in30ISO,
       ).length,
     }
   }, [proposals])
@@ -130,15 +143,32 @@ export default function PropostasPage() {
 
     return proposals.filter(p => {
       // filtros por card
-      if (activeCard === 'vigentes' && p.currentStatus !== 'Vigente') return false
-      if (activeCard === 'renovacoesPendentes' && !(p.proposalType === 'Renovação' && p.status === 'Pendente')) return false
+      if (activeCard === 'emAndamento' && !isPipelineProposal(p)) return false
+      if (activeCard === 'vigentes' && !(p.entityType === 'apolice' && p.currentStatus === 'Vigente')) return false
+      if (
+        activeCard === 'renovacoesPendentes' &&
+        !(p.entityType === 'apolice' && p.proposalType === 'Renovação' && p.status === 'Pendente')
+      ) return false
       if (activeCard === 'renovacoes30d') {
+        if (p.entityType !== 'apolice') return false
         if (!p.vigenciaFinal || p.vigenciaFinal < todayISO || p.vigenciaFinal > in30ISO) return false
       }
       // busca textual
       if (filters.searchTerm) {
         const q = filters.searchTerm.toLowerCase()
-        const hay = [p.insured, p.branch, p.insurer, p.producer.name, p.policyNumber ?? '']
+        const hay = [
+          p.insured,
+          p.branch,
+          p.insurer,
+          p.producer.name,
+          p.policyNumber ?? '',
+          p.proposalNumber ?? '',
+          p.endorsementNumber ?? '',
+          p.invoiceNumber ?? '',
+          p.controlNumber ?? '',
+          p.insurerProtocol ?? '',
+          p.notes ?? '',
+        ]
           .join(' ')
           .toLowerCase()
         if (!hay.includes(q)) return false
@@ -163,7 +193,13 @@ export default function PropostasPage() {
   const insureds = uniq(proposals.map(p => p.insured))
   const producers = uniq(proposals.map(p => p.producer.name))
   const statuses = uniq(proposals.map(p => p.status))
-  const proposalTypes: ProposalType[] = ['Proposta', 'Renovação', 'Endosso']
+  const proposalTypes: ProposalType[] = [
+    'Proposta',
+    'Renovação',
+    'Endosso',
+    'Cancelamento',
+    'Fatura',
+  ]
 
   /* ---- Kanban: drop ---- */
   const onCardDrop = (proposalId: string, newStatus: ProposalStatus) => {
@@ -312,7 +348,9 @@ export default function PropostasPage() {
       {/* Tabela / Kanban */}
       <div className="bg-bg-surface border border-border-1 rounded-[8px] shadow-[var(--shadow-1)]">
         <div className="flex items-center justify-between p-4 border-b border-border-1">
-          <h2 className="text-lg font-bold">Acompanhamento de Propostas</h2>
+          <h2 className="text-lg font-bold">
+            {activeCard === 'emAndamento' ? 'Acompanhamento de Propostas' : 'Apólices e documentos'}
+          </h2>
           <div
             className={`flex bg-bg-surface-2 p-1 rounded-[6px] ${
               activeCard === 'emAndamento' ? '' : 'invisible'
@@ -346,7 +384,10 @@ export default function PropostasPage() {
         {viewMode === 'Lista' ? (
           <PropostasListView
             proposals={filtered}
+            allProposals={proposals}
             expanded={expanded}
+            mode={activeCard === 'emAndamento' ? 'documents' : 'tree'}
+            onSetExpanded={setManyExpanded}
             onToggleExpand={id => {
               setExpanded(prev => {
                 const next = new Set(prev)
@@ -389,8 +430,7 @@ function KanbanView({
   onDrop: (proposalId: string, newStatus: ProposalStatus) => void
 }) {
   const { notify } = useSystemFeedback()
-  // Foca pipeline pré-emissão: ignora propostas já emitidas
-  const pipeline = proposals.filter(p => !p.policyNumber)
+  const pipeline = proposals.filter(isPipelineProposal)
   return (
     <div className="p-4 overflow-x-auto">
       <div className="flex gap-4 min-w-max">

@@ -6,9 +6,9 @@
 
 /** Badge de status — sempre via tokens --signal-* / accent (nunca por ramo). */
 export const STATUS_BADGE: Record<string, string> = {
+  'Em emissão': 'bg-signal-warning/15 text-signal-warning',
   Vigente: 'bg-signal-success/15 text-signal-success',
   Renovada: 'bg-signal-success/15 text-signal-success',
-  Endossada: 'bg-signal-success/15 text-signal-success',
   Cancelada: 'bg-signal-danger/15 text-signal-danger',
   Recusada: 'bg-signal-danger/15 text-signal-danger',
   'Não renovada': 'bg-bg-surface-3 text-fg-3',
@@ -31,4 +31,20 @@ export function fmtDate(iso: string) {
   const d = new Date(iso)
   if (isNaN(d.getTime())) return iso
   return d.toLocaleDateString('pt-BR')
+}
+
+export function fmtMoney(value?: number) {
+  if (value === undefined) return '—'
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value)
+}
+
+export function fmtCompetence(start?: string, end?: string) {
+  const reference = start ?? end
+  if (!reference) return 'Competência não informada'
+  const [year, month] = reference.split('-')
+  if (!year || !month) return reference
+  return `${month}/${year}`
 }
