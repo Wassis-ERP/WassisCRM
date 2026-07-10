@@ -1,5 +1,8 @@
 import { X, Camera, Lock, User, Save } from 'lucide-react'
 import { useState } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
+import { useAuth } from '../../hooks/useAuth'
+import type { UserProfile } from '../../types/auth'
 
 interface ProfileModalProps {
   isOpen: boolean
@@ -11,32 +14,71 @@ interface ProfileModalProps {
  * Permite alterar foto, nome e senha.
  */
 export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
-  const [formData, setFormData] = useState({
-    name: 'Renato Silva',
-    password: '',
-    confirmPassword: ''
-  })
-  const [avatar, setAvatar] = useState<string | null>(null)
+  const { user, updateProfile } = useAuth()
 
   if (!isOpen) return null
 
-  const handleSave = (e: React.FormEvent) => {
+  return (
+    <ProfileModalContent
+      key={`${user?.id ?? 'anon'}-${user?.fullName ?? ''}-${user?.email ?? ''}-${user?.avatarUrl ?? ''}`}
+      user={user}
+      updateProfile={updateProfile}
+      onClose={onClose}
+    />
+  )
+}
+
+interface ProfileModalContentProps {
+  user: UserProfile | null
+  updateProfile: (patch: Partial<Pick<UserProfile, 'fullName' | 'avatarUrl'>>) => void
+  onClose: () => void
+}
+
+function ProfileModalContent({ user, updateProfile, onClose }: ProfileModalContentProps) {
+  const [formData, setFormData] = useState({
+    name: user?.fullName ?? '',
+    email: user?.email ?? '',
+    password: '',
+    confirmPassword: ''
+  })
+  const [draftAvatar, setDraftAvatar] = useState<string | undefined>(user?.avatarUrl)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSave = (e: FormEvent) => {
     e.preventDefault()
-    // Aqui viria a lógica de salvar no Supabase
-    console.log('Salvando perfil:', { ...formData, avatar })
+    const name = formData.name.trim()
+
+    if (formData.password && formData.password !== formData.confirmPassword) {
+      setError('As senhas informadas não conferem.')
+      return
+    }
+
+    if (formData.password) {
+      setError('A troca de senha será habilitada quando o provedor de autenticação estiver conectado.')
+      return
+    }
+
+    updateProfile({ fullName: name, avatarUrl: draftAvatar })
     onClose()
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       const reader = new FileReader()
       reader.onloadend = () => {
-        setAvatar(reader.result as string)
+        setDraftAvatar(reader.result as string)
       }
       reader.readAsDataURL(file)
     }
   }
+
+  const initials = (formData.name || user?.email || 'U')
+    .split(/\s+|@/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('')
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -63,10 +105,10 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           <div className="flex flex-col items-center mb-8">
             <div className="relative group">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-accent-primary to-brand-primary-deep flex items-center justify-center text-fg-on-brand text-3xl font-bold overflow-hidden shadow-[var(--shadow-2)] border-4 border-bg-surface">
-                {avatar ? (
-                  <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+                {draftAvatar ? (
+                  <img src={draftAvatar} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  'RS'
+                  initials || 'U'
                 )}
               </div>
               <label 
@@ -103,9 +145,23 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               </div>
             </div>
 
+            {/* E-mail */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-fg-4 uppercase tracking-widest px-1">E-mail</label>
+              <div className="relative">
+                <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-4" />
+                <input
+                  type="email"
+                  value={formData.email}
+                  className="w-full pl-12 pr-4 py-3 bg-bg-surface-2 text-fg-3 border border-border-1 rounded-[8px] text-sm"
+                  readOnly
+                />
+              </div>
+            </div>
+
             {/* Nova Senha */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-fg-4 uppercase tracking-widest px-1">Alterar Senha</label>
+              <label className="text-xs font-bold text-fg-4 uppercase tracking-widest px-1">Troca de senha</label>
               <div className="relative">
                 <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-4" />
                 <input
@@ -113,7 +169,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full pl-12 pr-4 py-3 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[8px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 transition-all"
-                  placeholder="Nova senha (deixe em branco para não alterar)"
+                  placeholder="Disponível quando o provedor estiver conectado"
                 />
               </div>
             </div>
@@ -134,6 +190,11 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   />
                 </div>
               </div>
+            )}
+            {error && (
+              <p className="rounded-[8px] border border-signal-danger/40 bg-signal-danger/10 px-3 py-2 text-sm font-semibold text-signal-danger">
+                {error}
+              </p>
             )}
           </div>
 

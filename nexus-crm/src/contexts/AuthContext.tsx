@@ -15,6 +15,7 @@ import { AuthContext } from './authCore';
 
 const REQUIRE_BACKEND_AUTH = import.meta.env.VITE_AUTH_MODE === 'backend';
 const ACTIVE_BRANCH_STORAGE_KEY = 'wassis.crm.activeBranchId';
+const PROFILE_STORAGE_KEY = 'wassis.crm.mockProfile';
 
 /**
  * Provider de autenticação do modo frontend puro.
@@ -46,6 +47,28 @@ const MOCK_SESSION: Session = {
     email: MOCK_USER.email,
   },
 };
+
+type ProfilePatch = Partial<Pick<UserProfile, 'fullName' | 'avatarUrl'>>;
+
+function getStoredProfilePatch(): ProfilePatch {
+  if (REQUIRE_BACKEND_AUTH) return {};
+
+  try {
+    const stored = localStorage.getItem(PROFILE_STORAGE_KEY);
+    if (!stored) return {};
+    const parsed = JSON.parse(stored) as ProfilePatch;
+    return {
+      fullName: typeof parsed.fullName === 'string' ? parsed.fullName : undefined,
+      avatarUrl: typeof parsed.avatarUrl === 'string' ? parsed.avatarUrl : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function applyStoredProfile(user: UserProfile): UserProfile {
+  return { ...user, ...getStoredProfilePatch() };
+}
 
 function toUnixSeconds(value?: string) {
   if (!value) return undefined;
@@ -165,9 +188,10 @@ async function loadBackendAuthState(): Promise<AuthState | null> {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const mockActiveBranchId = resolveInitialActiveBranchId(MOCK_USER);
+  const mockUser = applyStoredProfile(MOCK_USER);
   const [authState, setAuthState] = useState<AuthState>({
     session: REQUIRE_BACKEND_AUTH ? null : MOCK_SESSION,
-    user: REQUIRE_BACKEND_AUTH ? null : applyActiveBranch(MOCK_USER, mockActiveBranchId),
+    user: REQUIRE_BACKEND_AUTH ? null : applyActiveBranch(mockUser, mockActiveBranchId),
     activeBranchId: REQUIRE_BACKEND_AUTH ? null : mockActiveBranchId,
     loading: true,
   });
@@ -181,7 +205,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             ? { session: null, user: null, activeBranchId: null, loading: false }
             : {
                 session: MOCK_SESSION,
-                user: applyActiveBranch(MOCK_USER, mockActiveBranchId),
+                user: applyActiveBranch(applyStoredProfile(MOCK_USER), mockActiveBranchId),
                 activeBranchId: mockActiveBranchId,
                 loading: false,
               }),
@@ -193,7 +217,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           ? { session: null, user: null, activeBranchId: null, loading: false }
           : {
               session: MOCK_SESSION,
-              user: applyActiveBranch(MOCK_USER, mockActiveBranchId),
+              user: applyActiveBranch(applyStoredProfile(MOCK_USER), mockActiveBranchId),
               activeBranchId: mockActiveBranchId,
               loading: false,
             },
@@ -207,9 +231,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // mock (mantendo o e-mail digitado), sem chamar o backend.
       if (!REQUIRE_BACKEND_AUTH) {
         const email = username || MOCK_USER.email;
+        const user = applyStoredProfile({ ...MOCK_USER, email });
         setAuthState({
           session: { ...MOCK_SESSION, user: { id: MOCK_USER.id, email } },
-          user: applyActiveBranch({ ...MOCK_USER, email }, mockActiveBranchId),
+          user: applyActiveBranch(user, mockActiveBranchId),
           activeBranchId: mockActiveBranchId,
           loading: false,
         });
@@ -254,6 +279,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  const updateProfile = useCallback((patch: ProfilePatch) => {
+    setAuthState((current) => {
+      if (!current.user) return current;
+
+      const nextUser = { ...current.user, ...patch };
+      if (!REQUIRE_BACKEND_AUTH) {
+        localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify({
+          fullName: nextUser.fullName,
+          avatarUrl: nextUser.avatarUrl,
+        }));
+
+        const profile = getTable('profiles').find((row) => row.id === current.user?.id);
+        if (profile) {
+          profile.full_name = nextUser.fullName ?? null;
+          profile.avatar_url = nextUser.avatarUrl ?? null;
+        }
+      }
+
+      void queryClient.invalidateQueries();
+      return { ...current, user: nextUser };
+    });
+  }, []);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshSession();
@@ -287,6 +335,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signOut,
         refreshSession,
         setActiveBranchId,
+        updateProfile,
       }}
     >
       {children}
