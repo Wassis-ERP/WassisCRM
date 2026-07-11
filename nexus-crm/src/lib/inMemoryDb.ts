@@ -15,6 +15,17 @@ export type Row = Record<string, any>;
 
 const TABLES = [
   'oportunidades',
+  'apolices',
+  'propostas',
+  'apolice_itens',
+  'item_veiculo',
+  'item_imovel',
+  'item_empresa',
+  'item_vida',
+  'item_coberturas',
+  'parcelas',
+  'comissoes',
+  'repasses',
   'emissoes',
   'pos_vendas',
   'financeiro_cobrancas',
@@ -35,6 +46,8 @@ const TABLES = [
   'recebimento_grades',
   'recebimento_grade_parcelas',
   'repasse_regras',
+  'endosso_subtipos',
+  'cancelamento_motivos',
   'campo_definicoes',
   'campo_opcoes',
   'campo_valores',
@@ -93,6 +106,17 @@ export const RELATIONS: Record<
   'oportunidades.seguradoras': { target: 'seguradoras', localFk: 'seguradora_id', kind: 'forward' },
   'oportunidades.origens': { target: 'origens', localFk: 'origem_id', kind: 'forward' },
   'oportunidades.motivos_perda': { target: 'motivos_perda', localFk: 'motivo_perda_id', kind: 'forward' },
+  'apolices.segurados': { target: 'segurados', localFk: 'segurado_id', kind: 'forward' },
+  'apolices.seguradoras': { target: 'seguradoras', localFk: 'seguradora_id', kind: 'forward' },
+  'apolices.ramos': { target: 'ramos', localFk: 'ramo_id', kind: 'forward' },
+  'apolices.produtores': { target: 'produtores', localFk: 'produtor_id', kind: 'forward' },
+  'apolices.renovada_de': { target: 'apolices', localFk: 'renovada_de_id', kind: 'forward' },
+  'propostas.apolices': { target: 'apolices', localFk: 'apolice_id', kind: 'forward' },
+  'propostas.pipeline_stages': { target: 'pipeline_stages', localFk: 'stage_id', kind: 'forward' },
+  'propostas.profiles': { target: 'profiles', localFk: 'responsavel_id', kind: 'forward' },
+  'propostas.recebimento_grades': { target: 'recebimento_grades', localFk: 'recebimento_grade_id', kind: 'forward' },
+  'propostas.endosso_subtipos': { target: 'endosso_subtipos', localFk: 'endosso_subtipo_id', kind: 'forward' },
+  'propostas.cancelamento_motivos': { target: 'cancelamento_motivos', localFk: 'cancelamento_motivo_id', kind: 'forward' },
   'emissoes.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
   'pos_vendas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
   'sinistros.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
@@ -125,6 +149,24 @@ export const RELATIONS: Record<
 
   // reverse (one-to-many): row.<targetTable> = array de filhos
   'pipelines.pipeline_stages': { target: 'pipeline_stages', childFk: 'pipeline_id', kind: 'reverse' },
+  'apolices.propostas': { target: 'propostas', childFk: 'apolice_id', kind: 'reverse' },
+  'apolices.apolice_itens': { target: 'apolice_itens', childFk: 'apolice_id', kind: 'reverse' },
+  'apolice_itens.apolices': { target: 'apolices', localFk: 'apolice_id', kind: 'forward' },
+  'apolice_itens.proposta_inclusao': { target: 'propostas', localFk: 'incluido_por_proposta_id', kind: 'forward' },
+  'apolice_itens.proposta_exclusao': { target: 'propostas', localFk: 'excluido_por_proposta_id', kind: 'forward' },
+  'item_coberturas.apolice_itens': { target: 'apolice_itens', localFk: 'apolice_item_id', kind: 'forward' },
+  'item_coberturas.coberturas_catalogo': { target: 'coberturas_catalogo', localFk: 'cobertura_id', kind: 'forward' },
+  'item_veiculo.apolice_itens': { target: 'apolice_itens', localFk: 'apolice_item_id', kind: 'forward' },
+  'item_imovel.apolice_itens': { target: 'apolice_itens', localFk: 'apolice_item_id', kind: 'forward' },
+  'item_empresa.apolice_itens': { target: 'apolice_itens', localFk: 'apolice_item_id', kind: 'forward' },
+  'item_vida.apolice_itens': { target: 'apolice_itens', localFk: 'apolice_item_id', kind: 'forward' },
+  'parcelas.propostas': { target: 'propostas', localFk: 'proposta_id', kind: 'forward' },
+  'comissoes.propostas': { target: 'propostas', localFk: 'proposta_id', kind: 'forward' },
+  'comissoes.parcelas': { target: 'parcelas', localFk: 'parcela_id', kind: 'forward' },
+  'repasses.propostas': { target: 'propostas', localFk: 'proposta_id', kind: 'forward' },
+  'repasses.comissoes': { target: 'comissoes', localFk: 'comissao_id', kind: 'forward' },
+  'repasses.produtores': { target: 'produtores', localFk: 'beneficiario_id', kind: 'forward' },
+  'repasses.repasse_regras': { target: 'repasse_regras', localFk: 'regra_id', kind: 'forward' },
 };
 
 let seeded = false;
@@ -903,6 +945,7 @@ export function seed(): void {
         { nome: 'Aguardando proposta', cor: 'bg-slate-400' },
         { nome: 'Em análise', cor: 'bg-blue-400' },
         { nome: 'Emitida', cor: 'bg-emerald-400', sucesso: true },
+        { nome: 'Recusada', cor: 'bg-red-400', perda: true },
       ],
     },
     {
@@ -968,6 +1011,215 @@ export function seed(): void {
       });
     });
   });
+
+  const propostaStageId = (nome: string) =>
+    db.pipeline_stages.find((stage) => stage.nome === nome &&
+      db.pipelines.some((pipeline) => pipeline.id === stage.pipeline_id && pipeline.entidade_tipo === 'proposta'))?.id;
+  const emitidaStageId = propostaStageId('Emitida');
+  const aguardandoStageId = propostaStageId('Aguardando proposta');
+  const analiseStageId = propostaStageId('Em análise');
+  const recusadaStageId = propostaStageId('Recusada');
+
+  if (!emitidaStageId || !aguardandoStageId || !analiseStageId || !recusadaStageId) return;
+
+  const demoSegurados = [
+    { id: 'mock-segurado-viaforte', nome: 'Viaforte Logística Ltda', tipo: 'PJ', cpf_cnpj: '12345678000110', cidade: 'São Paulo', estado: 'SP', email: 'seguros@viaforte.com.br', telefone: '1130550198' },
+    { id: 'mock-segurado-aurora', nome: 'Aurora Tecnologia Ltda', tipo: 'PJ', cpf_cnpj: '23456789000120', cidade: 'Campinas', estado: 'SP', email: 'financeiro@auroratec.com.br', telefone: '1932517788' },
+    { id: 'mock-segurado-camila', nome: 'Camila Ferreira', tipo: 'PF', cpf_cnpj: '23456789012', cidade: 'São Paulo', estado: 'SP', email: 'camila.ferreira@example.com', telefone: '11987654320' },
+    { id: 'mock-segurado-padaria', nome: 'Padaria Pão Dourado Ltda', tipo: 'PJ', cpf_cnpj: '34567890000130', cidade: 'Osasco', estado: 'SP', email: 'contato@paodourado.com.br', telefone: '1136992200' },
+    { id: 'mock-segurado-lumina', nome: 'Lumina Comércio Ltda', tipo: 'PJ', cpf_cnpj: '45678901000140', cidade: 'Santos', estado: 'SP', email: 'administrativo@lumina.com.br', telefone: '1332214400' },
+  ];
+  demoSegurados.forEach((segurado) => db.segurados.push({
+    ...segurado,
+    tenant_id: MOCK_TENANT_ID,
+    filial_id: MATRIZ_ID,
+    status: 'Ativo',
+    produtor_id: PRODUTOR_INTERNO_ID,
+    gerente_id: PRODUTOR_INTERNO_ID,
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  }));
+
+  const policies = [
+    {
+      id: 'mock-apolice-viaforte', segurado_id: 'mock-segurado-viaforte', seguradora_id: seguradoraIds['Porto Seguro'],
+      ramo_id: ramoIds.Frota, status: 'VIGENTE', numero_apolice: '531820260444005', vigencia_inicio: '2026-06-19',
+      vigencia_fim: '2027-06-19', data_emissao: '2026-06-19', premio_total: 1950.74, premio_liquido: 1780.12,
+    },
+    {
+      id: 'mock-apolice-aurora', segurado_id: 'mock-segurado-aurora', seguradora_id: seguradoraIds['SulAmérica'],
+      ramo_id: ramoIds['Saúde Empresarial'], status: 'VIGENTE', numero_apolice: 'SAU-2026-00881', vigencia_inicio: '2026-01-01',
+      vigencia_fim: '2026-12-31', data_emissao: '2025-12-20', premio_total: 86400, premio_liquido: 81000,
+      periodicidade_pagamento: 'MENSAL',
+    },
+    {
+      id: 'mock-apolice-joao', segurado_id: SEGURADO_DEMO_ID, seguradora_id: seguradoraIds.Allianz,
+      ramo_id: ramoIds['Automóvel'], status: 'EM_EMISSAO', numero_apolice: null, vigencia_inicio: '2026-07-15',
+      vigencia_fim: '2027-07-15', premio_total: 2980.44, premio_liquido: 2710.18,
+    },
+    {
+      id: 'mock-apolice-camila', segurado_id: 'mock-segurado-camila', seguradora_id: seguradoraIds['Tokio Marine'],
+      ramo_id: ramoIds.Residencial, status: 'EM_EMISSAO', numero_apolice: null, vigencia_inicio: '2026-07-20',
+      vigencia_fim: '2027-07-20', premio_total: 860.9, premio_liquido: 790.2,
+    },
+    {
+      id: 'mock-apolice-padaria', segurado_id: 'mock-segurado-padaria', seguradora_id: seguradoraIds['Bradesco Seguros'],
+      ramo_id: ramoIds.Empresarial, status: 'EM_EMISSAO', numero_apolice: null, vigencia_inicio: '2026-08-01',
+      vigencia_fim: '2027-08-01', premio_total: 5230, premio_liquido: 4800,
+    },
+  ];
+  policies.forEach((policy) => db.apolices.push({
+    produtor_id: PRODUTOR_INTERNO_ID,
+    renovada_de_id: null,
+    observacoes: null,
+    ...policy,
+  }));
+
+  db.endosso_subtipos.push(
+    { id: 'mock-endosso-substituicao-item', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Substituição de item', natureza_canonica: 'SUBSTITUICAO_ITEM', ordem: 10, ativo: true, observacoes: null },
+    { id: 'mock-endosso-alteracao-cobertura', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Alteração de cobertura', natureza_canonica: 'ALTERACAO_COBERTURA', ordem: 20, ativo: true, observacoes: null },
+    { id: 'mock-endosso-exclusao-item', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Exclusão de item', natureza_canonica: 'EXCLUSAO_ITEM', ordem: 30, ativo: true, observacoes: null },
+  );
+  db.cancelamento_motivos.push(
+    { id: 'mock-cancelamento-solicitacao-segurado', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Solicitação do segurado', ordem: 10, ativo: true, observacoes: null },
+    { id: 'mock-cancelamento-inadimplencia', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Inadimplência', ordem: 20, ativo: true, observacoes: null },
+  );
+
+  const documents = [
+    {
+      id: 'mock-proposta-viaforte-original', apolice_id: 'mock-apolice-viaforte', tipo: 'NOVA', stage_id: emitidaStageId,
+      numero_proposta: '1304103126', numero_endosso: '0', data_transmissao: '2026-06-15', data_aceitacao: '2026-06-18',
+      data_emissao: '2026-06-19', vigencia_inicio: '2026-06-19', vigencia_fim: '2027-06-19',
+      premio_total: 1950.74, premio_liquido: 1780.12, forma_pagamento: 'DÉBITO_EM_CONTA', qtd_parcelas: 5,
+    },
+    {
+      id: 'mock-proposta-viaforte-endosso-1', apolice_id: 'mock-apolice-viaforte', tipo: 'ENDOSSO', stage_id: recusadaStageId,
+      numero_proposta: '1307200101', numero_endosso: '1', data_transmissao: '2026-06-20', data_recusa: '2026-06-21',
+      motivo_recusa: 'Documentação incompleta.', tipo_movimento_endosso: 'SUBSTITUICAO_ITEM', endosso_subtipo_id: 'mock-endosso-substituicao-item', vigencia_inicio: '2026-06-22',
+    },
+    {
+      id: 'mock-proposta-viaforte-endosso-2', apolice_id: 'mock-apolice-viaforte', tipo: 'ENDOSSO', stage_id: analiseStageId,
+      numero_proposta: '1308116912', numero_endosso: '2', data_transmissao: '2026-07-10',
+      tipo_movimento_endosso: 'SUBSTITUICAO_ITEM', endosso_subtipo_id: 'mock-endosso-substituicao-item', vigencia_inicio: '2026-07-15', premio_total: -120.4, premio_liquido: -110.25,
+    },
+    {
+      id: 'mock-proposta-viaforte-endosso-3', apolice_id: 'mock-apolice-viaforte', tipo: 'ENDOSSO', stage_id: emitidaStageId,
+      numero_proposta: '1308222201', numero_endosso: '3', data_transmissao: '2026-07-01', data_aceitacao: '2026-07-03',
+      data_emissao: '2026-07-04', tipo_movimento_endosso: 'ALTERACAO_COBERTURA', endosso_subtipo_id: 'mock-endosso-alteracao-cobertura',
+      vigencia_inicio: '2026-07-05', premio_total: -85.5, premio_liquido: -78.25, forma_pagamento: 'CARTAO', qtd_parcelas: 1,
+    },
+    {
+      id: 'mock-proposta-viaforte-cancelamento', apolice_id: 'mock-apolice-viaforte', tipo: 'CANCELAMENTO', stage_id: emitidaStageId,
+      numero_proposta: 'CAN-2026-004', data_emissao: '2026-08-01', vigencia_inicio: '2026-08-01',
+      cancelamento_motivo_id: 'mock-cancelamento-solicitacao-segurado', premio_total: -975.37, premio_liquido: -890.06,
+    },
+    {
+      id: 'mock-proposta-aurora-original', apolice_id: 'mock-apolice-aurora', tipo: 'NOVA', stage_id: emitidaStageId,
+      numero_proposta: 'SAU-000881', data_emissao: '2025-12-20',
+      vigencia_inicio: '2026-01-01', vigencia_fim: '2026-12-31', premio_total: 86400, premio_liquido: 81000,
+    },
+    {
+      id: 'mock-proposta-aurora-fatura-maio', apolice_id: 'mock-apolice-aurora', tipo: 'FATURA', stage_id: emitidaStageId,
+      numero_fatura: 'FAT-2026-05', data_emissao: '2026-05-02', competencia_inicio: '2026-05-01', competencia_fim: '2026-05-31',
+      premio_total: 7200, premio_liquido: 6750,
+    },
+    {
+      id: 'mock-proposta-aurora-fatura-junho', apolice_id: 'mock-apolice-aurora', tipo: 'FATURA', stage_id: emitidaStageId,
+      numero_fatura: 'FAT-2026-06', data_emissao: '2026-06-02', competencia_inicio: '2026-06-01', competencia_fim: '2026-06-30',
+      premio_total: 7200, premio_liquido: 6750,
+    },
+    {
+      id: 'mock-proposta-aurora-fatura-julho', apolice_id: 'mock-apolice-aurora', tipo: 'FATURA', stage_id: aguardandoStageId,
+      numero_fatura: 'FAT-2026-07', competencia_inicio: '2026-07-01', competencia_fim: '2026-07-31', premio_total: 7200,
+    },
+    {
+      id: 'mock-proposta-joao', apolice_id: 'mock-apolice-joao', tipo: 'NOVA', stage_id: analiseStageId,
+      numero_proposta: 'AUTO-2026-001', data_transmissao: '2026-07-09', vigencia_inicio: '2026-07-15', vigencia_fim: '2027-07-15',
+      premio_total: 2980.44, premio_liquido: 2710.18,
+    },
+    {
+      id: 'mock-proposta-camila', apolice_id: 'mock-apolice-camila', tipo: 'NOVA', stage_id: aguardandoStageId,
+      numero_proposta: 'RES-2026-014', data_transmissao: '2026-07-11', vigencia_inicio: '2026-07-20', vigencia_fim: '2027-07-20',
+      premio_total: 860.9, premio_liquido: 790.2,
+    },
+    {
+      id: 'mock-proposta-padaria', apolice_id: 'mock-apolice-padaria', tipo: 'NOVA', stage_id: aguardandoStageId,
+      numero_proposta: 'EMP-2026-091', data_transmissao: '2026-07-11', vigencia_inicio: '2026-08-01', vigencia_fim: '2027-08-01',
+      premio_total: 5230, premio_liquido: 4800,
+    },
+  ];
+  documents.forEach((document) => db.propostas.push({
+    cotacao_id: null,
+    responsavel_id: MOCK_USER_ID,
+    recebimento_grade_id: null,
+    endosso_subtipo_id: null,
+    cancelamento_motivo_id: null,
+    observacoes: null,
+    ...document,
+  }));
+
+  const proposta = (id: string) => db.propostas.find((row) => row.id === id);
+  const auroraOriginal = proposta('mock-proposta-aurora-original');
+  const auroraMaio = proposta('mock-proposta-aurora-fatura-maio');
+  const auroraJunho = proposta('mock-proposta-aurora-fatura-junho');
+  const viaforteOriginal = proposta('mock-proposta-viaforte-original');
+  if (auroraOriginal) auroraOriginal.recebimento_grade_id = sulamericaSaudeGradeId;
+  if (auroraMaio) auroraMaio.recebimento_grade_id = sulamericaSaudeGradeId;
+  if (auroraJunho) auroraJunho.recebimento_grade_id = sulamericaSaudeGradeId;
+  if (viaforteOriginal) viaforteOriginal.recebimento_grade_id = portoAutoGradeId;
+
+  const saudeCoberturaIds = ['consultas', 'internacoes'].map((codigo, index) => {
+    const id = `mock-cobertura-saude-${codigo}`;
+    db.coberturas_catalogo.push({ id, ramo_id: saudeId, codigo, nome: index === 0 ? 'Consultas e exames' : 'Internações hospitalares', tipo_cobertura: index === 0 ? 'basica' : 'adicional', ativo: true, ordem: (index + 1) * 10 });
+    return id;
+  });
+  const autoCoberturaIds = db.coberturas_catalogo.filter((row) => row.ramo_id === automovelId).map((row) => row.id as string);
+  const residencialCoberturaIds = db.coberturas_catalogo.filter((row) => row.ramo_id === ramoIds.Residencial).map((row) => row.id as string);
+
+  const itens = [
+    { id: 'mock-item-viaforte-1', apolice_id: 'mock-apolice-viaforte', risk_type: 'VEICULO', incluido_por_proposta_id: 'mock-proposta-viaforte-original', excluido_por_proposta_id: 'mock-proposta-viaforte-endosso-2', numero_item: 1, descricao: 'Ford Ka SE 1.0', identificador_externo: 'QAA1A23', valor_risco: 48500, status: 'historico' },
+    { id: 'mock-item-viaforte-2', apolice_id: 'mock-apolice-viaforte', risk_type: 'VEICULO', incluido_por_proposta_id: 'mock-proposta-viaforte-original', excluido_por_proposta_id: null, numero_item: 2, descricao: 'Volkswagen Delivery 11.180', identificador_externo: 'BRA2E19', valor_risco: 238000, status: 'vigente' },
+    { id: 'mock-item-viaforte-3', apolice_id: 'mock-apolice-viaforte', risk_type: 'VEICULO', incluido_por_proposta_id: 'mock-proposta-viaforte-endosso-2', excluido_por_proposta_id: null, numero_item: 3, descricao: 'Volkswagen Fox Connect', identificador_externo: 'GHI4J56', valor_risco: 61200, status: 'vigente' },
+    { id: 'mock-item-aurora-grupo', apolice_id: 'mock-apolice-aurora', risk_type: 'VIDA', incluido_por_proposta_id: 'mock-proposta-aurora-original', excluido_por_proposta_id: null, numero_item: 1, descricao: 'Colaboradores ativos', identificador_externo: 'GRUPO-001', valor_risco: 2400000, status: 'vigente' },
+    { id: 'mock-item-camila-imovel', apolice_id: 'mock-apolice-camila', risk_type: 'IMOVEL', incluido_por_proposta_id: 'mock-proposta-camila', excluido_por_proposta_id: null, numero_item: 1, descricao: 'Residência principal', identificador_externo: '01310-100-84', valor_risco: 650000, status: 'vigente' },
+  ];
+  itens.forEach((item) => db.apolice_itens.push({ observacoes: null, endereco_risco_resumo: null, ...item }));
+  [
+    { apolice_item_id: 'mock-item-viaforte-1', marca: 'Ford', modelo: 'Ka', versao: 'SE 1.0', ano_fabricacao: 2020, ano_modelo: 2021, placa: 'QAA1A23', chassi: '9BFZH55L7M8000101', renavam: '01234567891', uso: 'Comercial' },
+    { apolice_item_id: 'mock-item-viaforte-2', marca: 'Volkswagen', modelo: 'Delivery', versao: '11.180', ano_fabricacao: 2022, ano_modelo: 2023, placa: 'BRA2E19', chassi: '953658264PR000202', renavam: '01357924680', uso: 'Carga' },
+    { apolice_item_id: 'mock-item-viaforte-3', marca: 'Volkswagen', modelo: 'Fox', versao: 'Connect', ano_fabricacao: 2021, ano_modelo: 2022, placa: 'GHI4J56', chassi: '9BWAB45Z9N4000303', renavam: '01468035791', uso: 'Comercial' },
+  ].forEach((item) => db.item_veiculo.push(item));
+  db.item_vida.push({ apolice_item_id: 'mock-item-aurora-grupo', pessoa_id: null, nome_grupo: 'Colaboradores ativos', n_vidas: 24, capital_individual: 100000, data_inclusao: '2026-01-01' });
+  db.item_imovel.push({ apolice_item_id: 'mock-item-camila-imovel', cep: '01310-100', endereco: 'Avenida Paulista', numero: '84', complemento: 'Apto 71', bairro: 'Bela Vista', cidade: 'São Paulo', uf: 'SP', tipo_imovel: 'Apartamento', tipo_ocupacao: 'Habitual', area_m2: 92, valor_imovel: 650000 });
+
+  const addCobertura = (id: string, apolice_item_id: string, cobertura_id: string | undefined, capital_lmi: number, premio: number, incluido: string, excluido: string | null = null) => db.item_coberturas.push({ id, apolice_item_id, cobertura_id: cobertura_id ?? null, incluido_por_proposta_id: incluido, excluido_por_proposta_id: excluido, capital_lmi, franquia_valor: null, franquia_tipo: null, premio, premio_liquido: premio, carencia_dias: 0, participacao_obrigatoria_pct: null, vigencia_inicio: null, vigencia_fim: null, observacoes: null });
+  addCobertura('mock-cob-via-1-casco', 'mock-item-viaforte-1', autoCoberturaIds[0], 48500, 620, 'mock-proposta-viaforte-original', 'mock-proposta-viaforte-endosso-2');
+  addCobertura('mock-cob-via-2-casco', 'mock-item-viaforte-2', autoCoberturaIds[0], 238000, 980, 'mock-proposta-viaforte-original');
+  addCobertura('mock-cob-via-3-casco', 'mock-item-viaforte-3', autoCoberturaIds[0], 61200, 690, 'mock-proposta-viaforte-endosso-2');
+  addCobertura('mock-cob-aurora-consultas', 'mock-item-aurora-grupo', saudeCoberturaIds[0], 1200000, 3600, 'mock-proposta-aurora-original');
+  addCobertura('mock-cob-aurora-internacoes', 'mock-item-aurora-grupo', saudeCoberturaIds[1], 1200000, 3600, 'mock-proposta-aurora-original');
+  addCobertura('mock-cob-camila-incendio', 'mock-item-camila-imovel', residencialCoberturaIds[0], 650000, 620, 'mock-proposta-camila');
+
+  const materializarDocumento = (documentoId: string, vencimento: string, numeroFatura?: string) => {
+    const documento = proposta(documentoId);
+    if (!documento || db.parcelas.some((row) => row.proposta_id === documentoId)) return;
+    const qtd = documento.tipo === 'FATURA' ? 1 : Math.max(1, Number(documento.qtd_parcelas ?? 1));
+    const total = Number(documento.premio_total ?? 0);
+    for (let numero = 1; numero <= qtd; numero += 1) db.parcelas.push({ id: `parcela:${documentoId}:${numero}`, proposta_id: documentoId, numero, vencimento, valor: total / qtd, valor_liquido: total / qtd, iof: null, adicional_fracionamento: null, status: 'em_aberto', forma_pagamento: documento.forma_pagamento ?? 'BOLETO', nosso_numero: null, linha_digitavel: null, codigo_barras: null, data_pagamento: null, valor_pago: null, data_baixa: null, numero_fatura: numeroFatura ?? null, competencia_inicio: documento.competencia_inicio ?? null, competencia_fim: documento.competencia_fim ?? null, observacoes: null });
+    const grade = db.recebimento_grades.find((row) => row.id === documento.recebimento_grade_id);
+    const eventos = grade ? db.recebimento_grade_parcelas.filter((row) => row.grade_id === grade.id && row.ativo) : [];
+    const comissaoTotal = Number(documento.premio_total ?? 0) * Number(documento.comissao_pct ?? grade?.percentual_default ?? 20) / 100;
+    (eventos.length ? eventos : [{ numero: 1, percentual: 100, dias_apos_vencimento: 0 }]).forEach((evento) => db.comissoes.push({ id: `comissao:${documentoId}:${evento.numero}`, proposta_id: documentoId, parcela_id: null, numero: evento.numero, percentual: Number(evento.percentual ?? 100), base_calculo: total, valor_previsto: comissaoTotal * Number(evento.percentual ?? 100) / 100, valor_recebido: null, valor_diferenca: null, status: 'PREVISTA', prevista_em: vencimento, recebida_em: null, extrato_numero: null, seguradora_lote: null, competencia_inicio: documento.competencia_inicio ?? null, competencia_fim: documento.competencia_fim ?? null, observacoes: `Snapshot da grade ${grade?.nome ?? 'Agenda manual'}` }));
+    const regra = db.repasse_regras.filter((row) => row.ativo && row.papel === 'PRODUTOR' && (!row.ramo_id || row.ramo_id === db.apolices.find((a) => a.id === documento.apolice_id)?.ramo_id) && (!row.tipo_documento || row.tipo_documento === documento.tipo)).sort((a, b) => Number(b.prioridade) - Number(a.prioridade))[0];
+    if (regra) db.repasses.push({ id: `repasse:${documentoId}:${regra.id}`, proposta_id: documentoId, comissao_id: regra.gatilho === 'CONFORME_RECEBIMENTO' ? `comissao:${documentoId}:1` : null, beneficiario_id: db.apolices.find((a) => a.id === documento.apolice_id)?.produtor_id, regra_id: regra.id, numero: 1, papel_beneficiario: 'PRODUTOR', base: regra.base, percentual: regra.percentual, valor_previsto: regra.base === 'PREMIO_LIQUIDO' ? Number(documento.premio_liquido ?? 0) * Number(regra.percentual ?? 0) / 100 : comissaoTotal * Number(regra.percentual ?? 0) / 100, valor_pago: null, valor_diferenca: null, status: 'PREVISTO', previsto_em: vencimento, liberado_em: null, pago_em: null, forma_pagamento: null, comprovante_referencia: null, observacoes: `Snapshot da regra ${regra.id}` });
+  };
+  materializarDocumento('mock-proposta-viaforte-original', '2026-07-10');
+  materializarDocumento('mock-proposta-viaforte-endosso-3', '2026-07-15');
+  materializarDocumento('mock-proposta-viaforte-cancelamento', '2026-08-10');
+  materializarDocumento('mock-proposta-aurora-fatura-maio', '2026-05-10', 'FAT-2026-05');
+  materializarDocumento('mock-proposta-aurora-fatura-junho', '2026-06-10', 'FAT-2026-06');
+  // Reprocessamento deliberado: o guard por proposta preserva idempotencia.
+  materializarDocumento('mock-proposta-aurora-fatura-junho', '2026-06-10', 'FAT-2026-06');
 }
 
 seed();

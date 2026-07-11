@@ -1,390 +1,225 @@
-import React, { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import { getTable } from '../lib/inMemoryDb'
+import type { Database } from '../types/database'
+import type {
+  EndorsementMovementType,
+  PolicyContractStatus,
+  Proposal,
+  ProposalStatus,
+  ProposalType,
+} from '../types/proposta'
 import { PropostasContext } from './propostasCore'
-import type { Proposal, ProposalStatus } from '../types/proposta'
+import { persistAuditedUpdate } from './propostasAudit'
 
-const isoDateFromToday = (days: number) => {
-  const date = new Date()
-  date.setDate(date.getDate() + days)
-  return date.toISOString().slice(0, 10)
+type ApoliceRow = Database['public']['Tables']['apolices']['Row']
+type PropostaRow = Database['public']['Tables']['propostas']['Row']
+
+const policyStatus: Record<string, PolicyContractStatus> = {
+  EM_EMISSAO: 'Em emissão',
+  ATIVA: 'Vigente',
+  VIGENTE: 'Vigente',
+  RENOVADA: 'Renovada',
+  NAO_RENOVADA: 'Não renovada',
+  CANCELADA: 'Cancelada',
+  RECUSADA: 'Recusada',
 }
 
-const MOCK_PROPOSALS: Proposal[] = [
-  {
-    id: 'mock-apolice-emissao-auto-joao',
-    entityType: 'apolice',
-    seguradoId: 'mock-segurado-joao',
-    insured: 'João Almeida',
-    branch: 'Automóvel',
-    status: 'Em Análise',
-    currentStatus: 'Em emissão',
-    proposalType: 'Proposta',
-    producer: { name: 'Dev Wassis' },
-    insurer: 'Porto Seguro',
-    vigenciaInicial: isoDateFromToday(7),
-    vigenciaFinal: isoDateFromToday(372),
-    totalPremium: 4280.42,
-  },
-  {
-    id: 'mock-apolice-emissao-residencial-camila',
-    entityType: 'apolice',
-    seguradoId: 'mock-segurado-camila',
-    insured: 'Camila Rocha',
-    branch: 'Residencial',
-    status: 'Pendente',
-    currentStatus: 'Em emissão',
-    proposalType: 'Proposta',
-    producer: { name: 'Marina Costa' },
-    insurer: 'Tokio Marine',
-    vigenciaInicial: isoDateFromToday(3),
-    vigenciaFinal: isoDateFromToday(368),
-    totalPremium: 1280.9,
-  },
-  {
-    id: 'mock-apolice-emissao-empresarial-padaria',
-    entityType: 'apolice',
-    seguradoId: 'mock-segurado-padaria',
-    insured: 'Padaria Santa Clara Ltda.',
-    branch: 'Empresarial',
-    status: 'Pendência Resolvida',
-    currentStatus: 'Em emissão',
-    proposalType: 'Proposta',
-    producer: { name: 'Dev Wassis' },
-    insurer: 'Allianz',
-    vigenciaInicial: isoDateFromToday(10),
-    vigenciaFinal: isoDateFromToday(375),
-    totalPremium: 9350,
-  },
-  {
-    id: 'mock-apolice-emissao-saude-lumina',
-    entityType: 'apolice',
-    seguradoId: 'mock-segurado-lumina',
-    insured: 'Lumina Tecnologia S.A.',
-    branch: 'Saúde Empresarial',
-    status: 'Proposta Emitida',
-    currentStatus: 'Em emissão',
-    proposalType: 'Proposta',
-    producer: { name: 'Marina Costa' },
-    insurer: 'SulAmérica',
-    vigenciaInicial: isoDateFromToday(1),
-    vigenciaFinal: isoDateFromToday(366),
-    totalPremium: 18240,
-    isMonthly: true,
-  },
-  {
-    id: 'mock-apolice-saude-mensal-aurora',
-    entityType: 'apolice',
-    seguradoId: 'mock-segurado-aurora',
-    insured: 'Cooperativa Aurora',
-    branch: 'Saúde Empresarial',
-    status: 'Proposta Emitida',
-    currentStatus: 'Vigente',
-    proposalType: 'Proposta',
-    producer: { name: 'Dev Wassis' },
-    insurer: 'Bradesco Seguros',
-    policyNumber: 'SAU-26-0004182',
-    vigenciaInicial: isoDateFromToday(-185),
-    vigenciaFinal: isoDateFromToday(180),
-    totalPremium: 22450,
-    isMonthly: true,
-  },
-  {
-    id: 'mock-proposta-auto-joao',
-    entityType: 'proposta',
-    apoliceId: 'mock-apolice-emissao-auto-joao',
-    seguradoId: 'mock-segurado-joao',
-    insured: 'João Almeida',
-    branch: 'Automóvel',
-    status: 'Em Análise',
-    proposalType: 'Proposta',
-    producer: { name: 'Dev Wassis' },
-    insurer: 'Porto Seguro',
-    proposalNumber: 'PROP-PS-10482',
-    transmissionDate: isoDateFromToday(-1),
-    effectDate: isoDateFromToday(7),
-    totalPremium: 4280.42,
-    netPremium: 3890.15,
-    notes: 'Proposta nova em análise pela seguradora.',
-    vigenciaInicial: isoDateFromToday(7),
-    vigenciaFinal: isoDateFromToday(372),
-    details: {
-      model: 'Compass Longitude',
-      brand: 'Jeep',
-      year: '2023',
-      plate: 'FIC2A45',
-      chassis: '9BWZZZ377VT004251',
-    },
-  },
-  {
-    id: 'mock-proposta-residencial-camila',
-    entityType: 'proposta',
-    apoliceId: 'mock-apolice-emissao-residencial-camila',
-    seguradoId: 'mock-segurado-camila',
-    insured: 'Camila Rocha',
-    branch: 'Residencial',
-    status: 'Pendente',
-    proposalType: 'Proposta',
-    producer: { name: 'Marina Costa' },
-    insurer: 'Tokio Marine',
-    proposalNumber: 'PROP-TM-88014',
-    transmissionDate: isoDateFromToday(-3),
-    effectDate: isoDateFromToday(3),
-    totalPremium: 1280.9,
-    notes: 'Aguardando retorno da análise residencial.',
-    vigenciaInicial: isoDateFromToday(3),
-    vigenciaFinal: isoDateFromToday(368),
-    details: { model: 'Apartamento', brand: 'Vila Mariana', year: '2020' },
-  },
-  {
-    id: 'mock-proposta-empresarial-padaria',
-    entityType: 'proposta',
-    apoliceId: 'mock-apolice-emissao-empresarial-padaria',
-    seguradoId: 'mock-segurado-padaria',
-    insured: 'Padaria Santa Clara Ltda.',
-    branch: 'Empresarial',
-    status: 'Pendência Resolvida',
-    proposalType: 'Proposta',
-    producer: { name: 'Dev Wassis' },
-    insurer: 'Allianz',
-    proposalNumber: 'PROP-AL-34091',
-    transmissionDate: isoDateFromToday(-4),
-    effectDate: isoDateFromToday(10),
-    totalPremium: 9350,
-    notes: 'Pendência resolvida; documento segue em análise.',
-    vigenciaInicial: isoDateFromToday(10),
-    vigenciaFinal: isoDateFromToday(375),
-    details: { model: 'Comércio varejista', brand: 'Loja de rua', year: '2018' },
-  },
-  {
-    id: 'mock-proposta-saude-lumina',
-    entityType: 'proposta',
-    apoliceId: 'mock-apolice-emissao-saude-lumina',
-    seguradoId: 'mock-segurado-lumina',
-    insured: 'Lumina Tecnologia S.A.',
-    branch: 'Saúde Empresarial',
-    status: 'Proposta Emitida',
-    proposalType: 'Proposta',
-    producer: { name: 'Marina Costa' },
-    insurer: 'SulAmérica',
-    proposalNumber: 'PROP-SAU-72015',
-    transmissionDate: isoDateFromToday(-8),
-    issueDate: isoDateFromToday(-1),
-    effectDate: isoDateFromToday(1),
-    totalPremium: 18240,
-    notes: 'Stage emitido; documento oficial ainda precisa ser importado.',
-    vigenciaInicial: isoDateFromToday(1),
-    vigenciaFinal: isoDateFromToday(366),
-    details: { model: 'Plano PME', brand: '42 vidas', year: '2026' },
-  },
-  {
-    id: 'mock-apolice-auto-joao',
-    entityType: 'apolice',
-    seguradoId: 'mock-segurado-joao',
-    insured: 'João Almeida',
-    branch: 'Automóvel',
-    status: 'Proposta Emitida',
-    currentStatus: 'Vigente',
-    proposalType: 'Renovação',
-    producer: { name: 'Dev Wassis' },
-    insurer: 'Porto Seguro',
-    policyNumber: '0531-26-0001847',
-    vigenciaInicial: isoDateFromToday(-335),
-    vigenciaFinal: isoDateFromToday(30),
-    totalPremium: 3960.75,
-    details: {
-      model: 'Corolla XEI',
-      brand: 'Toyota',
-      year: '2022',
-      plate: 'EZX8B21',
-      chassis: '9BRBLWHE5N0123456',
-    },
-  },
-  {
-    id: 'mock-apolice-vida-global',
-    entityType: 'apolice',
-    seguradoId: 'mock-segurado-madalozzo',
-    insured: 'Grupo Madalozzo',
-    branch: 'Vida em Grupo Global',
-    status: 'Proposta Emitida',
-    currentStatus: 'Vigente',
-    proposalType: 'Proposta',
-    producer: { name: 'Marina Costa' },
-    insurer: 'Bradesco Seguros',
-    policyNumber: '0993-26-0009412',
-    vigenciaInicial: isoDateFromToday(-92),
-    vigenciaFinal: isoDateFromToday(273),
-    totalPremium: 14850,
-    details: { model: 'Vida global', brand: '128 vidas', year: '2026' },
-  },
-  {
-    id: 'mock-apolice-frota-viaforte',
-    entityType: 'apolice',
-    seguradoId: 'mock-segurado-viaforte',
-    insured: 'Viaforte Transportes Ltda.',
-    branch: 'Frota',
-    status: 'Proposta Emitida',
-    currentStatus: 'Vigente',
-    proposalType: 'Proposta',
-    producer: { name: 'Dev Wassis' },
-    insurer: 'Tokio Marine',
-    policyNumber: '0532-26-0003379',
-    vigenciaInicial: isoDateFromToday(-156),
-    vigenciaFinal: isoDateFromToday(209),
-    totalPremium: 48200,
-    details: { model: 'Frota leve', brand: '18 veículos', year: '2026' },
-  },
-  {
-    id: 'mock-endosso-frota-viaforte',
-    entityType: 'proposta',
-    apoliceId: 'mock-apolice-frota-viaforte',
-    seguradoId: 'mock-segurado-viaforte',
-    insured: 'Viaforte Transportes Ltda.',
-    branch: 'Frota',
-    status: 'Pendente',
-    proposalType: 'Endosso',
-    producer: { name: 'Dev Wassis' },
-    insurer: 'Tokio Marine',
-    policyNumber: '0532-26-0003379',
-    controlNumber: 'PED-END-2026-0418',
-    endorsementMovement: 'substituicao_item',
-    transmissionDate: isoDateFromToday(-2),
-    effectDate: isoDateFromToday(3),
-    additionalPremium: 1380.5,
-    totalPremium: 1380.5,
-    notes: 'Substituição de veículo da frota em tramitação.',
-    vigenciaInicial: isoDateFromToday(-2),
-    vigenciaFinal: isoDateFromToday(209),
-    details: { model: 'Substituição de veículo', brand: 'Frota leve', year: '2026' },
-  },
-  {
-    id: 'mock-endosso-alteracao-viaforte',
-    entityType: 'proposta',
-    apoliceId: 'mock-apolice-frota-viaforte',
-    seguradoId: 'mock-segurado-viaforte',
-    insured: 'Viaforte Transportes Ltda.',
-    branch: 'Frota',
-    status: 'Recusada',
-    proposalType: 'Endosso',
-    producer: { name: 'Dev Wassis' },
-    insurer: 'Tokio Marine',
-    policyNumber: '0532-26-0003379',
-    controlNumber: 'PED-END-2026-0371',
-    endorsementMovement: 'sem_movimento',
-    transmissionDate: isoDateFromToday(-42),
-    effectDate: isoDateFromToday(-35),
-    notes: 'Correção cadastral sem movimento de prêmio; documento recusado preservado no histórico.',
-  },
-  {
-    id: 'mock-fatura-aurora-2026-07',
-    entityType: 'proposta',
-    apoliceId: 'mock-apolice-saude-mensal-aurora',
-    seguradoId: 'mock-segurado-aurora',
-    insured: 'Cooperativa Aurora',
-    branch: 'Saúde Empresarial',
-    status: 'Pendente',
-    proposalType: 'Fatura',
-    producer: { name: 'Dev Wassis' },
-    insurer: 'Bradesco Seguros',
-    policyNumber: 'SAU-26-0004182',
-    invoiceNumber: 'FAT-2026-07-4182',
-    competenceStart: '2026-07-01',
-    competenceEnd: '2026-07-31',
-    issueDate: '2026-07-08',
-    totalPremium: 23190.4,
-    notes: 'Fatura mensal aguardando conferência das movimentações.',
-  },
-  {
-    id: 'mock-fatura-aurora-2026-06',
-    entityType: 'proposta',
-    apoliceId: 'mock-apolice-saude-mensal-aurora',
-    seguradoId: 'mock-segurado-aurora',
-    insured: 'Cooperativa Aurora',
-    branch: 'Saúde Empresarial',
-    status: 'Proposta Emitida',
-    proposalType: 'Fatura',
-    producer: { name: 'Dev Wassis' },
-    insurer: 'Bradesco Seguros',
-    policyNumber: 'SAU-26-0004182',
-    invoiceNumber: 'FAT-2026-06-4182',
-    competenceStart: '2026-06-01',
-    competenceEnd: '2026-06-30',
-    issueDate: '2026-06-08',
-    totalPremium: 22450,
-    notes: 'Fatura emitida e vinculada ao contrato.',
-  },
-  {
-    id: 'mock-fatura-aurora-2026-05',
-    entityType: 'proposta',
-    apoliceId: 'mock-apolice-saude-mensal-aurora',
-    seguradoId: 'mock-segurado-aurora',
-    insured: 'Cooperativa Aurora',
-    branch: 'Saúde Empresarial',
-    status: 'Proposta Emitida',
-    proposalType: 'Fatura',
-    producer: { name: 'Dev Wassis' },
-    insurer: 'Bradesco Seguros',
-    policyNumber: 'SAU-26-0004182',
-    invoiceNumber: 'FAT-2026-05-4182',
-    competenceStart: '2026-05-01',
-    competenceEnd: '2026-05-31',
-    issueDate: '2026-05-08',
-    totalPremium: 21985.65,
-    notes: 'Fatura emitida e preservada no histórico mensal.',
-  },
-  {
-    id: 'mock-renovacao-residencial-marcia',
-    entityType: 'apolice',
-    insured: 'Márcia Fonseca',
-    branch: 'Residencial',
-    status: 'Pendente',
-    currentStatus: 'Vigente',
-    proposalType: 'Renovação',
-    producer: { name: 'Marina Costa' },
-    insurer: 'Allianz',
-    policyNumber: '0114-25-0007710',
-    vigenciaInicial: isoDateFromToday(-350),
-    vigenciaFinal: isoDateFromToday(15),
-    details: { model: 'Casa térrea', brand: 'Jardim Europa', year: '2016' },
-  },
-  {
-    id: 'mock-renovacao-empresarial-norte',
-    entityType: 'apolice',
-    insured: 'Clínica Norte Saúde',
-    branch: 'Empresarial',
-    status: 'Pendente',
-    currentStatus: 'Vigente',
-    proposalType: 'Renovação',
-    producer: { name: 'Dev Wassis' },
-    insurer: 'Bradesco Seguros',
-    policyNumber: '0118-25-0006124',
-    vigenciaInicial: isoDateFromToday(-342),
-    vigenciaFinal: isoDateFromToday(23),
-    details: { model: 'Consultório médico', brand: 'Unidade Santana', year: '2019' },
-  },
-]
+const proposalType: Record<string, ProposalType> = {
+  NOVA: 'Proposta',
+  RENOVACAO: 'Renovação',
+  ENDOSSO: 'Endosso',
+  CANCELAMENTO: 'Cancelamento',
+  FATURA: 'Fatura',
+}
 
-/**
- * Store frontend puro de propostas/apólices, em memória (zera a cada reload).
- * Inicia com uma massa demo para preencher o Painel e validar os estados visuais.
- * Itens criados no Painel seguem aparecendo automaticamente na aba "Apólices"
- * do segurado (filtrados por `seguradoId`).
- */
-export const PropostasProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [proposals, setProposals] = useState<Proposal[]>(MOCK_PROPOSALS)
+const stageStatus: Record<string, ProposalStatus> = {
+  'Aguardando proposta': 'Pendente',
+  'Em análise': 'Em Análise',
+  Emitida: 'Proposta Emitida',
+  Recusada: 'Recusada',
+}
 
-  const addProposal: (p: Omit<Proposal, 'id'> & { id?: string }) => void = (p) =>
-    setProposals(prev => [...prev, { ...p, id: p.id ?? crypto.randomUUID() } as Proposal])
+const policyProposalStatus: Record<PolicyContractStatus, ProposalStatus> = {
+  'Em emissão': 'Pendente',
+  Vigente: 'Proposta Emitida',
+  Renovada: 'Renovada',
+  'Não renovada': 'Não renovada',
+  Cancelada: 'Cancelada',
+  Recusada: 'Recusada',
+}
 
-  const updateProposal = (id: string, patch: Partial<Proposal>) =>
-    setProposals(prev => prev.map(p => (p.id === id ? { ...p, ...patch } : p)))
+const statusStage: Partial<Record<ProposalStatus, string>> = {
+  Pendente: 'Aguardando proposta',
+  'Pendência Resolvida': 'Aguardando proposta',
+  'Em Análise': 'Em análise',
+  'Proposta Emitida': 'Emitida',
+  Vigente: 'Emitida',
+  Recusada: 'Recusada',
+}
 
-  const setProposalStatus = (id: string, status: ProposalStatus) =>
-    setProposals(prev => prev.map(p => (p.id === id ? { ...p, status } : p)))
+const movementType: Record<string, EndorsementMovementType> = {
+  ALTERACAO_DADOS: 'alteracao_dados',
+  INCLUSAO_ITEM: 'inclusao_item',
+  EXCLUSAO_ITEM: 'exclusao_item',
+  SUBSTITUICAO_ITEM: 'substituicao_item',
+  ALTERACAO_COBERTURA: 'alteracao_cobertura',
+  ALTERACAO_IMPORTANCIA_SEGURADA: 'alteracao_importancia_segurada',
+  ALTERACAO_CLAUSULA: 'alteracao_clausula',
+}
 
-  const removeProposal = (id: string) =>
-    setProposals(prev => prev.filter(p => p.id !== id))
+const text = (value: unknown, fallback = 'Não informado') =>
+  typeof value === 'string' && value.trim() ? value : fallback
+
+function buildProjection(): Proposal[] {
+  const policies = getTable('apolices') as ApoliceRow[]
+  const documents = getTable('propostas') as PropostaRow[]
+  const insureds = getTable('segurados')
+  const insurers = getTable('seguradoras')
+  const branches = getTable('ramos')
+  const producers = getTable('produtores')
+  const stages = getTable('pipeline_stages')
+  const endorsementSubtypes = getTable('endosso_subtipos')
+  const cancellationReasons = getTable('cancelamento_motivos')
+
+  const policiesProjection: Proposal[] = policies.map((policy) => {
+    const branch = branches.find((item) => item.id === policy.ramo_id)
+    const insured = insureds.find((item) => item.id === policy.segurado_id)
+    const currentStatus = policyStatus[policy.status ?? ''] ?? 'Em emissão'
+    return {
+      id: policy.id,
+      entityType: 'apolice',
+      seguradoId: policy.segurado_id,
+      insured: text(insured?.nome),
+      insuredDocument: insured?.cpf_cnpj ?? undefined,
+      insuredCity: insured?.cidade ?? undefined,
+      insuredState: insured?.estado ?? undefined,
+      insuredEmail: insured?.email ?? undefined,
+      insuredPhone: insured?.telefone ?? undefined,
+      branch: text(branch?.nome),
+      branchId: policy.ramo_id ?? undefined,
+      status: policyProposalStatus[currentStatus],
+      currentStatus,
+      proposalType: 'Proposta',
+      producer: { name: text(producers.find((item) => item.id === policy.produtor_id)?.nome) },
+      producerId: policy.produtor_id ?? undefined,
+      insurer: text(insurers.find((item) => item.id === policy.seguradora_id)?.nome),
+      insurerId: policy.seguradora_id ?? undefined,
+      policyNumber: policy.numero_apolice ?? undefined,
+      controlNumber: policy.numero_controle_documento ?? undefined,
+      issueDate: policy.data_emissao ?? undefined,
+      vigenciaInicial: policy.vigencia_inicio ?? undefined,
+      vigenciaFinal: policy.vigencia_fim ?? undefined,
+      totalPremium: policy.premio_total ?? undefined,
+      netPremium: policy.premio_liquido ?? undefined,
+      iof: policy.iof ?? undefined,
+      installmentAdditional: policy.adicional_fracionamento ?? undefined,
+      paymentFrequency: policy.periodicidade_pagamento ?? undefined,
+      notes: policy.observacoes ?? undefined,
+      isMonthly: branch?.is_monthly === true,
+    }
+  })
+
+  const documentsProjection: Proposal[] = documents.map((document) => {
+    const policy = policies.find((item) => item.id === document.apolice_id)
+    const branch = branches.find((item) => item.id === policy?.ramo_id)
+    const stage = stages.find((item) => item.id === document.stage_id)
+    const rawMovement = document.tipo_movimento_endosso ?? ''
+    const insured = insureds.find((item) => item.id === policy?.segurado_id)
+    const subtype = endorsementSubtypes.find((item) => item.id === document.endosso_subtipo_id)
+    const cancellationReason = cancellationReasons.find((item) => item.id === document.cancelamento_motivo_id)
+    return {
+      id: document.id,
+      entityType: 'proposta',
+      apoliceId: document.apolice_id,
+      seguradoId: policy?.segurado_id,
+      insured: text(insured?.nome),
+      insuredDocument: insured?.cpf_cnpj ?? undefined,
+      insuredCity: insured?.cidade ?? undefined,
+      insuredState: insured?.estado ?? undefined,
+      insuredEmail: insured?.email ?? undefined,
+      insuredPhone: insured?.telefone ?? undefined,
+      branch: text(branch?.nome),
+      branchId: policy?.ramo_id ?? undefined,
+      status: stageStatus[text(stage?.nome, '')] ?? 'Pendente',
+      proposalType: proposalType[document.tipo ?? ''] ?? 'Proposta',
+      producer: { name: text(producers.find((item) => item.id === policy?.produtor_id)?.nome) },
+      producerId: policy?.produtor_id ?? undefined,
+      insurer: text(insurers.find((item) => item.id === policy?.seguradora_id)?.nome),
+      insurerId: policy?.seguradora_id ?? undefined,
+      stageId: document.stage_id,
+      policyNumber: policy?.numero_apolice ?? undefined,
+      proposalNumber: document.numero_proposta ?? undefined,
+      endorsementNumber: document.numero_endosso ?? undefined,
+      invoiceNumber: document.numero_fatura ?? undefined,
+      controlNumber: document.numero_controle_documento ?? undefined,
+      insurerProtocol: document.protocolo_seguradora ?? undefined,
+      endorsementMovement: movementType[rawMovement] ?? undefined,
+      endorsementSubtypeId: document.endosso_subtipo_id ?? undefined,
+      endorsementSubtype: subtype?.nome ?? undefined,
+      cancellationReasonId: document.cancelamento_motivo_id ?? undefined,
+      cancellationReason: cancellationReason?.nome ?? undefined,
+      transmissionDate: document.data_transmissao ?? undefined,
+      insurerReceiptDate: document.data_recebimento_seguradora ?? undefined,
+      acceptanceDate: document.data_aceitacao ?? undefined,
+      refusalDate: document.data_recusa ?? undefined,
+      refusalReason: document.motivo_recusa ?? undefined,
+      issueDate: document.data_emissao ?? undefined,
+      vigenciaInicial: document.vigencia_inicio ?? policy?.vigencia_inicio ?? undefined,
+      vigenciaFinal: document.vigencia_fim ?? policy?.vigencia_fim ?? undefined,
+      totalPremium: document.premio_total ?? undefined,
+      netPremium: document.premio_liquido ?? undefined,
+      iof: document.iof ?? undefined,
+      installmentAdditional: document.adicional_fracionamento ?? undefined,
+      paymentMethod: document.forma_pagamento ?? undefined,
+      paymentFrequency: document.periodicidade_pagamento ?? undefined,
+      installmentCount: document.qtd_parcelas ?? undefined,
+      firstInstallmentDueDate: document.primeira_parcela_vencimento ?? undefined,
+      firstInstallmentValue: document.primeira_parcela_valor ?? undefined,
+      competenceStart: document.competencia_inicio ?? undefined,
+      competenceEnd: document.competencia_fim ?? undefined,
+      notes: document.observacoes ?? undefined,
+      isMonthly: branch?.is_monthly === true,
+    }
+  })
+
+  return [...policiesProjection, ...documentsProjection]
+}
+
+export function PropostasProvider({ children }: { children: ReactNode }) {
+  const [, setRevision] = useState(0)
+  const proposals = buildProjection()
+
+  const setProposalStatus = (id: string, status: ProposalStatus) => {
+    const stageName = statusStage[status]
+    if (!stageName) return
+    const proposalPipelineIds = new Set(
+      getTable('pipelines')
+        .filter((item) => item.entidade_tipo === 'proposta')
+        .map((item) => item.id),
+    )
+    const stage = getTable('pipeline_stages').find(
+      (item) => item.nome === stageName && proposalPipelineIds.has(item.pipeline_id),
+    )
+    const document = getTable('propostas').find((item) => item.id === id)
+    if (!stage || !document) return
+    document.stage_id = stage.id
+    setRevision((current) => current + 1)
+  }
+
+  const updatePolicy = (id: string, patch: Database['public']['Tables']['apolices']['Update']) => {
+    const count = persistAuditedUpdate('apolices', 'apolice', id, patch)
+    if (count) setRevision((current) => current + 1)
+    return count
+  }
+
+  const updateDocument = (id: string, patch: Database['public']['Tables']['propostas']['Update']) => {
+    const count = persistAuditedUpdate('propostas', 'proposta', id, patch)
+    if (count) setRevision((current) => current + 1)
+    return count
+  }
 
   return (
-    <PropostasContext.Provider value={{ proposals, addProposal, updateProposal, setProposalStatus, removeProposal }}>
+    <PropostasContext.Provider value={{ proposals, setProposalStatus, updatePolicy, updateDocument }}>
       {children}
     </PropostasContext.Provider>
   )

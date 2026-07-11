@@ -3,6 +3,8 @@ import type { Proposal } from '../../types/proposta'
 import {
   buildPolicyTree,
   getDocumentFinancialEffect,
+  getCurrentPolicyDocument,
+  getDocumentNumber,
   getMovementLabel,
   getPolicyExpansionIds,
   getPolicyOperationalStatus,
@@ -148,15 +150,15 @@ describe('propostaSelectors', () => {
     }))).toBe('Substituição')
     expect(getDocumentFinancialEffect(makeRecord({
       proposalType: 'Endosso',
-      endorsementMovement: 'sem_movimento',
+      totalPremium: 0,
     }))).toBe('Sem movimento')
     expect(getDocumentFinancialEffect(makeRecord({
       proposalType: 'Endosso',
-      additionalPremium: 250,
+      totalPremium: 250,
     }))).toBe('Acréscimo')
     expect(getDocumentFinancialEffect(makeRecord({
       proposalType: 'Cancelamento',
-      refundPremium: 180,
+      totalPremium: -180,
     }))).toBe('Restituição')
   })
 
@@ -180,5 +182,49 @@ describe('propostaSelectors', () => {
       'invoices:apolice-1',
       'fatura-1',
     ])
+  })
+
+  it('preserva Endosso 0 quando esse é o número oficial da emissão original', () => {
+    expect(getDocumentNumber(makeRecord({ endorsementNumber: '0', proposalNumber: 'PROP-1' }))).toBe('0')
+  })
+
+  it('abre o último documento emitido e já vigente, ignorando pendente e recusado', () => {
+    const policy = makeRecord({ id: 'apolice-1', entityType: 'apolice' })
+    const original = makeRecord({
+      id: 'original', apoliceId: policy.id, status: 'Proposta Emitida', issueDate: '2026-01-01', vigenciaInicial: '2026-01-01',
+    })
+    const effectiveEndorsement = makeRecord({
+      id: 'endosso-vigente', apoliceId: policy.id, proposalType: 'Endosso', status: 'Proposta Emitida', issueDate: '2026-06-01', vigenciaInicial: '2026-06-15',
+    })
+    const pending = makeRecord({
+      id: 'endosso-pendente', apoliceId: policy.id, proposalType: 'Endosso', status: 'Em Análise', vigenciaInicial: '2026-07-01',
+    })
+    const refused = makeRecord({
+      id: 'endosso-recusado', apoliceId: policy.id, proposalType: 'Endosso', status: 'Recusada', issueDate: '2026-07-02', vigenciaInicial: '2026-07-02',
+    })
+    const [row] = buildPolicyTree([policy, original, effectiveEndorsement, pending, refused])
+
+    expect(getCurrentPolicyDocument(row, new Date('2026-07-11T12:00:00Z'))?.id).toBe('endosso-vigente')
+  })
+
+  it('em mensal usa a competência vigente emitida ou a última competência emitida', () => {
+    const policy = makeRecord({ id: 'apolice-1', entityType: 'apolice', isMonthly: true })
+    const june = makeRecord({
+      id: 'junho', apoliceId: policy.id, proposalType: 'Fatura', status: 'Proposta Emitida', issueDate: '2026-06-02', competenceStart: '2026-06-01', competenceEnd: '2026-06-30',
+    })
+    const julyPending = makeRecord({
+      id: 'julho', apoliceId: policy.id, proposalType: 'Fatura', status: 'Pendente', competenceStart: '2026-07-01', competenceEnd: '2026-07-31',
+    })
+    const [row] = buildPolicyTree([policy, june, julyPending])
+
+    expect(getCurrentPolicyDocument(row, new Date('2026-07-11T12:00:00Z'))?.id).toBe('junho')
+  })
+
+  it('em apólice simples ainda abre a proposta pendente quando não há emissão anterior', () => {
+    const policy = makeRecord({ id: 'apolice-1', entityType: 'apolice' })
+    const pending = makeRecord({ id: 'proposta-pendente', apoliceId: policy.id, status: 'Pendente' })
+    const [row] = buildPolicyTree([policy, pending])
+
+    expect(getCurrentPolicyDocument(row, new Date('2026-07-11T12:00:00Z'))?.id).toBe('proposta-pendente')
   })
 })

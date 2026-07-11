@@ -15,6 +15,7 @@ import FinanceiroDetalhePage from './pages/FinanceiroDetalhePage'
 import EmissaoDetalhePage from './pages/EmissaoDetalhePage'
 import PosVendaDetalhePage from './pages/PosVendaDetalhePage'
 import PropostasPage from './pages/PropostasPage'
+import ApoliceDetalhePage from './pages/ApoliceDetalhePage'
 import SettingsPage from './pages/SettingsPage'
 import NotificacoesPage from './pages/NotificacoesPage'
 import { useAuth } from './hooks/useAuth'
@@ -215,6 +216,7 @@ function AppLayout() {
             <Route path="/financeiro/:id" element={<FinanceiroDetalhePage />} />
             <Route path="/produtores" element={<Navigate to="/configuracoes?tab=produtores" replace />} />
             <Route path="/propostas" element={<PropostasPage />} />
+            <Route path="/apolices/:id" element={<ApoliceDetalhePage />} />
             <Route path="/notificacoes" element={<NotificacoesPage />} />
             <Route path="/configuracoes" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -4,8 +4,10 @@ import {
   FileClock,
   Files,
   FoldVertical,
+  ArrowUpRight,
   UnfoldVertical,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import type { Proposal } from '../../types/proposta'
 import {
   buildPolicyTree,
@@ -13,6 +15,7 @@ import {
   getDocumentNumber,
   getDocumentSummary,
   getMovementLabel,
+  getCurrentPolicyDocument,
   getPolicyExpansionIds,
   type DocumentTreeRow,
   type PolicyTreeRow,
@@ -102,8 +105,9 @@ function TableHeader({ firstColumn }: { firstColumn: string }) {
       <div className="col-span-3">{firstColumn}</div>
       <div className="col-span-2">Ramo</div>
       <div className="col-span-3">Status</div>
-      <div className="col-span-2">Produtor</div>
+      <div className="col-span-1">Produtor</div>
       <div className="col-span-2">Seguradora</div>
+      <div className="col-span-1 text-right">Ações</div>
     </div>
   )
 }
@@ -125,6 +129,7 @@ function PolicyRow({
   const contentId = `policy-documents-${policy.id}`
   const expansionIds = getPolicyExpansionIds(row)
   const allExpanded = expansionIds.length > 1 && expansionIds.every((id) => expanded.has(id))
+  const currentDocument = getCurrentPolicyDocument(row)
 
   return (
     <section className="border-b border-border-1 last:border-b-0">
@@ -184,8 +189,12 @@ function PolicyRow({
           </div>
         </div>
 
-        <PartyCell name={policy.producer.name} avatar />
+        <PartyCell name={policy.producer.name} avatar span={1} />
         <PartyCell name={policy.insurer} />
+        <ActionLink
+          to={`/apolices/${policy.id}`}
+          label={currentDocument ? `Abrir documento vigente de ${policy.insured}` : `Abrir apólice de ${policy.insured}`}
+        />
       </div>
 
       {isOpen && (
@@ -303,8 +312,8 @@ function DocumentRow({
     : row.movementLabel ?? row.typeLabel
 
   return (
-    <div className="border-t border-border-1/70 first:border-t-0">
-      <div className="grid grid-cols-12 items-center gap-3 py-2.5 pl-11 pr-4 text-sm hover:bg-bg-surface-2">
+    <div className="border-t border-border-1/70 bg-bg-surface-2 first:border-t-0">
+      <div className="grid grid-cols-12 items-center gap-3 py-2.5 pl-11 pr-4 text-sm hover:bg-bg-surface-3">
         <div className="col-span-3 min-w-0">
           <div className="flex items-start gap-2">
             <ExpandButton
@@ -325,7 +334,7 @@ function DocumentRow({
         <div className="col-span-2 text-xs text-fg-3">
           <p>{document.proposalType}</p>
           <p className="mt-0.5 text-[11px] text-fg-4">
-            {document.effectDate ? `Efeito: ${fmtDate(document.effectDate)}` : 'Efeito não informado'}
+            {document.vigenciaInicial ? `Início: ${fmtDate(document.vigenciaInicial)}` : 'Início não informado'}
           </p>
         </div>
 
@@ -341,8 +350,14 @@ function DocumentRow({
           </div>
         </div>
 
-        <PartyCell name={document.producer.name} avatar />
+        <PartyCell name={document.producer.name} avatar span={1} />
         <PartyCell name={document.insurer} />
+        {document.apoliceId ? (
+          <ActionLink
+            to={`/apolices/${document.apoliceId}?documento=${document.id}`}
+            label={`Abrir ${document.proposalType.toLowerCase()} ${row.documentNumber}`}
+          />
+        ) : <div className="col-span-1" />}
       </div>
 
       {isOpen && (
@@ -399,7 +414,7 @@ function DocumentDetails({ id, row }: { id: string; row: DocumentTreeRow }) {
       <Detail label="Número" value={row.documentNumber} mono />
       <Detail label="Transmissão" value={formatOptionalDate(document.transmissionDate)} />
       <Detail label="Emissão" value={formatOptionalDate(document.issueDate)} />
-      <Detail label="Efeito" value={formatOptionalDate(document.effectDate)} />
+      <Detail label="Início dos efeitos" value={formatOptionalDate(document.vigenciaInicial)} />
       <Detail
         label="Competência"
         value={document.proposalType === 'Fatura'
@@ -407,8 +422,7 @@ function DocumentDetails({ id, row }: { id: string; row: DocumentTreeRow }) {
           : undefined}
       />
       <Detail label="Prêmio do documento" value={fmtMoney(document.totalPremium)} mono />
-      <Detail label="Prêmio adicional" value={fmtMoney(document.additionalPremium)} mono />
-      <Detail label="Restituição" value={fmtMoney(document.refundPremium)} mono />
+      <Detail label="Prêmio líquido" value={fmtMoney(document.netPremium)} mono />
       <Detail label="Protocolo" value={document.insurerProtocol} mono />
       <div className="col-span-2 md:col-span-4">
         <Detail label="Resumo do movimento" value={row.summary} />
@@ -505,13 +519,28 @@ function StatusBadge({ value }: { value: string }) {
   )
 }
 
-function PartyCell({ name, avatar = false }: { name: string; avatar?: boolean }) {
+function PartyCell({ name, avatar = false, span = 2 }: { name: string; avatar?: boolean; span?: 1 | 2 }) {
   return (
-    <div className="col-span-2 flex min-w-0 items-center gap-2">
+    <div className={`${span === 1 ? 'col-span-1' : 'col-span-2'} flex min-w-0 items-center gap-2`}>
       <div className={`${avatar ? 'rounded-full bg-accent-primary-soft text-accent-primary' : 'rounded bg-bg-surface-2 text-fg-3'} flex h-7 w-7 shrink-0 items-center justify-center text-[10px] font-bold`}>
         {initials(name)}
       </div>
       <span className="truncate text-sm text-fg-2">{name}</span>
+    </div>
+  )
+}
+
+function ActionLink({ to, label }: { to: string; label: string }) {
+  return (
+    <div className="col-span-1 flex justify-end">
+      <Link
+        to={to}
+        aria-label={label}
+        title={label}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-fg-3 hover:bg-accent-primary-soft hover:text-accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
+      >
+        <ArrowUpRight size={16} />
+      </Link>
     </div>
   )
 }
