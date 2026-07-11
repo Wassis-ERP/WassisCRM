@@ -34,14 +34,13 @@ export type ProposalType =
 export type ProposalEntityType = 'proposta' | 'apolice'
 
 export type EndorsementMovementType =
-  | 'alteracao'
-  | 'cancelamento'
+  | 'alteracao_dados'
   | 'inclusao_item'
   | 'exclusao_item'
   | 'substituicao_item'
-  | 'sem_movimento'
-  | 'acrescimo'
-  | 'restituicao'
+  | 'alteracao_cobertura'
+  | 'alteracao_importancia_segurada'
+  | 'alteracao_clausula'
 
 export interface Proposal {
   id: string
@@ -51,13 +50,22 @@ export interface Proposal {
   apoliceId?: string
   /** Vínculo com o segurado dono da proposta/apólice (chave do filtro na aba "Apólices"). */
   seguradoId?: string
+  insuredDocument?: string
+  insuredCity?: string
+  insuredState?: string
+  insuredEmail?: string
+  insuredPhone?: string
   insured: string
   branch: string
+  branchId?: string
   status: ProposalStatus
   currentStatus?: PolicyContractStatus
   proposalType: ProposalType
   producer: { name: string; avatarUrl?: string }
+  producerId?: string
   insurer: string
+  insurerId?: string
+  stageId?: string
   policyNumber?: string
   proposalNumber?: string
   endorsementNumber?: string
@@ -65,15 +73,27 @@ export interface Proposal {
   controlNumber?: string
   insurerProtocol?: string
   endorsementMovement?: EndorsementMovementType
+  endorsementSubtypeId?: string
+  endorsementSubtype?: string
+  cancellationReasonId?: string
+  cancellationReason?: string
   transmissionDate?: string
+  insurerReceiptDate?: string
+  acceptanceDate?: string
+  refusalDate?: string
+  refusalReason?: string
   issueDate?: string
-  effectDate?: string
   vigenciaInicial?: string // ISO
   vigenciaFinal?: string // ISO
   totalPremium?: number
   netPremium?: number
-  additionalPremium?: number
-  refundPremium?: number
+  iof?: number
+  installmentAdditional?: number
+  paymentMethod?: string
+  paymentFrequency?: string
+  installmentCount?: number
+  firstInstallmentDueDate?: string
+  firstInstallmentValue?: number
   competenceStart?: string
   competenceEnd?: string
   notes?: string

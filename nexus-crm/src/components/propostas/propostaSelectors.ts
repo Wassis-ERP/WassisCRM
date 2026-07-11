@@ -54,14 +54,13 @@ export interface PolicyTreeRow {
 }
 
 const MOVEMENT_LABELS: Record<EndorsementMovementType, string> = {
-  alteracao: 'Alteração de dados',
-  cancelamento: 'Cancelamento',
+  alteracao_dados: 'Alteração de dados',
   inclusao_item: 'Inclusão',
   exclusao_item: 'Exclusão',
   substituicao_item: 'Substituição',
-  sem_movimento: 'Alteração sem movimento',
-  acrescimo: 'Alteração com acréscimo',
-  restituicao: 'Alteração com restituição',
+  alteracao_cobertura: 'Alteração de cobertura',
+  alteracao_importancia_segurada: 'Alteração de importância segurada',
+  alteracao_clausula: 'Alteração de cláusula',
 }
 
 export function isPipelineProposal(record: Proposal): boolean {
@@ -123,9 +122,9 @@ export function getMovementLabel(record: Proposal): string | undefined {
 }
 
 export function getDocumentFinancialEffect(record: Proposal): DocumentFinancialEffect {
-  if ((record.additionalPremium ?? 0) > 0) return 'Acréscimo'
-  if ((record.refundPremium ?? 0) > 0) return 'Restituição'
-  if (record.endorsementMovement === 'sem_movimento') return 'Sem movimento'
+  if ((record.totalPremium ?? 0) > 0) return 'Acréscimo'
+  if ((record.totalPremium ?? 0) < 0) return 'Restituição'
+  if (record.totalPremium === 0) return 'Sem movimento'
   if (
     record.proposalType === 'Endosso' ||
     record.proposalType === 'Cancelamento'
@@ -154,11 +153,9 @@ export function getDocumentSummary(record: Proposal): string {
 }
 
 function getDocumentSortDate(record: Proposal): string {
-  return record.effectDate
+  return (record.proposalType === 'Fatura' ? record.competenceEnd : record.vigenciaInicial)
     ?? record.issueDate
     ?? record.transmissionDate
-    ?? record.competenceEnd
-    ?? record.vigenciaInicial
     ?? ''
 }
 
@@ -176,6 +173,60 @@ function toDocumentTreeRow(document: Proposal): DocumentTreeRow {
 function sortDocuments(a: Proposal, b: Proposal): number {
   const byDate = getDocumentSortDate(b).localeCompare(getDocumentSortDate(a))
   return byDate || a.id.localeCompare(b.id)
+}
+
+function isOfficiallyIssued(record: Proposal): boolean {
+  return record.status === 'Proposta Emitida' && Boolean(record.issueDate)
+}
+
+function isEffectiveOn(record: Proposal, referenceDate: string): boolean {
+  return !record.vigenciaInicial || record.vigenciaInicial <= referenceDate
+}
+
+/**
+ * Resolve o documento vigente sem depender da ordem acidental do array.
+ * Pendencias e recusas nunca substituem um documento oficialmente emitido.
+ */
+export function getCurrentPolicyDocument(
+  row: PolicyTreeRow,
+  referenceDate = new Date(),
+): Proposal | undefined {
+  const reference = referenceDate.toISOString().slice(0, 10)
+  const documents = row.documents.map(({ document }) => document)
+  const issued = documents.filter(isOfficiallyIssued)
+
+  if (row.policy.isMonthly) {
+    const issuedInvoices = issued.filter((document) => document.proposalType === 'Fatura')
+    const currentCompetence = issuedInvoices.find((document) =>
+      Boolean(
+        document.competenceStart &&
+        document.competenceEnd &&
+        document.competenceStart <= reference &&
+        document.competenceEnd >= reference,
+      ),
+    )
+    if (currentCompetence) return currentCompetence
+
+    const latestIssuedInvoice = [...issuedInvoices].sort((a, b) =>
+      (b.competenceEnd ?? b.competenceStart ?? '').localeCompare(
+        a.competenceEnd ?? a.competenceStart ?? '',
+      ),
+    )[0]
+    if (latestIssuedInvoice) return latestIssuedInvoice
+  }
+
+  const latestEffective = issued
+    .filter((document) => isEffectiveOn(document, reference))
+    .sort(sortDocuments)[0]
+  if (latestEffective) return latestEffective
+
+  const canonicalOriginal = documents
+    .filter((document) =>
+      document.proposalType === 'Proposta' || document.proposalType === 'Renovação',
+    )
+    .sort((a, b) => getDocumentSortDate(a).localeCompare(getDocumentSortDate(b)))[0]
+
+  return canonicalOriginal ?? [...documents].sort(sortDocuments)[0]
 }
 
 /**

@@ -15,16 +15,18 @@ export function EntityTabsBar<Id extends string = string>({
   tabs,
   active,
   onChange,
+  wrap = false,
 }: {
   tabs: EntityTab<Id>[]
   active: Id
   onChange: (id: Id) => void
+  wrap?: boolean
 }) {
   return (
     <div
       role="tablist"
       aria-label="Seções do cadastro"
-      className="flex items-center gap-1 overflow-x-auto overflow-y-hidden border-b border-border-1 mb-6"
+      className={`flex items-center gap-1 border-b border-border-1 mb-6 ${wrap ? 'flex-wrap overflow-visible' : 'overflow-x-auto overflow-y-hidden'}`}
     >
       {tabs.map((t) => {
         const isActive = t.id === active
@@ -35,7 +37,7 @@ export function EntityTabsBar<Id extends string = string>({
             type="button"
             aria-selected={isActive}
             onClick={() => onChange(t.id)}
-            className={`relative flex items-center gap-2 whitespace-nowrap px-4 py-3 text-sm font-semibold transition-colors -mb-px border-b-2 ${
+            className={`relative flex items-center gap-2 whitespace-nowrap py-3 text-sm font-semibold transition-colors -mb-px border-b-2 ${wrap ? 'px-3 xl:px-4' : 'px-4'} ${
               isActive
                 ? 'text-accent-primary border-accent-primary'
                 : 'text-fg-3 border-transparent hover:text-fg-1'

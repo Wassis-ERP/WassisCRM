@@ -6,6 +6,163 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+type ApoliceRow = {
+  id: string
+  segurado_id: string
+  seguradora_id: string | null
+  ramo_id: string | null
+  status: string | null
+  renovada_de_id: string | null
+  produtor_id: string | null
+  numero_apolice: string | null
+  numero_controle_documento: string | null
+  tipo_contratacao: string | null
+  tipo_apolice: string | null
+  certificado_individual: string | null
+  processo_susep: string | null
+  estipulante_nome: string | null
+  estipulante_cpf_cnpj: string | null
+  subestipulante_nome: string | null
+  subestipulante_cpf_cnpj: string | null
+  vigencia_inicio: string | null
+  vigencia_fim: string | null
+  vigencia_inicio_hora: string | null
+  vigencia_fim_hora: string | null
+  data_emissao: string | null
+  data_recebimento_documento: string | null
+  premio_total: number | null
+  premio_liquido: number | null
+  iof: number | null
+  adicional_fracionamento: number | null
+  lmg_total: number | null
+  moeda: string | null
+  periodicidade_pagamento: string | null
+  motivo_status: string | null
+  canal_emissao: string | null
+  observacoes: string | null
+}
+
+type PropostaRow = {
+  id: string
+  apolice_id: string
+  tipo: string | null
+  cotacao_id: string | null
+  stage_id: string
+  responsavel_id: string | null
+  recebimento_grade_id: string | null
+  endosso_subtipo_id: string | null
+  cancelamento_motivo_id: string | null
+  numero_proposta: string | null
+  numero_endosso: string | null
+  numero_controle_documento: string | null
+  protocolo_seguradora: string | null
+  tipo_movimento_endosso: string | null
+  data_transmissao: string | null
+  data_recebimento_seguradora: string | null
+  data_aceitacao: string | null
+  data_recusa: string | null
+  motivo_recusa: string | null
+  data_emissao: string | null
+  vigencia_inicio: string | null
+  vigencia_fim: string | null
+  premio_total: number | null
+  premio_liquido: number | null
+  iof: number | null
+  adicional_fracionamento: number | null
+  forma_pagamento: string | null
+  periodicidade_pagamento: string | null
+  qtd_parcelas: number | null
+  primeira_parcela_vencimento: string | null
+  primeira_parcela_valor: number | null
+  comissao_pct: number | null
+  numero_fatura: string | null
+  competencia_inicio: string | null
+  competencia_fim: string | null
+  observacoes: string | null
+}
+
+export type EndossoSubtipoRow = {
+  id: string
+  tenant_id: string
+  filial_id: string | null
+  ramo_id: string | null
+  nome: string
+  natureza_canonica: string
+  ordem: number | null
+  ativo: boolean
+  observacoes: string | null
+}
+
+export type CancelamentoMotivoRow = {
+  id: string
+  tenant_id: string
+  filial_id: string | null
+  ramo_id: string | null
+  nome: string
+  ordem: number | null
+  ativo: boolean
+  observacoes: string | null
+}
+
+type DbTable<Row, RequiredKeys extends keyof Row> = {
+  Row: Row
+  Insert: Partial<Row> & Pick<Row, RequiredKeys>
+  Update: Partial<Row>
+  Relationships: readonly unknown[]
+}
+
+export type ApoliceItemRow = {
+  id: string
+  apolice_id: string
+  risk_type: string | null
+  incluido_por_proposta_id: string | null
+  excluido_por_proposta_id: string | null
+  numero_item: number | null
+  descricao: string | null
+  identificador_externo: string | null
+  valor_risco: number | null
+  endereco_risco_resumo: string | null
+  status: string | null
+  observacoes: string | null
+}
+
+export type ItemVeiculoRow = { apolice_item_id: string; codigo_fipe: string | null; marca: string | null; modelo: string | null; versao: string | null; ano_fabricacao: number | null; ano_modelo: number | null; placa: string | null; chassi: string | null; renavam: string | null; zero_km: boolean | null; combustivel: string | null; cambio: string | null; categoria: string | null; uso: string | null; cep_pernoite: string | null; classe_bonus: number | null; blindado: boolean | null; alienado: boolean | null; rastreador: boolean | null; antifurto: boolean | null; kit_gas: boolean | null; condutor_principal_nome: string | null; condutor_principal_cpf: string | null; condutor_principal_data_nascimento: string | null }
+export type ItemImovelRow = { apolice_item_id: string; cep: string | null; endereco: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; tipo_imovel: string | null; tipo_ocupacao: string | null; tipo_construcao: string | null; area_m2: number | null; valor_imovel: number | null; condominio_fechado: boolean | null; desocupado: boolean | null }
+export type ItemEmpresaRow = { apolice_item_id: string; cnpj_risco: string | null; razao_social_risco: string | null; atividade: string | null; cnae: string | null; faturamento_anual: number | null; cep: string | null; endereco: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; tipo_construcao: string | null; area_m2: number | null; qtd_funcionarios: number | null; valor_estoque: number | null; valor_equipamentos: number | null; protecao_incendio: string | null }
+export type ItemVidaRow = { apolice_item_id: string; pessoa_id: string | null; nome_grupo: string | null; n_vidas: number | null; certificado_individual: string | null; parentesco: string | null; data_nascimento: string | null; sexo: string | null; profissao: string | null; salario: number | null; capital_individual: number | null; data_inclusao: string | null; data_exclusao: string | null; beneficiarios_texto: string | null }
+export type ItemCoberturaRow = { id: string; apolice_item_id: string; cobertura_id: string | null; incluido_por_proposta_id: string | null; excluido_por_proposta_id: string | null; capital_lmi: number | null; franquia_valor: number | null; franquia_tipo: string | null; premio: number | null; premio_liquido: number | null; carencia_dias: number | null; participacao_obrigatoria_pct: number | null; vigencia_inicio: string | null; vigencia_fim: string | null; observacoes: string | null }
+export type ParcelaRow = { id: string; proposta_id: string; numero: number | null; vencimento: string | null; valor: number | null; valor_liquido: number | null; iof: number | null; adicional_fracionamento: number | null; status: string | null; forma_pagamento: string | null; nosso_numero: string | null; linha_digitavel: string | null; codigo_barras: string | null; data_pagamento: string | null; valor_pago: number | null; data_baixa: string | null; numero_fatura: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
+export type ComissaoRow = { id: string; proposta_id: string; parcela_id: string | null; numero: number | null; percentual: number | null; base_calculo: number | null; valor_previsto: number | null; valor_recebido: number | null; valor_diferenca: number | null; status: string | null; prevista_em: string | null; recebida_em: string | null; extrato_numero: string | null; seguradora_lote: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
+export type RepasseRow = { id: string; proposta_id: string; comissao_id: string | null; beneficiario_id: string; regra_id: string | null; numero: number | null; papel_beneficiario: string | null; base: string | null; percentual: number | null; valor_previsto: number | null; valor_pago: number | null; valor_diferenca: number | null; status: string | null; previsto_em: string | null; liberado_em: string | null; pago_em: string | null; forma_pagamento: string | null; comprovante_referencia: string | null; observacoes: string | null }
+
+type ApoliceTable = {
+  Row: ApoliceRow
+  Insert: Partial<ApoliceRow> & Pick<ApoliceRow, "segurado_id">
+  Update: Partial<ApoliceRow>
+  Relationships: [
+    { foreignKeyName: "apolices_segurado_id_fkey"; columns: ["segurado_id"]; isOneToOne: false; referencedRelation: "segurados"; referencedColumns: ["id"] },
+    { foreignKeyName: "apolices_seguradora_id_fkey"; columns: ["seguradora_id"]; isOneToOne: false; referencedRelation: "seguradoras"; referencedColumns: ["id"] },
+    { foreignKeyName: "apolices_ramo_id_fkey"; columns: ["ramo_id"]; isOneToOne: false; referencedRelation: "ramos"; referencedColumns: ["id"] },
+    { foreignKeyName: "apolices_renovada_de_id_fkey"; columns: ["renovada_de_id"]; isOneToOne: false; referencedRelation: "apolices"; referencedColumns: ["id"] },
+    { foreignKeyName: "apolices_produtor_id_fkey"; columns: ["produtor_id"]; isOneToOne: false; referencedRelation: "produtores"; referencedColumns: ["id"] },
+  ]
+}
+
+type PropostaTable = {
+  Row: PropostaRow
+  Insert: Partial<PropostaRow> & Pick<PropostaRow, "apolice_id" | "stage_id">
+  Update: Partial<PropostaRow>
+  Relationships: [
+    { foreignKeyName: "propostas_apolice_id_fkey"; columns: ["apolice_id"]; isOneToOne: false; referencedRelation: "apolices"; referencedColumns: ["id"] },
+    { foreignKeyName: "propostas_cotacao_id_fkey"; columns: ["cotacao_id"]; isOneToOne: true; referencedRelation: "cotacoes"; referencedColumns: ["id"] },
+    { foreignKeyName: "propostas_stage_id_fkey"; columns: ["stage_id"]; isOneToOne: false; referencedRelation: "pipeline_stages"; referencedColumns: ["id"] },
+    { foreignKeyName: "propostas_responsavel_id_fkey"; columns: ["responsavel_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+    { foreignKeyName: "propostas_recebimento_grade_id_fkey"; columns: ["recebimento_grade_id"]; isOneToOne: false; referencedRelation: "recebimento_grades"; referencedColumns: ["id"] },
+    { foreignKeyName: "propostas_endosso_subtipo_id_fkey"; columns: ["endosso_subtipo_id"]; isOneToOne: false; referencedRelation: "endosso_subtipos"; referencedColumns: ["id"] },
+    { foreignKeyName: "propostas_cancelamento_motivo_id_fkey"; columns: ["cancelamento_motivo_id"]; isOneToOne: false; referencedRelation: "cancelamento_motivos"; referencedColumns: ["id"] },
+  ]
+}
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -14,6 +171,18 @@ export type Database = {
   }
   public: {
     Tables: {
+      apolices: ApoliceTable
+      apolice_itens: DbTable<ApoliceItemRow, "apolice_id">
+      item_veiculo: DbTable<ItemVeiculoRow, "apolice_item_id">
+      item_imovel: DbTable<ItemImovelRow, "apolice_item_id">
+      item_empresa: DbTable<ItemEmpresaRow, "apolice_item_id">
+      item_vida: DbTable<ItemVidaRow, "apolice_item_id">
+      item_coberturas: DbTable<ItemCoberturaRow, "apolice_item_id">
+      parcelas: DbTable<ParcelaRow, "proposta_id">
+      comissoes: DbTable<ComissaoRow, "proposta_id">
+      repasses: DbTable<RepasseRow, "proposta_id" | "beneficiario_id">
+      endosso_subtipos: DbTable<EndossoSubtipoRow, "tenant_id" | "nome" | "natureza_canonica" | "ativo">
+      cancelamento_motivos: DbTable<CancelamentoMotivoRow, "tenant_id" | "nome" | "ativo">
       anexos: {
         Row: {
           anexado_em: string | null
@@ -523,6 +692,7 @@ export type Database = {
           },
         ]
       }
+      propostas: PropostaTable
       emissoes: {
         Row: {
           concluded_at: string | null

@@ -10,8 +10,10 @@ import {
   Calendar,
   List,
   Kanban,
+  ArrowUpRight,
   X,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import type { Proposal, ProposalStatus, ProposalType } from '../types/proposta'
 import { usePropostas } from '../contexts/usePropostas'
 import { PropostasListView } from '../components/propostas/PropostasListView'
@@ -429,7 +431,6 @@ function KanbanView({
   statuses: CustomProposalStatus[]
   onDrop: (proposalId: string, newStatus: ProposalStatus) => void
 }) {
-  const { notify } = useSystemFeedback()
   const pipeline = proposals.filter(isPipelineProposal)
   return (
     <div className="p-4 overflow-x-auto">
@@ -464,11 +465,6 @@ function KanbanView({
                       key={p.id}
                       draggable
                       onDragStart={e => e.dataTransfer.setData('text/plain', p.id)}
-                      onClick={() => notify({
-                        title: 'Detalhe de proposta em preparação',
-                        description: `ID interno: ${p.id}`,
-                        tone: 'info',
-                      })}
                       className="bg-bg-surface rounded-[6px] p-3 shadow-[var(--shadow-1)] border border-border-1 cursor-grab active:cursor-grabbing hover:shadow-[var(--shadow-2)] transition-all"
                     >
                       <p className="font-semibold text-sm text-fg-1 truncate">{p.insured}</p>
@@ -477,8 +473,20 @@ function KanbanView({
                         <span className="text-[10px] font-bold uppercase tracking-wider text-fg-4">
                           {p.proposalType}
                         </span>
-                        <div className="w-6 h-6 rounded-full bg-accent-primary-soft text-accent-primary text-[10px] font-bold flex items-center justify-center">
-                          {initials(p.producer.name)}
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-accent-primary-soft text-accent-primary text-[10px] font-bold flex items-center justify-center">
+                            {initials(p.producer.name)}
+                          </div>
+                          {p.apoliceId && (
+                            <Link
+                              to={`/apolices/${p.apoliceId}?documento=${p.id}`}
+                              draggable={false}
+                              aria-label={`Abrir ${p.proposalType.toLowerCase()} de ${p.insured}`}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-[6px] text-fg-3 hover:bg-accent-primary-soft hover:text-accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
+                            >
+                              <ArrowUpRight size={15} />
+                            </Link>
+                          )}
                         </div>
                       </div>
                     </div>
