@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, ArrowUpRight, Check, ChevronDown, Search, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, Ban, Check, CheckCircle2, ChevronDown, FilePlus2, RefreshCw, Search, ShieldCheck } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { EntityTabsBar } from '../components/detail/EntityTabsBar'
 import AnexosLogsTab from '../components/detail/tabs/AnexosLogsTab'
@@ -8,7 +8,8 @@ import ObservacoesTab from '../components/detail/tabs/ObservacoesTab'
 import TarefasTab from '../components/detail/tabs/TarefasTab'
 import { ItensSeguradosTab, ParcelasComissoesTab, RepassesTab } from '../components/apolices/ApoliceContractTabs'
 import { ApoliceOverview } from '../components/apolices/ApoliceOverview'
-import { useConfirm } from '../components/feedback/systemFeedbackContext'
+import { DerivedDocumentModal, NotRenewedModal } from '../components/apolices/DerivedDocumentModal'
+import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
 import { useEntityTabsState } from '../components/detail/useEntityTabsState'
 import { buildPolicyTree, getCurrentPolicyDocument, getDocumentNumber } from '../components/propostas/propostaSelectors'
 import { fmtCompetence } from '../components/propostas/propostaFormat'
@@ -52,12 +53,20 @@ export default function ApoliceDetalhePage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { proposals } = usePropostas()
+  const {
+    proposals,
+    createRenewalOpportunity,
+    issueContractDocument,
+    markPolicyNotRenewed,
+  } = usePropostas()
   const confirm = useConfirm()
+  const { notify } = useSystemFeedback()
   const [activeTab, setActiveTab] = useState<DetailTab>('visao')
   const [recordsScope, setRecordsScope] = useState<RecordsScope>('proposta')
   const [query, setQuery] = useState('')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [operationOpen, setOperationOpen] = useState(false)
+  const [notRenewedOpen, setNotRenewedOpen] = useState(false)
   const selectorRef = useRef<HTMLDetailsElement>(null)
 
   const row = useMemo(
@@ -76,6 +85,10 @@ export default function ApoliceDetalhePage() {
   const tabsState = useEntityTabsState(entityType, entityId)
   const contractDocuments = useMemo(() => row?.documents.map(({ document }) => document) ?? [], [row])
   const isTransversalTab = activeTab === 'tarefas' || activeTab === 'personalizados' || activeTab === 'anexos' || activeTab === 'observacoes'
+  const renewalSuccessors = useMemo(
+    () => proposals.filter((candidate) => candidate.entityType === 'apolice' && candidate.renewedFromId === id),
+    [id, proposals],
+  )
 
   useEffect(() => {
     if (!hasUnsavedChanges) return
@@ -142,6 +155,43 @@ export default function ApoliceDetalhePage() {
     if (await allowDiscard()) navigate(-1)
   }
 
+  const startRenewal = () => {
+    try {
+      const opportunityId = createRenewalOpportunity(policy.id)
+      notify({ title: 'Renovação iniciada', description: 'A nova oportunidade foi aberta no Comercial.', tone: 'success' })
+      navigate(`/oportunidades/${opportunityId}`)
+    } catch (error) {
+      notify({ title: 'Não foi possível iniciar a renovação', description: error instanceof Error ? error.message : 'Revise a situação da apólice.', tone: 'danger' })
+    }
+  }
+
+  const confirmNotRenewed = (reason: string) => {
+    try {
+      markPolicyNotRenewed(policy.id, reason)
+      setNotRenewedOpen(false)
+      notify({ title: 'Apólice marcada como não renovada', description: 'O contrato e seus documentos foram preservados no histórico.', tone: 'success' })
+    } catch (error) {
+      notify({ title: 'Não foi possível atualizar a apólice', description: error instanceof Error ? error.message : 'Revise a situação do contrato.', tone: 'danger' })
+    }
+  }
+
+  const issueSelectedDocument = async () => {
+    if (!selectedDocument) return
+    const accepted = await confirm({
+      title: 'Efetivar documento',
+      description: 'Esta operação aplicará os efeitos contratuais e materializará as agendas previstas. A mudança de etapa, isoladamente, não faz isso.',
+      confirmLabel: 'Efetivar',
+      tone: selectedDocument.proposalType === 'Cancelamento' ? 'danger' : 'warning',
+    })
+    if (!accepted) return
+    try {
+      issueContractDocument(selectedDocument.id)
+      notify({ title: 'Documento efetivado', description: 'Contrato, histórico e agendas foram atualizados.', tone: 'success' })
+    } catch (error) {
+      notify({ title: 'Não foi possível efetivar', description: error instanceof Error ? error.message : 'Revise os campos obrigatórios.', tone: 'danger' })
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-[1500px] space-y-5 px-4 py-5 lg:px-6">
       <header className="space-y-4 rounded-[8px] border border-border-1 bg-bg-surface p-4 shadow-sm">
@@ -157,6 +207,13 @@ export default function ApoliceDetalhePage() {
             {policy.insuredEmail && <span>{policy.insuredEmail}</span>}
             {policy.insuredPhone && <span>{formatPhone(policy.insuredPhone)}</span>}
           </div>
+          {(policy.renewedFromId || renewalSuccessors.length > 0) && <div className="mt-3 flex flex-wrap items-center gap-2 text-xs"><span className="font-bold text-fg-3">Cadeia de renovação:</span>{policy.renewedFromId && <button type="button" onClick={() => navigate(`/apolices/${policy.renewedFromId}`)} className="rounded-full bg-bg-surface-2 px-3 py-1.5 font-semibold text-accent-primary hover:bg-accent-primary-soft">Apólice anterior</button>}{renewalSuccessors.map((successor) => <button key={successor.id} type="button" onClick={() => navigate(`/apolices/${successor.id}`)} className="rounded-full bg-bg-surface-2 px-3 py-1.5 font-semibold text-accent-primary hover:bg-accent-primary-soft">Sucessora {successor.policyNumber ?? 'em emissão'}</button>)}</div>}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 border-t border-border-1 pt-4">
+          {policy.currentStatus === 'Vigente' && <button type="button" onClick={() => setOperationOpen(true)} className="inline-flex items-center gap-2 rounded-full bg-accent-primary px-4 py-2.5 text-sm font-black text-fg-on-brand shadow-[var(--shadow-brand)] hover:bg-accent-primary-hover"><FilePlus2 size={16} />Nova operação</button>}
+          {policy.currentStatus === 'Vigente' && policy.isRenewable && <button type="button" onClick={startRenewal} className="inline-flex items-center gap-2 rounded-full border border-accent-primary px-4 py-2.5 text-sm font-black text-accent-primary hover:bg-accent-primary-soft"><RefreshCw size={16} />Iniciar renovação</button>}
+          {policy.currentStatus === 'Vigente' && policy.isRenewable && <button type="button" onClick={() => setNotRenewedOpen(true)} className="inline-flex items-center gap-2 rounded-[6px] px-3 py-2.5 text-sm font-bold text-fg-3 hover:bg-signal-warning/10 hover:text-signal-warning"><Ban size={16} />Não renovar</button>}
+          {selectedDocument && !selectedDocument.issueDate && ['Renovação', 'Endosso', 'Cancelamento', 'Fatura'].includes(selectedDocument.proposalType) && <button type="button" onClick={() => void issueSelectedDocument()} className="ml-auto inline-flex items-center gap-2 rounded-full bg-signal-success px-4 py-2.5 text-sm font-black text-white hover:brightness-95"><CheckCircle2 size={16} />Efetivar documento</button>}
         </div>
       </header>
 
@@ -228,6 +285,8 @@ export default function ApoliceDetalhePage() {
           )}
         </div>
       </section>
+      {operationOpen && <DerivedDocumentModal key={`operation-${policy.id}`} policy={policy} onClose={() => setOperationOpen(false)} onCreated={(documentId) => { setOperationOpen(false); setSearchParams({ documento: documentId }); setActiveTab('visao') }} />}
+      {notRenewedOpen && <NotRenewedModal key={`not-renewed-${policy.id}`} policy={policy} onClose={() => setNotRenewedOpen(false)} onConfirm={confirmNotRenewed} />}
     </div>
   )
 }

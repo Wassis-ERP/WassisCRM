@@ -75,10 +75,32 @@ type PropostaRow = {
   primeira_parcela_vencimento: string | null
   primeira_parcela_valor: number | null
   comissao_pct: number | null
+  agenciamento_pct: number | null
   numero_fatura: string | null
   competencia_inicio: string | null
   competencia_fim: string | null
   observacoes: string | null
+}
+
+type OportunidadeContractFields = {
+  apolice_origem_id: string | null
+  lead_nome: string | null
+  lead_documento: string | null
+  lead_email: string | null
+  lead_telefone: string | null
+  titulo: string | null
+  descricao: string | null
+  prioridade: string | null
+  valor_premio_estimado: number | null
+  valor_comissao_estimada: number | null
+  comissao_estimada_pct: number | null
+  agenciamento_pct: number | null
+  data_abertura: string | null
+  data_fechamento_prevista: string | null
+  ganha_em: string | null
+  perdida_em: string | null
+  motivo_perda_observacao: string | null
+  campanha: string | null
 }
 
 export type EndossoSubtipoRow = {
@@ -132,7 +154,8 @@ export type ItemEmpresaRow = { apolice_item_id: string; cnpj_risco: string | nul
 export type ItemVidaRow = { apolice_item_id: string; pessoa_id: string | null; nome_grupo: string | null; n_vidas: number | null; certificado_individual: string | null; parentesco: string | null; data_nascimento: string | null; sexo: string | null; profissao: string | null; salario: number | null; capital_individual: number | null; data_inclusao: string | null; data_exclusao: string | null; beneficiarios_texto: string | null }
 export type ItemCoberturaRow = { id: string; apolice_item_id: string; cobertura_id: string | null; incluido_por_proposta_id: string | null; excluido_por_proposta_id: string | null; capital_lmi: number | null; franquia_valor: number | null; franquia_tipo: string | null; premio: number | null; premio_liquido: number | null; carencia_dias: number | null; participacao_obrigatoria_pct: number | null; vigencia_inicio: string | null; vigencia_fim: string | null; observacoes: string | null }
 export type ParcelaRow = { id: string; proposta_id: string; numero: number | null; vencimento: string | null; valor: number | null; valor_liquido: number | null; iof: number | null; adicional_fracionamento: number | null; status: string | null; forma_pagamento: string | null; nosso_numero: string | null; linha_digitavel: string | null; codigo_barras: string | null; data_pagamento: string | null; valor_pago: number | null; data_baixa: string | null; numero_fatura: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
-export type ComissaoRow = { id: string; proposta_id: string; parcela_id: string | null; numero: number | null; percentual: number | null; base_calculo: number | null; valor_previsto: number | null; valor_recebido: number | null; valor_diferenca: number | null; status: string | null; prevista_em: string | null; recebida_em: string | null; extrato_numero: string | null; seguradora_lote: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
+export type ComissaoTipo = 'NORMAL' | 'AGENCIAMENTO' | 'VITALICIA' | 'ADICIONAL' | 'RESTITUICAO'
+export type ComissaoRow = { id: string; proposta_id: string; parcela_id: string | null; numero: number | null; tipo_comissao: ComissaoTipo; percentual: number | null; base_calculo: number | null; valor_previsto: number | null; valor_recebido: number | null; valor_diferenca: number | null; status: string | null; prevista_em: string | null; recebida_em: string | null; extrato_numero: string | null; seguradora_lote: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
 export type RepasseRow = { id: string; proposta_id: string; comissao_id: string | null; beneficiario_id: string; regra_id: string | null; numero: number | null; papel_beneficiario: string | null; base: string | null; percentual: number | null; valor_previsto: number | null; valor_pago: number | null; valor_diferenca: number | null; status: string | null; previsto_em: string | null; liberado_em: string | null; pago_em: string | null; forma_pagamento: string | null; comprovante_referencia: string | null; observacoes: string | null }
 
 type ApoliceTable = {
@@ -372,7 +395,9 @@ export type Database = {
           entidade_id: string
           entidade_tipo: string
           id: string
+          ip: string | null
           ocorrido_em: string | null
+          origem: string | null
           tenant_id: string
           user_agent: string | null
           user_id: string | null
@@ -385,7 +410,9 @@ export type Database = {
           entidade_id: string
           entidade_tipo: string
           id?: string
+          ip?: string | null
           ocorrido_em?: string | null
+          origem?: string | null
           tenant_id: string
           user_agent?: string | null
           user_id?: string | null
@@ -398,7 +425,9 @@ export type Database = {
           entidade_id?: string
           entidade_tipo?: string
           id?: string
+          ip?: string | null
           ocorrido_em?: string | null
+          origem?: string | null
           tenant_id?: string
           user_agent?: string | null
           user_id?: string | null
@@ -693,83 +722,6 @@ export type Database = {
         ]
       }
       propostas: PropostaTable
-      emissoes: {
-        Row: {
-          concluded_at: string | null
-          created_at: string
-          id: string
-          metadata: Json
-          observacoes: string | null
-          oportunidade_id: string
-          pipeline_id: string | null
-          proximo_followup: string | null
-          responsavel_id: string
-          stage_id: string | null
-          status: Database["public"]["Enums"]["card_status"]
-          tenant_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          concluded_at?: string | null
-          created_at?: string
-          id?: string
-          metadata?: Json
-          observacoes?: string | null
-          oportunidade_id: string
-          pipeline_id?: string | null
-          proximo_followup?: string | null
-          responsavel_id: string
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          concluded_at?: string | null
-          created_at?: string
-          id?: string
-          metadata?: Json
-          observacoes?: string | null
-          oportunidade_id?: string
-          pipeline_id?: string | null
-          proximo_followup?: string | null
-          responsavel_id?: string
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "emissoes_oportunidade_id_fkey"
-            columns: ["oportunidade_id"]
-            isOneToOne: false
-            referencedRelation: "oportunidades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "emissoes_pipeline_id_fkey"
-            columns: ["pipeline_id"]
-            isOneToOne: false
-            referencedRelation: "pipelines"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "emissoes_stage_id_fkey"
-            columns: ["stage_id"]
-            isOneToOne: false
-            referencedRelation: "pipeline_stages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "emissoes_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       recebimento_grades: {
         Row: {
           ativo: boolean
@@ -842,6 +794,7 @@ export type Database = {
           numero: number
           percentual: number | null
           percentual_sobre: string | null
+          tipo_comissao: ComissaoTipo
         }
         Insert: {
           ativo?: boolean
@@ -851,6 +804,7 @@ export type Database = {
           numero: number
           percentual?: number | null
           percentual_sobre?: string | null
+          tipo_comissao: ComissaoTipo
         }
         Update: {
           ativo?: boolean
@@ -860,6 +814,7 @@ export type Database = {
           numero?: number
           percentual?: number | null
           percentual_sobre?: string | null
+          tipo_comissao?: ComissaoTipo
         }
         Relationships: [
           {
@@ -1076,8 +1031,9 @@ export type Database = {
         ]
       }
       oportunidades: {
-        Row: {
+        Row: OportunidadeContractFields & {
           agenciamento: number | null
+          apolice_origem_id: string | null
           comissao_percentual: number | null
           concluded_at: string | null
           created_at: string
@@ -1106,8 +1062,9 @@ export type Database = {
           vigencia_fim: string | null
           vigencia_inicio: string | null
         }
-        Insert: {
+        Insert: Partial<OportunidadeContractFields> & {
           agenciamento?: number | null
+          apolice_origem_id?: string | null
           comissao_percentual?: number | null
           concluded_at?: string | null
           created_at?: string
@@ -1136,8 +1093,9 @@ export type Database = {
           vigencia_fim?: string | null
           vigencia_inicio?: string | null
         }
-        Update: {
+        Update: Partial<OportunidadeContractFields> & {
           agenciamento?: number | null
+          apolice_origem_id?: string | null
           comissao_percentual?: number | null
           concluded_at?: string | null
           created_at?: string
@@ -1351,6 +1309,13 @@ export type Database = {
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "oportunidades_apolice_origem_id_fkey"
+            columns: ["apolice_origem_id"]
+            isOneToOne: false
+            referencedRelation: "apolices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pipelines_filial_id_fkey"
             columns: ["filial_id"]

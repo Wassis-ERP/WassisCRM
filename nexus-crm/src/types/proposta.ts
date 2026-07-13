@@ -94,9 +94,15 @@ export interface Proposal {
   installmentCount?: number
   firstInstallmentDueDate?: string
   firstInstallmentValue?: number
+  commissionPercent?: number
+  agencyCommissionPercent?: number
   competenceStart?: string
   competenceEnd?: string
   notes?: string
   isMonthly?: boolean
+  isRenewable?: boolean
+  allowsEndorsement?: boolean
+  renewedFromId?: string
+  insuredItems?: string[]
   details?: { model?: string; brand?: string; year?: string; plate?: string; chassis?: string }
 }

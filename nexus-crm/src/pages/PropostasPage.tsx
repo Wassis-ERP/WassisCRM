@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Search,
   Filter,
@@ -11,26 +11,28 @@ import {
   List,
   Kanban,
   ArrowUpRight,
+  Ban,
+  TriangleAlert,
   X,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import type { Proposal, ProposalStatus, ProposalType } from '../types/proposta'
 import { usePropostas } from '../contexts/usePropostas'
 import { PropostasListView } from '../components/propostas/PropostasListView'
 import { initials } from '../components/propostas/propostaFormat'
-import { isPipelineProposal } from '../components/propostas/propostaSelectors'
-import { useSystemFeedback } from '../components/feedback/systemFeedbackContext'
+import {
+  getIssuancePendingLabel,
+  getPendingDocumentsBreakdown,
+  isPendingPipelineProposal,
+  isPendingRenewalDocument,
+  isPipelineProposal,
+} from '../components/propostas/propostaSelectors'
+import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
+import type { ProposalWorkflowStage } from '../contexts/propostasWorkflow'
 
 /* =========================================================================
  * Tipos
  * ========================================================================= */
-
-interface CustomProposalStatus {
-  id: string
-  name: ProposalStatus
-  color: string
-  order: number
-}
 
 type CardKey = 'emAndamento' | 'vigentes' | 'renovacoesPendentes' | 'renovacoes30d' | null
 
@@ -40,15 +42,6 @@ type CardKey = 'emAndamento' | 'vigentes' | 'renovacoesPendentes' | 'renovacoes3
 
 // Referência "hoje" para os cálculos de vigência/contagem dos cards.
 const today = new Date()
-
-// Status do funil de propostas — sempre via tokens --signal-* / accent (nunca ramo).
-const CUSTOM_STATUSES: CustomProposalStatus[] = [
-  { id: 's1', name: 'Em Análise', color: 'bg-signal-warning', order: 1 },
-  { id: 's2', name: 'Pendente', color: 'bg-signal-warning', order: 2 },
-  { id: 's3', name: 'Pendência Resolvida', color: 'bg-accent-primary', order: 3 },
-  { id: 's4', name: 'Proposta Emitida', color: 'bg-signal-success', order: 4 },
-]
-
 
 /* =========================================================================
  * Página
@@ -83,13 +76,27 @@ const INITIAL_FILTERS: FilterValues = {
 }
 
 export default function PropostasPage() {
-  const { proposals, setProposalStatus } = usePropostas()
+  const [searchParams] = useSearchParams()
+  const requestedKanban = searchParams.get('visao') === 'kanban'
+  const { proposals, proposalStages, setProposalStatus, refuseProposal } = usePropostas()
+  const confirm = useConfirm()
   const { notify } = useSystemFeedback()
+  const migrationNoticeShown = useRef(false)
   const [filters, setFilters] = useState<FilterValues>(INITIAL_FILTERS)
-  const [viewMode, setViewMode] = useState<'Lista' | 'Kanban'>('Lista')
-  const [activeCard, setActiveCard] = useState<CardKey>(null)
+  const [viewMode, setViewMode] = useState<'Lista' | 'Kanban'>(requestedKanban ? 'Kanban' : 'Lista')
+  const [activeCard, setActiveCard] = useState<CardKey>(requestedKanban ? 'emAndamento' : null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [showFilterPanel, setShowFilterPanel] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get('origem') !== 'emissoes' || migrationNoticeShown.current) return
+    migrationNoticeShown.current = true
+    notify({
+      title: 'Acompanhamento movido para o Painel',
+      description: 'Propostas em emissão agora são acompanhadas nesta perspectiva de tramitação.',
+      tone: 'info',
+    })
+  }, [notify, searchParams])
 
   const setManyExpanded = (ids: string[], open: boolean) =>
     setExpanded((prev) => {
@@ -101,28 +108,42 @@ export default function PropostasPage() {
       return next
     })
 
-  const lastUpdated = useMemo(() => {
-    const d = new Date()
-    return `${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
-  }, [])
-
   /* ---- Cálculos dos cards ---- */
   const counts = useMemo(() => {
     const in30 = new Date()
     in30.setDate(in30.getDate() + 30)
     const todayISO = today.toISOString().slice(0, 10)
     const in30ISO = in30.toISOString().slice(0, 10)
+    const pendingDocuments = getPendingDocumentsBreakdown(proposals)
     return {
-      emAndamento: proposals.filter(isPipelineProposal).length,
+      emAndamento: pendingDocuments.total,
+      pendingDocuments,
       vigentes: proposals.filter(p => p.entityType === 'apolice' && p.currentStatus === 'Vigente').length,
-      renovacoesPendentes: proposals.filter(
-        p => p.entityType === 'apolice' && p.proposalType === 'Renovação' && p.status === 'Pendente',
-      ).length,
+      renovacoesPendentes: proposals.filter(isPendingRenewalDocument).length,
       renovacoes30d: proposals.filter(
         p => p.entityType === 'apolice' && p.vigenciaFinal && p.vigenciaFinal >= todayISO && p.vigenciaFinal <= in30ISO,
       ).length,
     }
   }, [proposals])
+
+  const pendingDocumentsDetail = useMemo(() => {
+    const items = [
+      counts.pendingDocuments.newPolicies > 0
+        ? `${counts.pendingDocuments.newPolicies} ${counts.pendingDocuments.newPolicies === 1 ? 'nova apólice' : 'novas apólices'}`
+        : undefined,
+      counts.pendingDocuments.endorsements > 0
+        ? `${counts.pendingDocuments.endorsements} ${counts.pendingDocuments.endorsements === 1 ? 'endosso' : 'endossos'}`
+        : undefined,
+      counts.pendingDocuments.invoices > 0
+        ? `${counts.pendingDocuments.invoices} ${counts.pendingDocuments.invoices === 1 ? 'fatura' : 'faturas'}`
+        : undefined,
+      counts.pendingDocuments.cancellations > 0
+        ? `${counts.pendingDocuments.cancellations} ${counts.pendingDocuments.cancellations === 1 ? 'cancelamento' : 'cancelamentos'}`
+        : undefined,
+    ]
+
+    return items.filter(Boolean).join(' · ')
+  }, [counts.pendingDocuments])
 
   /* ---- Click em cards ---- */
   const handleCardClick = (key: Exclude<CardKey, null>) => {
@@ -132,7 +153,7 @@ export default function PropostasPage() {
       return
     }
     setActiveCard(key)
-    if (key === 'emAndamento') setViewMode('Kanban')
+    if (key === 'emAndamento') setViewMode('Lista')
     else setViewMode('Lista')
   }
 
@@ -145,11 +166,11 @@ export default function PropostasPage() {
 
     return proposals.filter(p => {
       // filtros por card
-      if (activeCard === 'emAndamento' && !isPipelineProposal(p)) return false
+      if (activeCard === 'emAndamento' && !isPendingPipelineProposal(p)) return false
       if (activeCard === 'vigentes' && !(p.entityType === 'apolice' && p.currentStatus === 'Vigente')) return false
       if (
         activeCard === 'renovacoesPendentes' &&
-        !(p.entityType === 'apolice' && p.proposalType === 'Renovação' && p.status === 'Pendente')
+        !isPendingRenewalDocument(p)
       ) return false
       if (activeCard === 'renovacoes30d') {
         if (p.entityType !== 'apolice') return false
@@ -208,11 +229,35 @@ export default function PropostasPage() {
     setProposalStatus(proposalId, newStatus)
   }
 
+  const onRefuse = async (proposal: Proposal) => {
+    const shouldRefuse = await confirm({
+      title: `Recusar ${proposal.proposalType.toLowerCase()}`,
+      description: `A tentativa de ${proposal.insured} será preservada no histórico. Esta ação não cancela uma apólice já vigente.`,
+      confirmLabel: 'Recusar',
+      tone: 'danger',
+    })
+    if (!shouldRefuse) return
+    if (!refuseProposal(proposal.id)) {
+      notify({
+        title: 'Não foi possível recusar o documento',
+        description: 'Confira se o documento e a etapa de recusa ainda estão disponíveis.',
+        tone: 'danger',
+      })
+      return
+    }
+    notify({
+      title: 'Documento recusado',
+      description: 'A tentativa foi mantida no histórico contratual.',
+      tone: 'success',
+    })
+  }
+
   /* ---- Cards definição ---- */
   const cards: Array<{
     key: Exclude<CardKey, null>
     title: string
     subtitle: string
+    detail?: string
     icon: React.ReactNode
     color: string
     value: number
@@ -220,7 +265,8 @@ export default function PropostasPage() {
     {
       key: 'emAndamento',
       title: 'Propostas',
-      subtitle: 'Em andamento',
+      subtitle: 'Documentos pendentes',
+      detail: pendingDocumentsDetail,
       icon: <FileText size={28} className="text-fg-4" />,
       color: 'text-accent-primary',
       value: counts.emAndamento,
@@ -262,28 +308,20 @@ export default function PropostasPage() {
           <h1 className="text-3xl font-bold">Propostas e Apólices</h1>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => notify({
-              title: 'Nova proposta em preparação',
-              description: 'O cadastro real de proposta entra na reconstrução do eixo contratual.',
-              tone: 'info',
-            })}
+          <Link
+            to="/propostas/novo"
             className="flex items-center gap-2 px-4 py-2 bg-accent-primary hover:bg-accent-primary-hover text-fg-on-brand rounded-full text-sm font-semibold shadow-[var(--shadow-brand)]"
           >
             <Plus size={16} />
             Novo
-          </button>
-          <button
-            onClick={() => notify({
-              title: 'Importação em lote em preparação',
-              description: 'Este fluxo será definido junto ao contrato real de propostas e apólices.',
-              tone: 'info',
-            })}
+          </Link>
+          <Link
+            to="/propostas/importar"
             className="flex items-center gap-2 px-4 py-2 bg-bg-surface border border-border-1 hover:bg-bg-surface-2 text-fg-2 rounded-full text-sm font-semibold"
           >
             <Upload size={16} />
             Importar
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -306,10 +344,14 @@ export default function PropostasPage() {
                   <p className="text-sm font-medium text-fg-3">{c.title}</p>
                   <p className={`text-3xl font-bold mt-1 ${c.color}`}>{c.value}</p>
                   <p className="text-xs text-fg-3 mt-1">{c.subtitle}</p>
+                  {c.detail && (
+                    <p className="mt-2 text-[11px] font-semibold leading-4 text-fg-3">
+                      {c.detail}
+                    </p>
+                  )}
                 </div>
                 <div>{c.icon}</div>
               </div>
-              <p className="text-xs text-fg-4 mt-4">Atualizado em: {lastUpdated}</p>
             </button>
           )
         })}
@@ -351,7 +393,7 @@ export default function PropostasPage() {
       <div className="bg-bg-surface border border-border-1 rounded-[8px] shadow-[var(--shadow-1)]">
         <div className="flex items-center justify-between p-4 border-b border-border-1">
           <h2 className="text-lg font-bold">
-            {activeCard === 'emAndamento' ? 'Acompanhamento de Propostas' : 'Apólices e documentos'}
+            {activeCard === 'emAndamento' ? 'Documentos pendentes de emissão' : 'Apólices e documentos'}
           </h2>
           <div
             className={`flex bg-bg-surface-2 p-1 rounded-[6px] ${
@@ -400,7 +442,12 @@ export default function PropostasPage() {
             }}
           />
         ) : (
-          <KanbanView proposals={filtered} statuses={CUSTOM_STATUSES} onDrop={onCardDrop} />
+          <KanbanView
+            proposals={filtered}
+            statuses={proposalStages.filter((stage) => !stage.isLoss)}
+            onDrop={onCardDrop}
+            onRefuse={onRefuse}
+          />
         )}
       </div>
 
@@ -426,10 +473,12 @@ function KanbanView({
   proposals,
   statuses,
   onDrop,
+  onRefuse,
 }: {
   proposals: Proposal[]
-  statuses: CustomProposalStatus[]
+  statuses: ProposalWorkflowStage[]
   onDrop: (proposalId: string, newStatus: ProposalStatus) => void
+  onRefuse: (proposal: Proposal) => void
 }) {
   const pipeline = proposals.filter(isPipelineProposal)
   return (
@@ -460,37 +509,58 @@ function KanbanView({
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {items.map(p => (
-                    <div
-                      key={p.id}
-                      draggable
-                      onDragStart={e => e.dataTransfer.setData('text/plain', p.id)}
-                      className="bg-bg-surface rounded-[6px] p-3 shadow-[var(--shadow-1)] border border-border-1 cursor-grab active:cursor-grabbing hover:shadow-[var(--shadow-2)] transition-all"
-                    >
-                      <p className="font-semibold text-sm text-fg-1 truncate">{p.insured}</p>
-                      <p className="text-xs text-fg-3 mt-0.5">{p.branch}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-fg-4">
-                          {p.proposalType}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-accent-primary-soft text-accent-primary text-[10px] font-bold flex items-center justify-center">
-                            {initials(p.producer.name)}
+                  {items.map(p => {
+                    const pendingLabel = getIssuancePendingLabel(p)
+                    const canRefuse = !p.issueDate
+                    return (
+                      <div
+                        key={p.id}
+                        draggable
+                        onDragStart={e => e.dataTransfer.setData('text/plain', p.id)}
+                        className="bg-bg-surface rounded-[6px] p-3 shadow-[var(--shadow-1)] border border-border-1 cursor-grab active:cursor-grabbing hover:shadow-[var(--shadow-2)] transition-all"
+                      >
+                        <p className="font-semibold text-sm text-fg-1 truncate">{p.insured}</p>
+                        <p className="text-xs text-fg-3 mt-0.5">{p.branch}</p>
+                        {pendingLabel && (
+                          <div className="mt-2 flex items-start gap-1.5 rounded-[6px] bg-signal-warning/10 px-2 py-1.5 text-[10px] font-semibold leading-4 text-signal-warning">
+                            <TriangleAlert size={12} className="mt-0.5 shrink-0" />
+                            <span>{pendingLabel}</span>
                           </div>
-                          {p.apoliceId && (
-                            <Link
-                              to={`/apolices/${p.apoliceId}?documento=${p.id}`}
-                              draggable={false}
-                              aria-label={`Abrir ${p.proposalType.toLowerCase()} de ${p.insured}`}
-                              className="inline-flex h-7 w-7 items-center justify-center rounded-[6px] text-fg-3 hover:bg-accent-primary-soft hover:text-accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
-                            >
-                              <ArrowUpRight size={15} />
-                            </Link>
-                          )}
+                        )}
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-fg-4">
+                            {p.proposalType}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-accent-primary-soft text-accent-primary text-[10px] font-bold flex items-center justify-center">
+                              {initials(p.producer.name)}
+                            </div>
+                            {p.apoliceId && (
+                              <Link
+                                to={`/apolices/${p.apoliceId}?documento=${p.id}`}
+                                draggable={false}
+                                aria-label={`Abrir ${p.proposalType.toLowerCase()} de ${p.insured}`}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-[6px] text-fg-3 hover:bg-accent-primary-soft hover:text-accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
+                              >
+                                <ArrowUpRight size={15} />
+                              </Link>
+                            )}
+                            {canRefuse && (
+                              <button
+                                type="button"
+                                draggable={false}
+                                onClick={() => onRefuse(p)}
+                                aria-label={`Recusar ${p.proposalType.toLowerCase()} de ${p.insured}`}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-[6px] text-fg-4 hover:bg-signal-danger/10 hover:text-signal-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-danger"
+                              >
+                                <Ban size={14} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                   {items.length === 0 && (
                     <div className="text-center text-xs text-fg-4 py-6">Sem propostas</div>
                   )}

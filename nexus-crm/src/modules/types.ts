@@ -85,7 +85,7 @@ export function normalizePipelineStageRow(
 
 /**
  * Shape generico que o <KanbanBoard /> renderiza. Cada adapter de modulo
- * deve transformar sua entidade (oportunidade, sinistro, emissao...) neste formato.
+ * deve transformar sua entidade (oportunidade, sinistro, cobranca...) neste formato.
  */
 export interface KanbanCard {
   id: string;

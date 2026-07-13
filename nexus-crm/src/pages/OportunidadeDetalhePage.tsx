@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -15,6 +15,7 @@ import {
   Phone,
   Plus,
   Shield,
+  Send,
   TrendingUp,
   Users,
   X,
@@ -27,6 +28,8 @@ import { useOrigens, useRamos, useSeguradoras } from '../hooks/useLookups';
 import { usePipelineStages } from '../hooks/usePipelineStages';
 import type { CardStatus, KanbanCard } from '../modules/types';
 import type { Database } from '../types/database';
+import { usePropostas } from '../contexts/usePropostas';
+import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext';
 
 type TipoNegocio = Database['public']['Enums']['tipo_negocio'];
 
@@ -49,6 +52,36 @@ interface JoinProfile {
   avatar_url: string | null;
 }
 
+interface OpportunityFormData {
+  ramoId: string;
+  tipoNegocio: TipoNegocio | '';
+  seguradoraId: string;
+  vigenciaInicio: string;
+  vigenciaFim: string;
+  origemId: string;
+  proximoFollowup: string;
+  stageId: string;
+  premioLiquido: number;
+  comissaoPercent: number;
+  observacoes: string;
+}
+
+function opportunityForm(row?: Record<string, unknown>): OpportunityFormData {
+  return {
+    ramoId: (row?.ramo_id as string | null) ?? '',
+    tipoNegocio: (row?.tipo_negocio as TipoNegocio | null) ?? '',
+    seguradoraId: (row?.seguradora_id as string | null) ?? '',
+    vigenciaInicio: (row?.vigencia_inicio as string | null) ?? '',
+    vigenciaFim: (row?.vigencia_fim as string | null) ?? '',
+    origemId: (row?.origem_id as string | null) ?? '',
+    proximoFollowup: (row?.proximo_followup as string | null) ?? '',
+    stageId: (row?.stage_id as string | null) ?? '',
+    premioLiquido: (row?.premio_liquido as number | null) ?? 0,
+    comissaoPercent: (row?.comissao_percentual as number | null) ?? 15,
+    observacoes: (row?.observacoes as string | null) ?? '',
+  };
+}
+
 /**
  * Pagina de detalhe de Oportunidade (modulo Comercial).
  * Le dados de `oportunidades` + joins (segurados, ramos, origens, seguradoras,
@@ -64,8 +97,12 @@ export default function OportunidadeDetalhePage() {
   const origens = useOrigens();
   const seguradoras = useSeguradoras();
   const update = useUpdateOportunidade();
+  const { transmitRenewalOpportunity } = usePropostas();
+  const confirm = useConfirm();
+  const { notify } = useSystemFeedback();
 
   const rawRow = detail.data as (Record<string, unknown> | undefined) ?? undefined;
+  const renewalOriginId = (rawRow?.apolice_origem_id as string | null | undefined) ?? null;
   const pipelineId = (rawRow?.pipeline_id as string | null | undefined) ?? undefined;
   const stagesQuery = usePipelineStages(pipelineId);
 
@@ -76,41 +113,14 @@ export default function OportunidadeDetalhePage() {
   const origemJoin = (rawRow?.origens ?? null) as JoinRecord | null;
 
   const [activeTab, setActiveTab] = useState('orcamento');
-  const [formData, setFormData] = useState({
-    ramoId: '' as string,
-    tipoNegocio: '' as TipoNegocio | '',
-    seguradoraId: '' as string,
-    vigenciaInicio: '' as string,
-    vigenciaFim: '' as string,
-    origemId: '' as string,
-    proximoFollowup: '' as string,
-    stageId: '' as string,
-    premioLiquido: 0,
-    comissaoPercent: 15,
-    observacoes: '' as string,
-  });
+  const initialFormData = useMemo(() => opportunityForm(rawRow), [rawRow]);
+  const [formDraft, setFormData] = useState<OpportunityFormData | null>(null);
+  const formData = formDraft ?? initialFormData;
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
   const [concludeMode, setConcludeMode] = useState<Exclude<CardStatus, 'pending'> | null>(null);
 
-  useEffect(() => {
-    if (!rawRow) return;
-    setFormData({
-      ramoId: (rawRow.ramo_id as string | null) ?? '',
-      tipoNegocio: (rawRow.tipo_negocio as TipoNegocio | null) ?? '',
-      seguradoraId: (rawRow.seguradora_id as string | null) ?? '',
-      vigenciaInicio: (rawRow.vigencia_inicio as string | null) ?? '',
-      vigenciaFim: (rawRow.vigencia_fim as string | null) ?? '',
-      origemId: (rawRow.origem_id as string | null) ?? '',
-      proximoFollowup: (rawRow.proximo_followup as string | null) ?? '',
-      stageId: (rawRow.stage_id as string | null) ?? '',
-      premioLiquido: (rawRow.premio_liquido as number | null) ?? 0,
-      comissaoPercent: (rawRow.comissao_percentual as number | null) ?? 15,
-      observacoes: (rawRow.observacoes as string | null) ?? '',
-    });
-  }, [rawRow]);
-
-  const funnelSteps = stagesQuery.data ?? [];
+  const funnelSteps = useMemo(() => stagesQuery.data ?? [], [stagesQuery.data]);
   const currentIdx = useMemo(
     () => funnelSteps.findIndex((s) => s.id === formData.stageId),
     [funnelSteps, formData.stageId],
@@ -154,19 +164,7 @@ export default function OportunidadeDetalhePage() {
 
   const handleDiscard = () => {
     if (!rawRow) return;
-    setFormData({
-      ramoId: (rawRow.ramo_id as string | null) ?? '',
-      tipoNegocio: (rawRow.tipo_negocio as TipoNegocio | null) ?? '',
-      seguradoraId: (rawRow.seguradora_id as string | null) ?? '',
-      vigenciaInicio: (rawRow.vigencia_inicio as string | null) ?? '',
-      vigenciaFim: (rawRow.vigencia_fim as string | null) ?? '',
-      origemId: (rawRow.origem_id as string | null) ?? '',
-      proximoFollowup: (rawRow.proximo_followup as string | null) ?? '',
-      stageId: (rawRow.stage_id as string | null) ?? '',
-      premioLiquido: (rawRow.premio_liquido as number | null) ?? 0,
-      comissaoPercent: (rawRow.comissao_percentual as number | null) ?? 15,
-      observacoes: (rawRow.observacoes as string | null) ?? '',
-    });
+    setFormData(null);
     setSaveStatus('idle');
     setSaveError(null);
   };
@@ -196,6 +194,23 @@ export default function OportunidadeDetalhePage() {
     } catch (err) {
       setSaveStatus('error');
       setSaveError(err instanceof Error ? err.message : 'Erro ao salvar');
+    }
+  };
+
+  const handleTransmitRenewal = async () => {
+    const accepted = await confirm({
+      title: 'Transmitir renovação',
+      description: 'Será criada uma nova apólice em emissão, ligada ao contrato anterior. A apólice anterior continuará vigente até a emissão da sucessora.',
+      confirmLabel: 'Transmitir',
+      tone: 'warning',
+    });
+    if (!accepted) return;
+    try {
+      const result = transmitRenewalOpportunity(opportunityId);
+      notify({ title: 'Renovação transmitida', description: 'A sucessora foi criada em emissão para revisão documental.', tone: 'success' });
+      navigate(`/apolices/${result.policyId}?documento=${result.documentId}`);
+    } catch (error) {
+      notify({ title: 'Não foi possível transmitir', description: error instanceof Error ? error.message : 'Revise a oportunidade.', tone: 'danger' });
     }
   };
 
@@ -259,6 +274,15 @@ export default function OportunidadeDetalhePage() {
 
               {!isConcluded && (
                 <>
+                  {renewalOriginId && (
+                    <button
+                      type="button"
+                      onClick={() => void handleTransmitRenewal()}
+                      className="flex items-center gap-2 rounded-full border border-accent-primary/30 bg-accent-primary-soft px-4 py-2.5 text-xs font-black uppercase tracking-widest text-accent-primary transition-colors hover:bg-accent-primary/15"
+                    >
+                      <Send size={14} /> Transmitir renovação
+                    </button>
+                  )}
                   {canWin && (
                     <button
                       onClick={() => setConcludeMode('won')}

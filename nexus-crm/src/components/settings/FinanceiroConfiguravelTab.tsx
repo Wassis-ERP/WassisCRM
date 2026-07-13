@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -22,6 +22,7 @@ import {
   type RecebimentoGradeInput,
   type RecebimentoGradeParcelaInput,
   type RecebimentoGradeParcelaRow,
+  type RecebimentoComissaoTipo,
   type RecebimentoGradeRow,
   type RecebimentoGradeTipo,
   type RecebimentoPercentualSobre,
@@ -33,6 +34,7 @@ import {
   type RepasseTipoDocumento,
 } from '../../hooks/useLookupsAdmin'
 import { useConfirm, useSystemFeedback } from '../feedback/systemFeedbackContext'
+import { ReceiptGradeInspector } from './ReceiptGradeInspector'
 
 type FinanceiroSection = 'grades' | 'repasses'
 type GradeView = 'list' | 'detail'
@@ -55,6 +57,14 @@ const PERCENTUAL_SOBRE: Array<{ value: RecebimentoPercentualSobre; label: string
   { value: 'COMISSAO_TOTAL', label: 'Comissão total' },
   { value: 'PARCELA', label: 'Parcela' },
   { value: 'PREMIO', label: 'Prêmio' },
+]
+
+const COMISSAO_TIPOS: Array<{ value: RecebimentoComissaoTipo; label: string }> = [
+  { value: 'NORMAL', label: 'Normal' },
+  { value: 'AGENCIAMENTO', label: 'Agenciamento' },
+  { value: 'VITALICIA', label: 'Vitalícia' },
+  { value: 'ADICIONAL', label: 'Adicional' },
+  { value: 'RESTITUICAO', label: 'Restituição' },
 ]
 
 const REPASSE_PAPEIS: Array<{ value: RepassePapel; label: string }> = [
@@ -120,6 +130,7 @@ const gradeFormFromRow = (row: RecebimentoGradeRow): RecebimentoGradeInput => ({
 const emptyParcelaForm = (gradeId = ''): RecebimentoGradeParcelaInput => ({
   grade_id: gradeId,
   numero: 1,
+  tipo_comissao: 'NORMAL',
   percentual: null,
   percentual_sobre: 'COMISSAO_TOTAL',
   dias_apos_vencimento: 0,
@@ -129,6 +140,7 @@ const emptyParcelaForm = (gradeId = ''): RecebimentoGradeParcelaInput => ({
 const parcelaFormFromRow = (row: RecebimentoGradeParcelaRow): RecebimentoGradeParcelaInput => ({
   grade_id: row.grade_id,
   numero: row.numero,
+  tipo_comissao: row.tipo_comissao,
   percentual: row.percentual,
   percentual_sobre: row.percentual_sobre ?? 'COMISSAO_TOTAL',
   dias_apos_vencimento: row.dias_apos_vencimento,
@@ -234,9 +246,11 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
     isLoading: isLoadingGrades,
     create: createGrade,
     update: updateGrade,
+    duplicate: duplicateGrade,
     remove: removeGrade,
     isCreating: isCreatingGrade,
     isUpdating: isUpdatingGrade,
+    isDuplicating: isDuplicatingGrade,
     isRemoving: isRemovingGrade,
   } = useRecebimentoGradesAdmin()
   const {
@@ -353,16 +367,6 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
   )
   const produtorFiltroNome = produtorFiltroId ? produtorMap.get(produtorFiltroId) ?? 'Produtor selecionado' : null
 
-  useEffect(() => {
-    if (section !== 'repasses' || !produtorFiltroId) return
-    setRegraSearch('')
-    setRegraForm((prev) => (
-      prev.produtor_id === produtorFiltroId
-        ? prev
-        : { ...prev, produtor_id: produtorFiltroId }
-    ))
-  }, [produtorFiltroId, section])
-
   const resetGradeForm = () => {
     setEditingGradeId(null)
     setGradeForm(emptyGradeForm(seguradoras[0]?.id ?? '', ramos[0]?.id ?? ''))
@@ -427,6 +431,15 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
       seguradora_id: gradeForm.seguradora_id || seguradoras[0]?.id || '',
       ramo_id: gradeForm.ramo_id || ramos[0]?.id || '',
     }
+    const duplicateName = grades.some((grade) =>
+      grade.id !== editingGradeId && grade.ativo
+      && grade.seguradora_id === payload.seguradora_id
+      && grade.ramo_id === payload.ramo_id
+      && grade.nome.trim().toLocaleLowerCase('pt-BR') === payload.nome.trim().toLocaleLowerCase('pt-BR'))
+    if (duplicateName) {
+      setGradeError('Já existe uma grade ativa com este nome para a seguradora e o ramo.')
+      return
+    }
     setGradeError(null)
     try {
       const saved = editingGradeId
@@ -490,6 +503,14 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
     if (isSavingParcela || !activeGradeId) return
     const payload = { ...parcelaForm, grade_id: activeGradeId }
     setParcelaError(null)
+    if (activeGrade && payload.numero > activeGrade.qtd_parcelas) {
+      setParcelaError(`O evento não pode exceder a quantidade ${activeGrade.qtd_parcelas} definida na grade.`)
+      return
+    }
+    if (parcelas.some((row) => row.id !== editingParcelaId && row.ativo && row.numero === payload.numero)) {
+      setParcelaError(`O evento ${payload.numero} já existe nesta grade.`)
+      return
+    }
     try {
       if (editingParcelaId) {
         await updateParcela({ id: editingParcelaId, input: payload })
@@ -525,6 +546,27 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
         description: err instanceof Error ? err.message : 'Tente novamente.',
         tone: 'danger',
       })
+    }
+  }
+
+  const handleDuplicateGrade = async () => {
+    if (!activeGrade || isDuplicatingGrade) return
+    const baseName = `${activeGrade.nome} - cópia`
+    let copyName = baseName
+    let suffix = 2
+    while (grades.some((grade) => grade.seguradora_id === activeGrade.seguradora_id && grade.ramo_id === activeGrade.ramo_id && grade.nome.toLocaleLowerCase('pt-BR') === copyName.toLocaleLowerCase('pt-BR'))) {
+      copyName = `${baseName} ${suffix}`
+      suffix += 1
+    }
+    try {
+      const ready = await duplicateGrade({ id: activeGrade.id, name: copyName })
+      setSelectedGradeId(ready.id)
+      setEditingGradeId(ready.id)
+      setGradeForm(gradeFormFromRow(ready))
+      resetParcelaForm(ready.id)
+      notify({ title: 'Grade duplicada', description: `${parcelas.filter((row) => row.ativo).length} evento(s) copiado(s).`, tone: 'success' })
+    } catch (err) {
+      notify({ title: 'Erro ao duplicar grade', description: err instanceof Error ? err.message : 'A cópia permaneceu inativa.', tone: 'danger' })
     }
   }
 
@@ -585,6 +627,8 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
     const nextParams = new URLSearchParams(searchParams)
     nextParams.delete('produtorId')
     setSearchParams(nextParams, { replace: true })
+    setRegraSearch('')
+    setRegraForm(emptyRegraForm(null))
   }
 
   return (
@@ -939,7 +983,7 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,0.85fr)_auto]">
+                  <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 xl:grid-cols-[minmax(0,0.65fr)_minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,0.7fr)_auto]">
                     <label className="min-w-0 space-y-1.5">
                       <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Número</span>
                       <input
@@ -949,6 +993,16 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                         onChange={(event) => setParcelaField('numero', Number(event.target.value))}
                         className="w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
                       />
+                    </label>
+                    <label className="min-w-0 space-y-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Tipo de comissão</span>
+                      <select
+                        value={parcelaForm.tipo_comissao}
+                        onChange={(event) => setParcelaField('tipo_comissao', event.target.value as RecebimentoComissaoTipo)}
+                        className="w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-black text-fg-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
+                      >
+                        {COMISSAO_TIPOS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                      </select>
                     </label>
                     <label className="min-w-0 space-y-1.5">
                       <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Percentual</span>
@@ -1015,8 +1069,9 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                       </div>
                     ) : (
                       parcelas.map((parcela) => (
-                        <div key={parcela.id} className="grid grid-cols-1 gap-3 px-5 py-3 md:grid-cols-[minmax(0,0.75fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.75fr)_auto] md:items-center">
+                        <div key={parcela.id} className="grid grid-cols-1 gap-3 px-5 py-3 md:grid-cols-[minmax(0,0.65fr)_minmax(0,0.85fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.7fr)_auto] md:items-center">
                           <p className="text-sm font-black text-fg-1">Parcela {parcela.numero}</p>
+                          <p className="text-xs font-black uppercase tracking-wide text-accent-primary">{labelFrom(COMISSAO_TIPOS, parcela.tipo_comissao)}</p>
                           <p className="min-w-0 text-sm font-semibold text-fg-2">
                             {percentText(parcela.percentual)} sobre {labelFrom(PERCENTUAL_SOBRE, parcela.percentual_sobre)}
                           </p>
@@ -1053,6 +1108,7 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                       </div>
                     )}
                   </div>
+                  {activeGrade && <ReceiptGradeInspector grade={activeGrade} events={parcelas} catalog={grades} duplicating={isDuplicatingGrade} onDuplicate={() => void handleDuplicateGrade()} />}
                 </section>
               ) : (
                 <section className="rounded-[8px] border border-border-1 bg-bg-surface px-5 py-6 text-sm font-semibold text-fg-3 shadow-[var(--shadow-1)]">

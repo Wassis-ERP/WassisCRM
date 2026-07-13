@@ -14,6 +14,7 @@ export interface CreateOportunidadeInput {
   pipelineId: string;
   stageId: string;
   seguradoId?: string | null;
+  apoliceOrigemId?: string | null;
   ramoId?: string | null;
   seguradoraId?: string | null;
   origemId?: string | null;
@@ -48,6 +49,7 @@ export function useCreateOportunidade() {
         pipeline_id: input.pipelineId,
         stage_id: input.stageId,
         segurado_id: input.seguradoId ?? null,
+        apolice_origem_id: input.apoliceOrigemId ?? null,
         ramo_id: input.ramoId ?? null,
         seguradora_id: input.seguradoraId ?? null,
         origem_id: input.origemId ?? null,

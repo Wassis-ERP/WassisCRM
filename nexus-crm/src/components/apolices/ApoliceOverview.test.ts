@@ -20,6 +20,7 @@ const draft = (patch: Partial<DocumentDraft> = {}): DocumentDraft => ({
   data_recebimento_seguradora: '', data_aceitacao: '', data_recusa: '', motivo_recusa: '',
   data_emissao: '', vigencia_inicio: '2026-01-01', vigencia_fim: '2026-12-31',
   premio_total: '100', premio_liquido: '90', forma_pagamento: '', periodicidade_pagamento: '',
+  comissao_pct: '20', agenciamento_pct: '',
   qtd_parcelas: '1', primeira_parcela_vencimento: '', primeira_parcela_valor: '',
   competencia_inicio: '', competencia_fim: '', ...patch,
 })

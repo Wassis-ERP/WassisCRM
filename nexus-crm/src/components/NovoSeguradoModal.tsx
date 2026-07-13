@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { X, User, Shield, Phone, Mail, UserPlus, AlertCircle, ShieldCheck } from 'lucide-react'
 import type { Segurado } from '../contexts/seguradosCore'
 import { useIsDocumentoUnique } from '../hooks/useSegurados'
@@ -29,6 +29,24 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
   const [submitting, setSubmitting] = useState(false)
 
   const isDocumentoUnique = useIsDocumentoUnique()
+
+  useEffect(() => {
+    if (!isOpen || submitting) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setTipo('PF')
+        setNome('')
+        setDocumento('')
+        setEmail('')
+        setTelefone('')
+        setLgpdAutorizado(false)
+        setTouched({})
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose, submitting])
 
   const documentoErro = useMemo(() => {
     if (!documento.trim()) return 'Documento é obrigatório'
@@ -89,15 +107,15 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-bg-surface w-full max-w-xl rounded-[12px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-sm animate-in fade-in duration-200" onMouseDown={() => !submitting && handleCancel()} role="presentation">
+      <div className="bg-bg-surface w-full max-w-xl rounded-[12px] shadow-[var(--shadow-3)] border border-border-1 overflow-hidden animate-in zoom-in-95 duration-200" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="novo-segurado-title">
         <div className="px-6 py-5 border-b border-border-1 flex items-center justify-between bg-bg-surface-2">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-accent-primary-soft rounded-[6px] text-accent-primary">
               <UserPlus size={18} />
             </div>
             <div>
-              <h2 className="text-lg font-black text-fg-1 uppercase tracking-tight">
+              <h2 id="novo-segurado-title" className="text-lg font-black text-fg-1 uppercase tracking-tight">
                 Novo Segurado
               </h2>
               <p className="text-xs text-fg-3 mt-0.5">
@@ -108,7 +126,9 @@ export default function NovoSeguradoModal({ isOpen, onClose, onSave }: Props) {
           <button
             type="button"
             onClick={handleCancel}
-            className="p-2 hover:bg-bg-surface-3 rounded-full transition-colors text-fg-4"
+            disabled={submitting}
+            aria-label="Fechar cadastro de segurado"
+            className="p-2 hover:bg-bg-surface-3 rounded-full transition-colors text-fg-4 disabled:opacity-50"
           >
             <X size={18} />
           </button>

@@ -26,7 +26,6 @@ const TABLES = [
   'parcelas',
   'comissoes',
   'repasses',
-  'emissoes',
   'pos_vendas',
   'financeiro_cobrancas',
   'sinistros',
@@ -85,6 +84,105 @@ export function nowIso(): string {
   return new Date().toISOString();
 }
 
+export interface AgendaMaterializationResult {
+  parcelas: number;
+  comissoes: number;
+  repasses: number;
+}
+
+function contractAgendaTables(): ContractAgendaTables {
+  return {
+    policies: db.apolices as unknown as ContractAgendaTables['policies'],
+    proposals: db.propostas as unknown as ContractAgendaTables['proposals'],
+    insureds: db.segurados as unknown as ContractAgendaTables['insureds'],
+    grades: db.recebimento_grades as unknown as ContractAgendaTables['grades'],
+    gradeEvents: db.recebimento_grade_parcelas as unknown as ContractAgendaTables['gradeEvents'],
+    transferRules: db.repasse_regras as unknown as ContractAgendaTables['transferRules'],
+    installments: db.parcelas as unknown as ContractAgendaTables['installments'],
+    commissions: db.comissoes as unknown as ContractAgendaTables['commissions'],
+    transfers: db.repasses as unknown as ContractAgendaTables['transfers'],
+  };
+}
+
+import {
+  applyContractAgendaPreview,
+  previewContractAgendas,
+  type AgendaApplyMode,
+  type AgendaApplyResult,
+  type ContractAgendaPreview,
+  type ContractAgendaTables,
+} from './contractAgendaDomain'
+
+/**
+ * Materializa os fatos financeiros de um documento uma unica vez.
+ * A funcao e compartilhada entre os seeds da Fase 2.5 e a importacao 2.3.
+ */
+export function materializeDocumentAgendas(
+  documentoId: string,
+  vencimento: string,
+  numeroFatura?: string,
+): AgendaMaterializationResult {
+  return materializeDocumentAgendasV2(documentoId, vencimento, numeroFatura);
+}
+
+export function previewDocumentAgendas(documentId: string, gradeId?: string | null): ContractAgendaPreview {
+  return previewContractAgendas(contractAgendaTables(), documentId, gradeId);
+}
+
+export function applyDocumentAgendas(documentId: string, gradeId: string, mode: AgendaApplyMode): AgendaApplyResult {
+  const snapshots = new Map(['parcelas', 'comissoes', 'repasses', 'audit_logs'].map((table) => [
+    table,
+    db[table].map((row) => ({ ...row })),
+  ]));
+  const document = db.propostas.find((row) => row.id === documentId);
+  const previousGradeId = document?.recebimento_grade_id ?? null;
+  try {
+    const preview = previewDocumentAgendas(documentId, gradeId);
+    const result = applyContractAgendaPreview(contractAgendaTables(), preview, mode);
+    db.audit_logs.push({
+      id: newId(), tenant_id: MOCK_TENANT_ID, user_id: MOCK_USER_ID,
+      entidade_tipo: 'proposta', entidade_id: documentId, campo: 'agendas_contratuais',
+      valor_antigo: previousGradeId, valor_novo: gradeId, acao: 'UPDATE', ocorrido_em: nowIso(),
+      origem: 'FRONT_MOCK', ip: null,
+      user_agent: `WassisCRM mock · ${mode} · +${result.created.installments}/${result.created.commissions}/${result.created.transfers}`,
+    });
+    return result;
+  } catch (error) {
+    snapshots.forEach((rows, table) => db[table].splice(0, db[table].length, ...rows));
+    if (document) document.recebimento_grade_id = previousGradeId;
+    throw error;
+  }
+}
+
+function materializeDocumentAgendasV2(
+  documentId: string,
+  dueDate: string,
+  invoiceNumber?: string,
+): AgendaMaterializationResult {
+  const document = db.propostas.find((row) => row.id === documentId);
+  if (!document) return { parcelas: 0, comissoes: 0, repasses: 0 };
+  const previous = {
+    firstDueDate: document.primeira_parcela_vencimento,
+    invoiceNumber: document.numero_fatura,
+    quantity: document.qtd_parcelas,
+  };
+  try {
+    document.primeira_parcela_vencimento ??= dueDate;
+    document.numero_fatura ??= invoiceNumber ?? null;
+    document.qtd_parcelas ??= 1;
+    const preview = previewDocumentAgendas(documentId, document.recebimento_grade_id);
+    const gradeId = document.recebimento_grade_id ?? (preview.compatibleGrades.length === 1 ? preview.compatibleGrades[0].id : null);
+    if (!gradeId) throw new Error(preview.errors[0] ?? 'Selecione uma grade de recebimento compatível.');
+    const result = applyDocumentAgendas(documentId, gradeId, 'COMPLETE_MISSING');
+    return { parcelas: result.created.installments, comissoes: result.created.commissions, repasses: result.created.transfers };
+  } catch (error) {
+    document.primeira_parcela_vencimento = previous.firstDueDate;
+    document.numero_fatura = previous.invoiceNumber;
+    document.qtd_parcelas = previous.quantity;
+    throw error;
+  }
+}
+
 export const MOCK_TENANT_ID = 'mock-tenant-id';
 export const MOCK_USER_ID = 'mock-user-id';
 
@@ -111,13 +209,13 @@ export const RELATIONS: Record<
   'apolices.ramos': { target: 'ramos', localFk: 'ramo_id', kind: 'forward' },
   'apolices.produtores': { target: 'produtores', localFk: 'produtor_id', kind: 'forward' },
   'apolices.renovada_de': { target: 'apolices', localFk: 'renovada_de_id', kind: 'forward' },
+  'oportunidades.apolice_origem': { target: 'apolices', localFk: 'apolice_origem_id', kind: 'forward' },
   'propostas.apolices': { target: 'apolices', localFk: 'apolice_id', kind: 'forward' },
   'propostas.pipeline_stages': { target: 'pipeline_stages', localFk: 'stage_id', kind: 'forward' },
   'propostas.profiles': { target: 'profiles', localFk: 'responsavel_id', kind: 'forward' },
   'propostas.recebimento_grades': { target: 'recebimento_grades', localFk: 'recebimento_grade_id', kind: 'forward' },
   'propostas.endosso_subtipos': { target: 'endosso_subtipos', localFk: 'endosso_subtipo_id', kind: 'forward' },
   'propostas.cancelamento_motivos': { target: 'cancelamento_motivos', localFk: 'cancelamento_motivo_id', kind: 'forward' },
-  'emissoes.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
   'pos_vendas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
   'sinistros.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
   'financeiro_cobrancas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
@@ -543,9 +641,9 @@ export function seed(): void {
       valor_novo: '11987654321',
       acao: 'UPDATE',
       ocorrido_em: nowIso(),
+      origem: 'MOCK_SEED',
+      ip: null,
       user_agent: 'mock',
-      created_at: nowIso(),
-      updated_at: nowIso(),
     },
     {
       id: newId(),
@@ -558,9 +656,9 @@ export function seed(): void {
       valor_novo: 'Ativo',
       acao: 'UPDATE',
       ocorrido_em: nowIso(),
+      origem: 'MOCK_SEED',
+      ip: null,
       user_agent: 'mock',
-      created_at: nowIso(),
-      updated_at: nowIso(),
     },
   );
 
@@ -708,10 +806,13 @@ export function seed(): void {
   });
 
   const portoAutoGradeId = newId();
+  const portoFrotaGradeId = newId();
   const sulamericaSaudeGradeId = newId();
+  const sulamericaSaudeAgenciamentoGradeId = newId();
   const portoId = seguradoraIds['Porto Seguro'];
   const sulamericaId = seguradoraIds['SulAmérica'];
   const automovelId = ramoIds['Automóvel'];
+  const frotaId = ramoIds.Frota;
   const saudeId = ramoIds['Saúde Empresarial'];
   if (portoId && automovelId) {
     db.recebimento_grades.push({
@@ -730,14 +831,15 @@ export function seed(): void {
       observacoes: 'Comissão antecipada em três eventos após emissão.',
     });
     [
-      { numero: 1, percentual: 50, dias_apos_vencimento: 0 },
-      { numero: 2, percentual: 30, dias_apos_vencimento: 30 },
-      { numero: 3, percentual: 20, dias_apos_vencimento: 60 },
+      { numero: 1, tipo_comissao: 'NORMAL', percentual: 50, dias_apos_vencimento: 0 },
+      { numero: 2, tipo_comissao: 'NORMAL', percentual: 30, dias_apos_vencimento: 30 },
+      { numero: 3, tipo_comissao: 'NORMAL', percentual: 20, dias_apos_vencimento: 60 },
     ].forEach((parcela) => {
       db.recebimento_grade_parcelas.push({
         id: newId(),
         grade_id: portoAutoGradeId,
         numero: parcela.numero,
+        tipo_comissao: parcela.tipo_comissao,
         percentual: parcela.percentual,
         percentual_sobre: 'COMISSAO_TOTAL',
         dias_apos_vencimento: parcela.dias_apos_vencimento,
@@ -745,7 +847,63 @@ export function seed(): void {
       });
     });
   }
+  if (portoId && frotaId) {
+    db.recebimento_grades.push({
+      id: portoFrotaGradeId,
+      seguradora_id: portoId,
+      ramo_id: frotaId,
+      nome: 'Porto Frota - antecipado 3x',
+      tipo: 'ANTECIPADO_N',
+      qtd_parcelas: 3,
+      base_calculo: 'PREMIO_LIQUIDO',
+      percentual_default: 20,
+      considera_iof: false,
+      considera_adicional_fracionamento: false,
+      vitalicio: false,
+      ativo: true,
+      observacoes: 'Comissão antecipada em três eventos para apólices de frota.',
+    });
+    [
+      { numero: 1, percentual: 50, dias_apos_vencimento: 0 },
+      { numero: 2, percentual: 30, dias_apos_vencimento: 30 },
+      { numero: 3, percentual: 20, dias_apos_vencimento: 60 },
+    ].forEach((event) => db.recebimento_grade_parcelas.push({
+      id: newId(), grade_id: portoFrotaGradeId, numero: event.numero,
+      tipo_comissao: 'NORMAL', percentual: event.percentual,
+      percentual_sobre: 'COMISSAO_TOTAL', dias_apos_vencimento: event.dias_apos_vencimento, ativo: true,
+    }));
+  }
   if (sulamericaId && saudeId) {
+    db.recebimento_grades.push({
+      id: sulamericaSaudeAgenciamentoGradeId,
+      seguradora_id: sulamericaId,
+      ramo_id: saudeId,
+      nome: 'SulAmérica Saúde - 300% + vitalício',
+      tipo: 'VITALICIO_PCT_PROPOSTA',
+      qtd_parcelas: 4,
+      base_calculo: 'PREMIO_TOTAL',
+      percentual_default: null,
+      considera_iof: false,
+      considera_adicional_fracionamento: true,
+      vitalicio: true,
+      ativo: true,
+      observacoes: 'Três eventos de agenciamento e continuidade pelo percentual da proposta.',
+    });
+    [
+      { numero: 1, tipo_comissao: 'AGENCIAMENTO', percentual: 100, dias_apos_vencimento: 0 },
+      { numero: 2, tipo_comissao: 'AGENCIAMENTO', percentual: 100, dias_apos_vencimento: 30 },
+      { numero: 3, tipo_comissao: 'AGENCIAMENTO', percentual: 100, dias_apos_vencimento: 60 },
+      { numero: 4, tipo_comissao: 'VITALICIA', percentual: null, dias_apos_vencimento: 90 },
+    ].forEach((parcela) => db.recebimento_grade_parcelas.push({
+      id: newId(),
+      grade_id: sulamericaSaudeAgenciamentoGradeId,
+      numero: parcela.numero,
+      tipo_comissao: parcela.tipo_comissao,
+      percentual: parcela.percentual,
+      percentual_sobre: 'PREMIO',
+      dias_apos_vencimento: parcela.dias_apos_vencimento,
+      ativo: true,
+    }));
     db.recebimento_grades.push({
       id: sulamericaSaudeGradeId,
       seguradora_id: sulamericaId,
@@ -765,6 +923,7 @@ export function seed(): void {
       id: newId(),
       grade_id: sulamericaSaudeGradeId,
       numero: 1,
+      tipo_comissao: 'VITALICIA',
       percentual: null,
       percentual_sobre: 'PREMIO',
       dias_apos_vencimento: 0,
@@ -1028,6 +1187,10 @@ export function seed(): void {
     { id: 'mock-segurado-camila', nome: 'Camila Ferreira', tipo: 'PF', cpf_cnpj: '23456789012', cidade: 'São Paulo', estado: 'SP', email: 'camila.ferreira@example.com', telefone: '11987654320' },
     { id: 'mock-segurado-padaria', nome: 'Padaria Pão Dourado Ltda', tipo: 'PJ', cpf_cnpj: '34567890000130', cidade: 'Osasco', estado: 'SP', email: 'contato@paodourado.com.br', telefone: '1136992200' },
     { id: 'mock-segurado-lumina', nome: 'Lumina Comércio Ltda', tipo: 'PJ', cpf_cnpj: '45678901000140', cidade: 'Santos', estado: 'SP', email: 'administrativo@lumina.com.br', telefone: '1332214400' },
+    { id: 'mock-segurado-mariana', nome: 'Mariana Costa', tipo: 'PF', cpf_cnpj: '34567890123', cidade: 'São Paulo', estado: 'SP', email: 'mariana.costa@example.com', telefone: '11981234567' },
+    { id: 'mock-segurado-oficina-horizonte', nome: 'Oficina Horizonte Ltda', tipo: 'PJ', cpf_cnpj: '56789012000150', cidade: 'Guarulhos', estado: 'SP', email: 'administrativo@oficinahorizonte.com.br', telefone: '1124098800' },
+    { id: 'mock-segurado-rafael', nome: 'Rafael Mendes', tipo: 'PF', cpf_cnpj: '45678901234', cidade: 'Campinas', estado: 'SP', email: 'rafael.mendes@example.com', telefone: '19992345678' },
+    { id: 'mock-segurado-condominio', nome: 'Condomínio Jardim das Águas', tipo: 'PJ', cpf_cnpj: '67890123000160', cidade: 'Jundiaí', estado: 'SP', email: 'sindico@jardimdasaguas.com.br', telefone: '1145216600' },
   ];
   demoSegurados.forEach((segurado) => db.segurados.push({
     ...segurado,
@@ -1067,6 +1230,31 @@ export function seed(): void {
       ramo_id: ramoIds.Empresarial, status: 'EM_EMISSAO', numero_apolice: null, vigencia_inicio: '2026-08-01',
       vigencia_fim: '2027-08-01', premio_total: 5230, premio_liquido: 4800,
     },
+    {
+      id: 'mock-apolice-mariana', segurado_id: 'mock-segurado-mariana', seguradora_id: seguradoraIds['Tokio Marine'],
+      ramo_id: ramoIds.Residencial, status: 'VIGENTE', numero_apolice: 'RES-2025-071922', vigencia_inicio: '2025-07-22',
+      vigencia_fim: '2026-07-22', data_emissao: '2025-07-18', premio_total: 742.8, premio_liquido: 681.35,
+    },
+    {
+      id: 'mock-apolice-mariana-renovacao', segurado_id: 'mock-segurado-mariana', seguradora_id: seguradoraIds['Tokio Marine'],
+      ramo_id: ramoIds.Residencial, status: 'EM_EMISSAO', numero_apolice: null, vigencia_inicio: '2026-07-23',
+      vigencia_fim: '2027-07-23', premio_total: 814.6, premio_liquido: 748.25, renovada_de_id: 'mock-apolice-mariana',
+    },
+    {
+      id: 'mock-apolice-oficina-horizonte', segurado_id: 'mock-segurado-oficina-horizonte', seguradora_id: seguradoraIds['Bradesco Seguros'],
+      ramo_id: ramoIds.Empresarial, status: 'VIGENTE', numero_apolice: 'EMP-2025-080517', vigencia_inicio: '2025-08-05',
+      vigencia_fim: '2026-08-05', data_emissao: '2025-08-01', premio_total: 4380, premio_liquido: 4029.6,
+    },
+    {
+      id: 'mock-apolice-rafael', segurado_id: 'mock-segurado-rafael', seguradora_id: seguradoraIds['Porto Seguro'],
+      ramo_id: ramoIds['Automóvel'], status: 'VIGENTE', numero_apolice: 'AUTO-2026-031048', vigencia_inicio: '2026-03-10',
+      vigencia_fim: '2027-03-10', data_emissao: '2026-03-07', premio_total: 3265.4, premio_liquido: 2978.1,
+    },
+    {
+      id: 'mock-apolice-condominio', segurado_id: 'mock-segurado-condominio', seguradora_id: seguradoraIds.Allianz,
+      ramo_id: ramoIds.Residencial, status: 'VIGENTE', numero_apolice: 'RES-2026-041522', vigencia_inicio: '2026-04-15',
+      vigencia_fim: '2027-04-15', data_emissao: '2026-04-11', premio_total: 2180.75, premio_liquido: 1999.2,
+    },
   ];
   policies.forEach((policy) => db.apolices.push({
     produtor_id: PRODUTOR_INTERNO_ID,
@@ -1076,9 +1264,13 @@ export function seed(): void {
   }));
 
   db.endosso_subtipos.push(
+    { id: 'mock-endosso-alteracao-dados', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Alteração de dados', natureza_canonica: 'ALTERACAO_DADOS', ordem: 5, ativo: true, observacoes: null },
+    { id: 'mock-endosso-inclusao-item', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Inclusão de item', natureza_canonica: 'INCLUSAO_ITEM', ordem: 8, ativo: true, observacoes: null },
     { id: 'mock-endosso-substituicao-item', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Substituição de item', natureza_canonica: 'SUBSTITUICAO_ITEM', ordem: 10, ativo: true, observacoes: null },
     { id: 'mock-endosso-alteracao-cobertura', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Alteração de cobertura', natureza_canonica: 'ALTERACAO_COBERTURA', ordem: 20, ativo: true, observacoes: null },
     { id: 'mock-endosso-exclusao-item', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Exclusão de item', natureza_canonica: 'EXCLUSAO_ITEM', ordem: 30, ativo: true, observacoes: null },
+    { id: 'mock-endosso-importancia-segurada', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Alteração de importância segurada', natureza_canonica: 'ALTERACAO_IMPORTANCIA_SEGURADA', ordem: 40, ativo: true, observacoes: null },
+    { id: 'mock-endosso-alteracao-clausula', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Alteração de cláusula', natureza_canonica: 'ALTERACAO_CLAUSULA', ordem: 50, ativo: true, observacoes: null },
   );
   db.cancelamento_motivos.push(
     { id: 'mock-cancelamento-solicitacao-segurado', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Solicitação do segurado', ordem: 10, ativo: true, observacoes: null },
@@ -1090,7 +1282,7 @@ export function seed(): void {
       id: 'mock-proposta-viaforte-original', apolice_id: 'mock-apolice-viaforte', tipo: 'NOVA', stage_id: emitidaStageId,
       numero_proposta: '1304103126', numero_endosso: '0', data_transmissao: '2026-06-15', data_aceitacao: '2026-06-18',
       data_emissao: '2026-06-19', vigencia_inicio: '2026-06-19', vigencia_fim: '2027-06-19',
-      premio_total: 1950.74, premio_liquido: 1780.12, forma_pagamento: 'DÉBITO_EM_CONTA', qtd_parcelas: 5,
+      premio_total: 1950.74, premio_liquido: 1780.12, forma_pagamento: 'DÉBITO_EM_CONTA', qtd_parcelas: 5, comissao_pct: 20,
     },
     {
       id: 'mock-proposta-viaforte-endosso-1', apolice_id: 'mock-apolice-viaforte', tipo: 'ENDOSSO', stage_id: recusadaStageId,
@@ -1117,16 +1309,17 @@ export function seed(): void {
       id: 'mock-proposta-aurora-original', apolice_id: 'mock-apolice-aurora', tipo: 'NOVA', stage_id: emitidaStageId,
       numero_proposta: 'SAU-000881', data_emissao: '2025-12-20',
       vigencia_inicio: '2026-01-01', vigencia_fim: '2026-12-31', premio_total: 86400, premio_liquido: 81000,
+      qtd_parcelas: 12, comissao_pct: 2, agenciamento_pct: 300,
     },
     {
       id: 'mock-proposta-aurora-fatura-maio', apolice_id: 'mock-apolice-aurora', tipo: 'FATURA', stage_id: emitidaStageId,
       numero_fatura: 'FAT-2026-05', data_emissao: '2026-05-02', competencia_inicio: '2026-05-01', competencia_fim: '2026-05-31',
-      premio_total: 7200, premio_liquido: 6750,
+      premio_total: 7200, premio_liquido: 6750, comissao_pct: 2, agenciamento_pct: 0,
     },
     {
       id: 'mock-proposta-aurora-fatura-junho', apolice_id: 'mock-apolice-aurora', tipo: 'FATURA', stage_id: emitidaStageId,
       numero_fatura: 'FAT-2026-06', data_emissao: '2026-06-02', competencia_inicio: '2026-06-01', competencia_fim: '2026-06-30',
-      premio_total: 7200, premio_liquido: 6750,
+      premio_total: 7200, premio_liquido: 6750, comissao_pct: 2, agenciamento_pct: 0,
     },
     {
       id: 'mock-proposta-aurora-fatura-julho', apolice_id: 'mock-apolice-aurora', tipo: 'FATURA', stage_id: aguardandoStageId,
@@ -1147,11 +1340,42 @@ export function seed(): void {
       numero_proposta: 'EMP-2026-091', data_transmissao: '2026-07-11', vigencia_inicio: '2026-08-01', vigencia_fim: '2027-08-01',
       premio_total: 5230, premio_liquido: 4800,
     },
+    {
+      id: 'mock-proposta-mariana-original', apolice_id: 'mock-apolice-mariana', tipo: 'NOVA', stage_id: emitidaStageId,
+      numero_proposta: 'RES-2025-18842', data_transmissao: '2025-07-15', data_aceitacao: '2025-07-17', data_emissao: '2025-07-18',
+      vigencia_inicio: '2025-07-22', vigencia_fim: '2026-07-22', premio_total: 742.8, premio_liquido: 681.35,
+      forma_pagamento: 'CARTAO', qtd_parcelas: 4, comissao_pct: 20,
+    },
+    {
+      id: 'mock-proposta-mariana-renovacao', apolice_id: 'mock-apolice-mariana-renovacao', tipo: 'RENOVACAO', stage_id: aguardandoStageId,
+      numero_proposta: 'REN-2026-00419', data_transmissao: '2026-07-12', vigencia_inicio: '2026-07-23', vigencia_fim: '2027-07-23',
+      premio_total: 814.6, premio_liquido: 748.25, forma_pagamento: 'CARTAO', qtd_parcelas: 4, comissao_pct: 20,
+    },
+    {
+      id: 'mock-proposta-oficina-horizonte', apolice_id: 'mock-apolice-oficina-horizonte', tipo: 'NOVA', stage_id: emitidaStageId,
+      numero_proposta: 'EMP-2025-77218', data_transmissao: '2025-07-28', data_aceitacao: '2025-07-31', data_emissao: '2025-08-01',
+      vigencia_inicio: '2025-08-05', vigencia_fim: '2026-08-05', premio_total: 4380, premio_liquido: 4029.6,
+      forma_pagamento: 'BOLETO', qtd_parcelas: 6, comissao_pct: 18,
+    },
+    {
+      id: 'mock-proposta-rafael', apolice_id: 'mock-apolice-rafael', tipo: 'NOVA', stage_id: emitidaStageId,
+      numero_proposta: 'AUTO-2026-30481', data_transmissao: '2026-03-03', data_aceitacao: '2026-03-06', data_emissao: '2026-03-07',
+      vigencia_inicio: '2026-03-10', vigencia_fim: '2027-03-10', premio_total: 3265.4, premio_liquido: 2978.1,
+      forma_pagamento: 'DÉBITO_EM_CONTA', qtd_parcelas: 10, primeira_parcela_vencimento: '2026-03-10', comissao_pct: 20,
+    },
+    {
+      id: 'mock-proposta-condominio', apolice_id: 'mock-apolice-condominio', tipo: 'NOVA', stage_id: emitidaStageId,
+      numero_proposta: 'RES-2026-41522', data_transmissao: '2026-04-07', data_aceitacao: '2026-04-10', data_emissao: '2026-04-11',
+      vigencia_inicio: '2026-04-15', vigencia_fim: '2027-04-15', premio_total: 2180.75, premio_liquido: 1999.2,
+      forma_pagamento: 'BOLETO', qtd_parcelas: 5, comissao_pct: 20,
+    },
   ];
   documents.forEach((document) => db.propostas.push({
     cotacao_id: null,
     responsavel_id: MOCK_USER_ID,
     recebimento_grade_id: null,
+    comissao_pct: null,
+    agenciamento_pct: null,
     endosso_subtipo_id: null,
     cancelamento_motivo_id: null,
     observacoes: null,
@@ -1163,10 +1387,10 @@ export function seed(): void {
   const auroraMaio = proposta('mock-proposta-aurora-fatura-maio');
   const auroraJunho = proposta('mock-proposta-aurora-fatura-junho');
   const viaforteOriginal = proposta('mock-proposta-viaforte-original');
-  if (auroraOriginal) auroraOriginal.recebimento_grade_id = sulamericaSaudeGradeId;
+  if (auroraOriginal) auroraOriginal.recebimento_grade_id = sulamericaSaudeAgenciamentoGradeId;
   if (auroraMaio) auroraMaio.recebimento_grade_id = sulamericaSaudeGradeId;
   if (auroraJunho) auroraJunho.recebimento_grade_id = sulamericaSaudeGradeId;
-  if (viaforteOriginal) viaforteOriginal.recebimento_grade_id = portoAutoGradeId;
+  if (viaforteOriginal) viaforteOriginal.recebimento_grade_id = portoFrotaGradeId;
 
   const saudeCoberturaIds = ['consultas', 'internacoes'].map((codigo, index) => {
     const id = `mock-cobertura-saude-${codigo}`;
@@ -1200,26 +1424,23 @@ export function seed(): void {
   addCobertura('mock-cob-aurora-internacoes', 'mock-item-aurora-grupo', saudeCoberturaIds[1], 1200000, 3600, 'mock-proposta-aurora-original');
   addCobertura('mock-cob-camila-incendio', 'mock-item-camila-imovel', residencialCoberturaIds[0], 650000, 620, 'mock-proposta-camila');
 
-  const materializarDocumento = (documentoId: string, vencimento: string, numeroFatura?: string) => {
-    const documento = proposta(documentoId);
-    if (!documento || db.parcelas.some((row) => row.proposta_id === documentoId)) return;
-    const qtd = documento.tipo === 'FATURA' ? 1 : Math.max(1, Number(documento.qtd_parcelas ?? 1));
-    const total = Number(documento.premio_total ?? 0);
-    for (let numero = 1; numero <= qtd; numero += 1) db.parcelas.push({ id: `parcela:${documentoId}:${numero}`, proposta_id: documentoId, numero, vencimento, valor: total / qtd, valor_liquido: total / qtd, iof: null, adicional_fracionamento: null, status: 'em_aberto', forma_pagamento: documento.forma_pagamento ?? 'BOLETO', nosso_numero: null, linha_digitavel: null, codigo_barras: null, data_pagamento: null, valor_pago: null, data_baixa: null, numero_fatura: numeroFatura ?? null, competencia_inicio: documento.competencia_inicio ?? null, competencia_fim: documento.competencia_fim ?? null, observacoes: null });
-    const grade = db.recebimento_grades.find((row) => row.id === documento.recebimento_grade_id);
-    const eventos = grade ? db.recebimento_grade_parcelas.filter((row) => row.grade_id === grade.id && row.ativo) : [];
-    const comissaoTotal = Number(documento.premio_total ?? 0) * Number(documento.comissao_pct ?? grade?.percentual_default ?? 20) / 100;
-    (eventos.length ? eventos : [{ numero: 1, percentual: 100, dias_apos_vencimento: 0 }]).forEach((evento) => db.comissoes.push({ id: `comissao:${documentoId}:${evento.numero}`, proposta_id: documentoId, parcela_id: null, numero: evento.numero, percentual: Number(evento.percentual ?? 100), base_calculo: total, valor_previsto: comissaoTotal * Number(evento.percentual ?? 100) / 100, valor_recebido: null, valor_diferenca: null, status: 'PREVISTA', prevista_em: vencimento, recebida_em: null, extrato_numero: null, seguradora_lote: null, competencia_inicio: documento.competencia_inicio ?? null, competencia_fim: documento.competencia_fim ?? null, observacoes: `Snapshot da grade ${grade?.nome ?? 'Agenda manual'}` }));
-    const regra = db.repasse_regras.filter((row) => row.ativo && row.papel === 'PRODUTOR' && (!row.ramo_id || row.ramo_id === db.apolices.find((a) => a.id === documento.apolice_id)?.ramo_id) && (!row.tipo_documento || row.tipo_documento === documento.tipo)).sort((a, b) => Number(b.prioridade) - Number(a.prioridade))[0];
-    if (regra) db.repasses.push({ id: `repasse:${documentoId}:${regra.id}`, proposta_id: documentoId, comissao_id: regra.gatilho === 'CONFORME_RECEBIMENTO' ? `comissao:${documentoId}:1` : null, beneficiario_id: db.apolices.find((a) => a.id === documento.apolice_id)?.produtor_id, regra_id: regra.id, numero: 1, papel_beneficiario: 'PRODUTOR', base: regra.base, percentual: regra.percentual, valor_previsto: regra.base === 'PREMIO_LIQUIDO' ? Number(documento.premio_liquido ?? 0) * Number(regra.percentual ?? 0) / 100 : comissaoTotal * Number(regra.percentual ?? 0) / 100, valor_pago: null, valor_diferenca: null, status: 'PREVISTO', previsto_em: vencimento, liberado_em: null, pago_em: null, forma_pagamento: null, comprovante_referencia: null, observacoes: `Snapshot da regra ${regra.id}` });
-  };
-  materializarDocumento('mock-proposta-viaforte-original', '2026-07-10');
-  materializarDocumento('mock-proposta-viaforte-endosso-3', '2026-07-15');
-  materializarDocumento('mock-proposta-viaforte-cancelamento', '2026-08-10');
-  materializarDocumento('mock-proposta-aurora-fatura-maio', '2026-05-10', 'FAT-2026-05');
-  materializarDocumento('mock-proposta-aurora-fatura-junho', '2026-06-10', 'FAT-2026-06');
+  materializeDocumentAgendas('mock-proposta-viaforte-original', '2026-07-10');
+  materializeDocumentAgendas('mock-proposta-viaforte-endosso-3', '2026-07-15');
+  materializeDocumentAgendas('mock-proposta-viaforte-cancelamento', '2026-08-10');
+  materializeDocumentAgendas('mock-proposta-aurora-original', '2026-01-10');
+  materializeDocumentAgendas('mock-proposta-aurora-fatura-maio', '2026-05-10', 'FAT-2026-05');
+  materializeDocumentAgendas('mock-proposta-aurora-fatura-junho', '2026-06-10', 'FAT-2026-06');
   // Reprocessamento deliberado: o guard por proposta preserva idempotencia.
-  materializarDocumento('mock-proposta-aurora-fatura-junho', '2026-06-10', 'FAT-2026-06');
+  materializeDocumentAgendas('mock-proposta-aurora-fatura-junho', '2026-06-10', 'FAT-2026-06');
+  // Caso deliberadamente divergente para validar a recuperação coletiva do 2.9b.
+  db.parcelas.push({
+    id: 'mock-parcela-rafael-manual-10', proposta_id: 'mock-proposta-rafael', numero: 10,
+    vencimento: '2026-10-10', valor: 150, valor_liquido: 150, iof: null,
+    adicional_fracionamento: null, status: 'em_aberto', forma_pagamento: 'DÉBITO_EM_CONTA',
+    nosso_numero: null, linha_digitavel: null, codigo_barras: null, data_pagamento: null,
+    valor_pago: null, data_baixa: null, numero_fatura: null, competencia_inicio: null,
+    competencia_fim: null, observacoes: 'Lançamento manual incompleto para demonstração da regeneração coletiva.',
+  });
 }
 
 seed();
