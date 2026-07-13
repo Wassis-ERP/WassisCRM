@@ -53,6 +53,20 @@ export interface PolicyTreeRow {
   invoices: DocumentTreeRow[]
 }
 
+export interface PolicyStatusReference {
+  policyLabel?: string
+  documentLabel?: string
+  pending: boolean
+}
+
+export interface PendingDocumentsBreakdown {
+  total: number
+  newPolicies: number
+  endorsements: number
+  invoices: number
+  cancellations: number
+}
+
 const MOVEMENT_LABELS: Record<EndorsementMovementType, string> = {
   alteracao_dados: 'Alteração de dados',
   inclusao_item: 'Inclusão',
@@ -65,6 +79,51 @@ const MOVEMENT_LABELS: Record<EndorsementMovementType, string> = {
 
 export function isPipelineProposal(record: Proposal): boolean {
   return record.entityType === 'proposta' && proposalPipelineStatusSet.has(record.status)
+}
+
+/** Documentos que ainda exigem ação operacional no Painel. */
+export function isPendingPipelineProposal(record: Proposal): boolean {
+  if (!isPipelineProposal(record)) return false
+  return record.status !== 'Proposta Emitida' || Boolean(getIssuancePendingLabel(record))
+}
+
+/** Renovações que ainda exigem alguma ação operacional no Painel. */
+export function isPendingRenewalDocument(record: Proposal): boolean {
+  return record.entityType === 'proposta'
+    && record.proposalType === 'Renovação'
+    && isPendingPipelineProposal(record)
+}
+
+export function getPendingDocumentsBreakdown(
+  records: readonly Proposal[],
+): PendingDocumentsBreakdown {
+  const pending = records.filter(isPendingPipelineProposal)
+
+  return {
+    total: pending.length,
+    newPolicies: pending.filter(
+      (record) => record.proposalType === 'Proposta' || record.proposalType === 'Renovação',
+    ).length,
+    endorsements: pending.filter((record) => record.proposalType === 'Endosso').length,
+    invoices: pending.filter((record) => record.proposalType === 'Fatura').length,
+    cancellations: pending.filter((record) => record.proposalType === 'Cancelamento').length,
+  }
+}
+
+export function getIssuancePendingLabel(record: Proposal): string | undefined {
+  if (record.entityType !== 'proposta' || record.status !== 'Proposta Emitida') return undefined
+  if (!record.issueDate) return 'Documento emitido pendente de importação'
+  if (
+    (record.proposalType === 'Proposta' || record.proposalType === 'Renovação') &&
+    !record.policyNumber
+  ) return 'Número da apólice pendente'
+  if (record.proposalType === 'Endosso' && !record.endorsementNumber) {
+    return 'Número do endosso pendente'
+  }
+  if (record.proposalType === 'Fatura' && !record.invoiceNumber) {
+    return 'Número da fatura pendente'
+  }
+  return undefined
 }
 
 export function getPolicyOperationalStatus(
@@ -177,6 +236,57 @@ function sortDocuments(a: Proposal, b: Proposal): number {
 
 function isOfficiallyIssued(record: Proposal): boolean {
   return record.status === 'Proposta Emitida' && Boolean(record.issueDate)
+}
+
+function getDocumentStatusReference(document: Proposal): PolicyStatusReference {
+  const policyPrefix = document.policyNumber ? `Ap-${document.policyNumber}` : undefined
+  const pending = !isOfficiallyIssued(document)
+
+  if (document.proposalType === 'Proposta' || document.proposalType === 'Renovação') {
+    if (!pending && policyPrefix) return { policyLabel: policyPrefix, pending: false }
+    return {
+      documentLabel: `P-${document.proposalNumber ?? 'Sem número'}`,
+      pending: true,
+    }
+  }
+
+  const derivedNumber = document.proposalType === 'Fatura'
+    ? document.invoiceNumber ?? document.proposalNumber
+    : document.endorsementNumber ?? document.proposalNumber
+  const kind = document.proposalType === 'Fatura'
+    ? (pending ? 'P. Fat.' : 'Fat.')
+    : document.proposalType === 'Endosso'
+      ? (pending ? 'P. End.' : 'End.')
+      : (pending ? 'P. Canc.' : 'Canc.')
+  return {
+    policyLabel: policyPrefix,
+    documentLabel: `${kind} ${derivedNumber ?? 'Sem número'}`,
+    pending,
+  }
+}
+
+/**
+ * Identificacao operacional exibida na coluna Status do Painel.
+ * Documentos derivados pendentes prevalecem para não desaparecerem na apólice recolhida.
+ */
+export function getPolicyStatusReference(row: PolicyTreeRow): PolicyStatusReference {
+  const pendingDerived = row.documents.find(({ document }) =>
+    (document.proposalType === 'Endosso' || document.proposalType === 'Fatura') &&
+    !isOfficiallyIssued(document) &&
+    isPipelineProposal(document),
+  )?.document
+
+  if (pendingDerived) return getDocumentStatusReference(pendingDerived)
+
+  const currentDocument = getCurrentPolicyDocument(row)
+  if (currentDocument) return getDocumentStatusReference(currentDocument)
+
+  return {
+    policyLabel: row.policy.policyNumber
+      ? `Ap-${row.policy.policyNumber}`
+      : 'Apólice sem número',
+    pending: !row.policy.policyNumber,
+  }
 }
 
 function isEffectiveOn(record: Proposal, referenceDate: string): boolean {

@@ -1,5 +1,12 @@
 import { useState, type ReactNode } from 'react'
-import { getTable } from '../lib/inMemoryDb'
+import {
+  getTable,
+  materializeDocumentAgendas,
+  MOCK_TENANT_ID,
+  MOCK_USER_ID,
+  newId,
+  nowIso,
+} from '../lib/inMemoryDb'
 import type { Database } from '../types/database'
 import type {
   EndorsementMovementType,
@@ -10,9 +17,88 @@ import type {
 } from '../types/proposta'
 import { PropostasContext } from './propostasCore'
 import { persistAuditedUpdate } from './propostasAudit'
+import { useAuth } from '../hooks/useAuth'
+import {
+  getProposalWorkflowStages,
+  moveProposalToStatus,
+  proposalStatusFromStageName,
+  refuseProposalDocument,
+  type ProposalWorkflowTables,
+} from './propostasWorkflow'
+import {
+  createDerivedDocument as persistDerivedDocument,
+  createRenewalOpportunity as persistRenewalOpportunity,
+  issueContractDocument as persistDocumentIssue,
+  markPolicyNotRenewed as persistNotRenewed,
+  transmitRenewalOpportunity as persistRenewalTransmission,
+  type ContractTables,
+  type DerivedDocumentInput,
+} from './contractOperations'
 
 type ApoliceRow = Database['public']['Tables']['apolices']['Row']
 type PropostaRow = Database['public']['Tables']['propostas']['Row']
+
+const pendingDocumentEffects = new Map<string, NonNullable<DerivedDocumentInput['endorsementEffect']>>()
+
+const auditValue = (value: unknown): string | null =>
+  value === null || value === undefined || value === '' ? null : String(value)
+
+function contractTables(): ContractTables {
+  return {
+    policies: getTable('apolices') as unknown as ContractTables['policies'],
+    documents: getTable('propostas') as unknown as ContractTables['documents'],
+    opportunities: getTable('oportunidades') as unknown as ContractTables['opportunities'],
+    branches: getTable('ramos') as unknown as ContractTables['branches'],
+    pipelines: getTable('pipelines') as unknown as ContractTables['pipelines'],
+    stages: getTable('pipeline_stages') as unknown as ContractTables['stages'],
+    subtypes: getTable('endosso_subtipos') as unknown as ContractTables['subtypes'],
+    cancellationReasons: getTable('cancelamento_motivos') as unknown as ContractTables['cancellationReasons'],
+    items: getTable('apolice_itens') as unknown as ContractTables['items'],
+    coverages: getTable('item_coberturas') as unknown as ContractTables['coverages'],
+    specializations: [
+      getTable('item_veiculo') as unknown as ContractTables['specializations'][number],
+      getTable('item_imovel') as unknown as ContractTables['specializations'][number],
+      getTable('item_empresa') as unknown as ContractTables['specializations'][number],
+      getTable('item_vida') as unknown as ContractTables['specializations'][number],
+    ],
+    financialFacts: [
+      getTable('parcelas') as unknown as ContractTables['financialFacts'][number],
+      getTable('comissoes') as unknown as ContractTables['financialFacts'][number],
+      getTable('repasses') as unknown as ContractTables['financialFacts'][number],
+    ],
+    auditLogs: getTable('audit_logs') as unknown as ContractTables['auditLogs'],
+    pendingEffects: pendingDocumentEffects,
+  }
+}
+
+function operationServices() {
+  return {
+    makeId: (scope: string) => `${scope}:${newId()}`,
+    today: () => new Date().toISOString().slice(0, 10),
+    materialize: materializeDocumentAgendas,
+    audit: (
+      entityType: 'apolice' | 'proposta' | 'oportunidade',
+      entityId: string,
+      field: string,
+      previous: unknown,
+      next: unknown,
+    ) => getTable('audit_logs').push({
+      id: newId(),
+      tenant_id: MOCK_TENANT_ID,
+      user_id: MOCK_USER_ID,
+      entidade_tipo: entityType,
+      entidade_id: entityId,
+      campo: field,
+      valor_antigo: auditValue(previous),
+      valor_novo: auditValue(next),
+      acao: field === 'criacao' ? 'INSERT' : 'UPDATE',
+      ocorrido_em: nowIso(),
+      origem: 'FRONT_MOCK',
+      ip: null,
+      user_agent: 'WassisCRM mock',
+    }),
+  }
+}
 
 const policyStatus: Record<string, PolicyContractStatus> = {
   EM_EMISSAO: 'Em emissão',
@@ -32,28 +118,12 @@ const proposalType: Record<string, ProposalType> = {
   FATURA: 'Fatura',
 }
 
-const stageStatus: Record<string, ProposalStatus> = {
-  'Aguardando proposta': 'Pendente',
-  'Em análise': 'Em Análise',
-  Emitida: 'Proposta Emitida',
-  Recusada: 'Recusada',
-}
-
 const policyProposalStatus: Record<PolicyContractStatus, ProposalStatus> = {
   'Em emissão': 'Pendente',
   Vigente: 'Proposta Emitida',
   Renovada: 'Renovada',
   'Não renovada': 'Não renovada',
   Cancelada: 'Cancelada',
-  Recusada: 'Recusada',
-}
-
-const statusStage: Partial<Record<ProposalStatus, string>> = {
-  Pendente: 'Aguardando proposta',
-  'Pendência Resolvida': 'Aguardando proposta',
-  'Em Análise': 'Em análise',
-  'Proposta Emitida': 'Emitida',
-  Vigente: 'Emitida',
   Recusada: 'Recusada',
 }
 
@@ -80,6 +150,7 @@ function buildProjection(): Proposal[] {
   const stages = getTable('pipeline_stages')
   const endorsementSubtypes = getTable('endosso_subtipos')
   const cancellationReasons = getTable('cancelamento_motivos')
+  const policyItems = getTable('apolice_itens')
 
   const policiesProjection: Proposal[] = policies.map((policy) => {
     const branch = branches.find((item) => item.id === policy.ramo_id)
@@ -116,6 +187,9 @@ function buildProjection(): Proposal[] {
       paymentFrequency: policy.periodicidade_pagamento ?? undefined,
       notes: policy.observacoes ?? undefined,
       isMonthly: branch?.is_monthly === true,
+      isRenewable: branch?.renovavel === true,
+      allowsEndorsement: branch?.permite_endosso === true,
+      renewedFromId: policy.renovada_de_id ?? undefined,
     }
   })
 
@@ -127,6 +201,15 @@ function buildProjection(): Proposal[] {
     const insured = insureds.find((item) => item.id === policy?.segurado_id)
     const subtype = endorsementSubtypes.find((item) => item.id === document.endosso_subtipo_id)
     const cancellationReason = cancellationReasons.find((item) => item.id === document.cancelamento_motivo_id)
+    const allPolicyItems = policyItems.filter((item) => item.apolice_id === document.apolice_id)
+    const affectedItems = allPolicyItems.filter(
+      (item) =>
+        item.incluido_por_proposta_id === document.id ||
+        item.excluido_por_proposta_id === document.id,
+    )
+    const visibleItems = affectedItems.length > 0
+      ? affectedItems
+      : allPolicyItems.filter((item) => item.status !== 'historico')
     return {
       id: document.id,
       entityType: 'proposta',
@@ -140,7 +223,7 @@ function buildProjection(): Proposal[] {
       insuredPhone: insured?.telefone ?? undefined,
       branch: text(branch?.nome),
       branchId: policy?.ramo_id ?? undefined,
-      status: stageStatus[text(stage?.nome, '')] ?? 'Pendente',
+      status: proposalStatusFromStageName(stage?.nome),
       proposalType: proposalType[document.tipo ?? ''] ?? 'Proposta',
       producer: { name: text(producers.find((item) => item.id === policy?.produtor_id)?.nome) },
       producerId: policy?.produtor_id ?? undefined,
@@ -175,10 +258,18 @@ function buildProjection(): Proposal[] {
       installmentCount: document.qtd_parcelas ?? undefined,
       firstInstallmentDueDate: document.primeira_parcela_vencimento ?? undefined,
       firstInstallmentValue: document.primeira_parcela_valor ?? undefined,
+      commissionPercent: document.comissao_pct ?? undefined,
+      agencyCommissionPercent: document.agenciamento_pct ?? undefined,
       competenceStart: document.competencia_inicio ?? undefined,
       competenceEnd: document.competencia_fim ?? undefined,
       notes: document.observacoes ?? undefined,
       isMonthly: branch?.is_monthly === true,
+      isRenewable: branch?.renovavel === true,
+      allowsEndorsement: branch?.permite_endosso === true,
+      renewedFromId: policy?.renovada_de_id ?? undefined,
+      insuredItems: visibleItems.map((item) =>
+        text(item.descricao, item.numero_item ? `Item ${item.numero_item}` : 'Item segurado'),
+      ),
     }
   })
 
@@ -186,24 +277,30 @@ function buildProjection(): Proposal[] {
 }
 
 export function PropostasProvider({ children }: { children: ReactNode }) {
+  const { activeBranchId, user } = useAuth()
   const [, setRevision] = useState(0)
   const proposals = buildProjection()
 
+  const workflowTables = (): ProposalWorkflowTables => ({
+    activeBranchId,
+    pipelines: getTable('pipelines') as unknown as ProposalWorkflowTables['pipelines'],
+    stages: getTable('pipeline_stages') as unknown as ProposalWorkflowTables['stages'],
+    documents: getTable('propostas') as unknown as ProposalWorkflowTables['documents'],
+    policies: getTable('apolices') as unknown as ProposalWorkflowTables['policies'],
+  })
+
+  const proposalStages = getProposalWorkflowStages(workflowTables())
+
   const setProposalStatus = (id: string, status: ProposalStatus) => {
-    const stageName = statusStage[status]
-    if (!stageName) return
-    const proposalPipelineIds = new Set(
-      getTable('pipelines')
-        .filter((item) => item.entidade_tipo === 'proposta')
-        .map((item) => item.id),
-    )
-    const stage = getTable('pipeline_stages').find(
-      (item) => item.nome === stageName && proposalPipelineIds.has(item.pipeline_id),
-    )
-    const document = getTable('propostas').find((item) => item.id === id)
-    if (!stage || !document) return
-    document.stage_id = stage.id
-    setRevision((current) => current + 1)
+    if (moveProposalToStatus(workflowTables(), id, status)) {
+      setRevision((current) => current + 1)
+    }
+  }
+
+  const refuseProposal = (id: string, reason?: string) => {
+    const result = refuseProposalDocument(workflowTables(), id, { reason })
+    if (result.changed) setRevision((current) => current + 1)
+    return result.changed
   }
 
   const updatePolicy = (id: string, patch: Database['public']['Tables']['apolices']['Update']) => {
@@ -218,8 +315,62 @@ export function PropostasProvider({ children }: { children: ReactNode }) {
     return count
   }
 
+  const createDerivedDocument = (input: Omit<DerivedDocumentInput, 'responsibleId'>) => {
+    if (!user) throw new Error('Usuário da sessão não encontrado.')
+    const document = persistDerivedDocument(contractTables(), { ...input, responsibleId: user.id }, operationServices())
+    setRevision((current) => current + 1)
+    return document.id
+  }
+
+  const createRenewalOpportunity = (policyId: string) => {
+    if (!user) throw new Error('Usuário da sessão não encontrado.')
+    const opportunity = persistRenewalOpportunity(contractTables(), {
+      policyId,
+      tenantId: user.tenantId ?? MOCK_TENANT_ID,
+      filialId: activeBranchId,
+      responsibleId: user.id,
+    }, operationServices())
+    setRevision((current) => current + 1)
+    return opportunity.id
+  }
+
+  const transmitRenewalOpportunity = (opportunityId: string) => {
+    if (!user) throw new Error('Usuário da sessão não encontrado.')
+    const result = persistRenewalTransmission(contractTables(), {
+      opportunityId,
+      responsibleId: user.id,
+    }, operationServices())
+    setRevision((current) => current + 1)
+    return { policyId: result.policy.id, documentId: result.document.id }
+  }
+
+  const issueContractDocument = (documentId: string) => {
+    persistDocumentIssue(contractTables(), { documentId }, operationServices())
+    setRevision((current) => current + 1)
+  }
+
+  const markPolicyNotRenewed = (policyId: string, reason: string) => {
+    persistNotRenewed(contractTables(), policyId, reason, operationServices())
+    setRevision((current) => current + 1)
+  }
+
+  const refreshProposals = () => setRevision((current) => current + 1)
+
   return (
-    <PropostasContext.Provider value={{ proposals, setProposalStatus, updatePolicy, updateDocument }}>
+    <PropostasContext.Provider value={{
+      proposals,
+      proposalStages,
+      setProposalStatus,
+      refuseProposal,
+      updatePolicy,
+      updateDocument,
+      createDerivedDocument,
+      createRenewalOpportunity,
+      transmitRenewalOpportunity,
+      issueContractDocument,
+      markPolicyNotRenewed,
+      refreshProposals,
+    }}>
       {children}
     </PropostasContext.Provider>
   )

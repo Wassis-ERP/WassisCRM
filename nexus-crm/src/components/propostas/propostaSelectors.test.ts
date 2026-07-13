@@ -5,9 +5,14 @@ import {
   getDocumentFinancialEffect,
   getCurrentPolicyDocument,
   getDocumentNumber,
+  getIssuancePendingLabel,
   getMovementLabel,
+  getPendingDocumentsBreakdown,
   getPolicyExpansionIds,
   getPolicyOperationalStatus,
+  getPolicyStatusReference,
+  isPendingPipelineProposal,
+  isPendingRenewalDocument,
   isPipelineProposal,
 } from './propostaSelectors'
 
@@ -31,6 +36,63 @@ describe('propostaSelectors', () => {
     expect(isPipelineProposal(makeRecord({ entityType: 'apolice', status: 'Proposta Emitida' }))).toBe(false)
   })
 
+  it('conta como pendente somente o documento que ainda exige ação', () => {
+    expect(isPendingPipelineProposal(makeRecord({ status: 'Em Análise' }))).toBe(true)
+    expect(isPendingPipelineProposal(makeRecord({
+      status: 'Proposta Emitida',
+      issueDate: '2026-07-12',
+      policyNumber: 'AP-1',
+    }))).toBe(false)
+    expect(isPendingPipelineProposal(makeRecord({
+      status: 'Proposta Emitida',
+      issueDate: '2026-07-12',
+    }))).toBe(true)
+  })
+
+  it('separa documentos pendentes por resultado operacional', () => {
+    const records = [
+      makeRecord({ id: 'proposta-1' }),
+      makeRecord({ id: 'renovacao-1', proposalType: 'Renovação' }),
+      makeRecord({ id: 'endosso-1', proposalType: 'Endosso' }),
+      makeRecord({ id: 'fatura-1', proposalType: 'Fatura' }),
+      makeRecord({ id: 'cancelamento-1', proposalType: 'Cancelamento' }),
+      makeRecord({
+        id: 'emitida-1',
+        status: 'Proposta Emitida',
+        issueDate: '2026-07-12',
+        policyNumber: 'AP-1',
+      }),
+    ]
+
+    expect(getPendingDocumentsBreakdown(records)).toEqual({
+      total: 5,
+      newPolicies: 2,
+      endorsements: 1,
+      invoices: 1,
+      cancellations: 1,
+    })
+  })
+
+  it('conta renovação pendente pelo documento, não pela apólice', () => {
+    expect(isPendingRenewalDocument(makeRecord({
+      entityType: 'proposta',
+      proposalType: 'Renovação',
+      status: 'Pendente',
+    }))).toBe(true)
+    expect(isPendingRenewalDocument(makeRecord({
+      entityType: 'apolice',
+      proposalType: 'Renovação',
+      status: 'Pendente',
+    }))).toBe(false)
+    expect(isPendingRenewalDocument(makeRecord({
+      entityType: 'proposta',
+      proposalType: 'Renovação',
+      status: 'Proposta Emitida',
+      issueDate: '2026-07-12',
+      policyNumber: 'AP-REN-1',
+    }))).toBe(false)
+  })
+
   it('deriva endosso em tramitação sem alterar o status da apólice', () => {
     const records = [
       makeRecord({ id: 'apolice-1', entityType: 'apolice', currentStatus: 'Vigente' }),
@@ -52,6 +114,19 @@ describe('propostaSelectors', () => {
     ]
 
     expect(getPolicyOperationalStatus('apolice-1', records)).toBe('Documento do endosso pendente')
+    expect(getIssuancePendingLabel(records[0])).toBe('Documento emitido pendente de importação')
+  })
+
+  it('distingue número oficial ausente de documento ainda não importado', () => {
+    expect(getIssuancePendingLabel(makeRecord({
+      status: 'Proposta Emitida',
+      issueDate: '2026-07-12',
+    }))).toBe('Número da apólice pendente')
+    expect(getIssuancePendingLabel(makeRecord({
+      status: 'Proposta Emitida',
+      issueDate: '2026-07-12',
+      policyNumber: '12345',
+    }))).toBeUndefined()
   })
 
   it('encerra a pendência ao receber o número e ignora endosso recusado', () => {
@@ -226,5 +301,65 @@ describe('propostaSelectors', () => {
     const [row] = buildPolicyTree([policy, pending])
 
     expect(getCurrentPolicyDocument(row, new Date('2026-07-11T12:00:00Z'))?.id).toBe('proposta-pendente')
+  })
+
+  it('exibe a identificação do contrato e prioriza endosso pendente no Painel', () => {
+    const policy = makeRecord({
+      id: 'apolice-1',
+      entityType: 'apolice',
+      policyNumber: '12345',
+      currentStatus: 'Vigente',
+    })
+    const issued = makeRecord({
+      id: 'original',
+      apoliceId: policy.id,
+      policyNumber: policy.policyNumber,
+      proposalNumber: 'PROP-1',
+      status: 'Proposta Emitida',
+      issueDate: '2026-01-01',
+    })
+    const pendingEndorsement = makeRecord({
+      id: 'endosso-pendente',
+      apoliceId: policy.id,
+      policyNumber: policy.policyNumber,
+      proposalType: 'Endosso',
+      proposalNumber: 'PROP-END-2',
+      status: 'Em Análise',
+    })
+    const [row] = buildPolicyTree([policy, issued, pendingEndorsement])
+
+    expect(getPolicyStatusReference(row)).toEqual({
+      policyLabel: 'Ap-12345',
+      documentLabel: 'P. End. PROP-END-2',
+      pending: true,
+    })
+  })
+
+  it('usa P para proposta pendente e Ap para apólice emitida', () => {
+    const pendingPolicy = makeRecord({ id: 'apolice-pendente', entityType: 'apolice' })
+    const pendingProposal = makeRecord({
+      id: 'proposta-pendente',
+      apoliceId: pendingPolicy.id,
+      proposalNumber: 'PROP-9',
+    })
+    const [pendingRow] = buildPolicyTree([pendingPolicy, pendingProposal])
+
+    expect(getPolicyStatusReference(pendingRow).documentLabel).toBe('P-PROP-9')
+
+    const issuedPolicy = makeRecord({
+      id: 'apolice-emitida',
+      entityType: 'apolice',
+      policyNumber: 'AP-88',
+    })
+    const issuedProposal = makeRecord({
+      id: 'proposta-emitida',
+      apoliceId: issuedPolicy.id,
+      policyNumber: issuedPolicy.policyNumber,
+      status: 'Proposta Emitida',
+      issueDate: '2026-01-01',
+    })
+    const [issuedRow] = buildPolicyTree([issuedPolicy, issuedProposal])
+
+    expect(getPolicyStatusReference(issuedRow).policyLabel).toBe('Ap-AP-88')
   })
 })

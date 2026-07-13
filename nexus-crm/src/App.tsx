@@ -12,9 +12,10 @@ import OportunidadeDetalhePage from './pages/OportunidadeDetalhePage'
 import ModuleKanbanPage from './pages/ModuleKanbanPage'
 import SinistroDetalhePage from './pages/SinistroDetalhePage'
 import FinanceiroDetalhePage from './pages/FinanceiroDetalhePage'
-import EmissaoDetalhePage from './pages/EmissaoDetalhePage'
 import PosVendaDetalhePage from './pages/PosVendaDetalhePage'
 import PropostasPage from './pages/PropostasPage'
+import NovaPropostaApolicePage from './pages/NovaPropostaApolicePage'
+import ImportacaoDocumentosPage from './pages/ImportacaoDocumentosPage'
 import ApoliceDetalhePage from './pages/ApoliceDetalhePage'
 import SettingsPage from './pages/SettingsPage'
 import NotificacoesPage from './pages/NotificacoesPage'
@@ -199,11 +200,8 @@ function AppLayout() {
               element={<ModuleKanbanPage module="sinistro" title="Sinistros" description="Funil de atendimento e regulacao" />}
             />
             <Route path="/sinistros/:id" element={<SinistroDetalhePage />} />
-            <Route
-              path="/emissoes"
-              element={<ModuleKanbanPage module="emissao" title="Emissao" description="Proposta, endosso e apolice" />}
-            />
-            <Route path="/emissoes/:id" element={<EmissaoDetalhePage />} />
+            <Route path="/emissoes" element={<Navigate to="/propostas?visao=kanban&origem=emissoes" replace />} />
+            <Route path="/emissoes/:id" element={<Navigate to="/propostas?visao=kanban&origem=emissoes" replace />} />
             <Route
               path="/pos-venda"
               element={<ModuleKanbanPage module="pos_venda" title="Pos-Venda" description="Relacionamento e renovacoes" />}
@@ -216,6 +214,8 @@ function AppLayout() {
             <Route path="/financeiro/:id" element={<FinanceiroDetalhePage />} />
             <Route path="/produtores" element={<Navigate to="/configuracoes?tab=produtores" replace />} />
             <Route path="/propostas" element={<PropostasPage />} />
+            <Route path="/propostas/novo" element={<NovaPropostaApolicePage />} />
+            <Route path="/propostas/importar" element={<ImportacaoDocumentosPage />} />
             <Route path="/apolices/:id" element={<ApoliceDetalhePage />} />
             <Route path="/notificacoes" element={<NotificacoesPage />} />
             <Route path="/configuracoes" element={<SettingsPage />} />

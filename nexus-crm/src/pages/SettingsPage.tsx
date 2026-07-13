@@ -24,6 +24,7 @@ import {
   Percent,
   Search,
   SlidersHorizontal,
+  ListChecks,
   type LucideIcon,
 } from 'lucide-react'
 import EquipeAcessosPage from './EquipeAcessosPage'
@@ -40,6 +41,7 @@ import {
 } from '../components/settings/FinanceiroConfiguravelTab'
 import RamosTab from '../components/settings/RamosTab'
 import SeguradorasTab from '../components/settings/SeguradorasTab'
+import ContractCatalogTab from '../components/settings/ContractCatalogTab'
 import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
 
 import { usePipelines } from '../hooks/usePipelines'
@@ -542,6 +544,22 @@ export default function SettingsPage() {
             />
           ),
           meta: 'categoria',
+        },
+        {
+          id: 'endosso_subtipos',
+          label: 'Subtipos de Endosso',
+          description: 'Defina rótulos operacionais e sua natureza contratual canônica.',
+          icon: ListChecks,
+          component: <ContractCatalogTab kind="endorsement" />,
+          meta: 'escopo e natureza',
+        },
+        {
+          id: 'cancelamento_motivos',
+          label: 'Motivos de Cancelamento',
+          description: 'Padronize motivos usados nos documentos de cancelamento.',
+          icon: XCircle,
+          component: <ContractCatalogTab kind="cancellation" />,
+          meta: 'escopo contratual',
         },
       ],
     },

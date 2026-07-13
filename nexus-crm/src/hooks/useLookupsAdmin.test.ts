@@ -273,6 +273,7 @@ describe('useRecebimentoGradesAdmin payload', () => {
     expect(buildRecebimentoGradeParcelaInsertPayload({
       grade_id: 'grade-test',
       numero: 1,
+      tipo_comissao: 'AGENCIAMENTO',
       percentual: null,
       percentual_sobre: 'PREMIO',
       dias_apos_vencimento: 0,
@@ -280,6 +281,7 @@ describe('useRecebimentoGradesAdmin payload', () => {
     })).toEqual({
       grade_id: 'grade-test',
       numero: 1,
+      tipo_comissao: 'AGENCIAMENTO',
       percentual: null,
       percentual_sobre: 'PREMIO',
       dias_apos_vencimento: 0,

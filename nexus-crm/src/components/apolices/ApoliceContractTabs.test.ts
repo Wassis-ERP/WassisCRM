@@ -35,4 +35,14 @@ describe('contrato da apólice no mock', () => {
     expect(getTable('comissoes').find((row) => row.proposta_id === id)?.valor_previsto).toBeLessThan(0)
     expect(getTable('repasses').find((row) => row.proposta_id === id)?.valor_previsto).toBeLessThan(0)
   })
+
+  it('materializa saúde com 300% de agenciamento e 2% vitalício', () => {
+    const id = 'mock-proposta-aurora-original'
+    const proposal = getTable('propostas').find((row) => row.id === id)
+    const commissions = getTable('comissoes').filter((row) => row.proposta_id === id).sort((a, b) => (a.numero ?? 0) - (b.numero ?? 0))
+    expect(proposal?.agenciamento_pct).toBe(300)
+    expect(proposal?.comissao_pct).toBe(2)
+    expect(commissions.map((row) => row.tipo_comissao)).toEqual(['AGENCIAMENTO', 'AGENCIAMENTO', 'AGENCIAMENTO', 'VITALICIA'])
+    expect(commissions.map((row) => row.percentual)).toEqual([100, 100, 100, 2])
+  })
 })

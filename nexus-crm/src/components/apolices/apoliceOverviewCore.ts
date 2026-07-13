@@ -22,6 +22,8 @@ export interface DocumentDraft {
   qtd_parcelas: string
   primeira_parcela_vencimento: string
   primeira_parcela_valor: string
+  comissao_pct: string
+  agenciamento_pct: string
   competencia_inicio: string
   competencia_fim: string
 }
@@ -37,5 +39,9 @@ export function validateDocumentDraft(document: Proposal, draft: DocumentDraft):
   const officialNumber = document.proposalType === 'Endosso' ? draft.numero_endosso : document.proposalType === 'Fatura' ? draft.numero_fatura : draft.numero_proposta
   if (document.status === 'Proposta Emitida' && !officialNumber.trim()) return 'O número oficial de um documento emitido não pode ser apagado.'
   if ([draft.premio_total, draft.premio_liquido, draft.primeira_parcela_valor].some((value) => value && !Number.isFinite(parsedNumber(value)))) return 'Revise os valores monetários informados.'
+  const commission = parsedNumber(draft.comissao_pct)
+  if (commission !== null && (!Number.isFinite(commission) || commission < 0 || commission > 100)) return 'A comissão deve ficar entre 0% e 100%.'
+  const agencyCommission = parsedNumber(draft.agenciamento_pct)
+  if (agencyCommission !== null && (!Number.isFinite(agencyCommission) || agencyCommission < 0)) return 'O agenciamento deve ser igual ou maior que zero.'
   return null
 }

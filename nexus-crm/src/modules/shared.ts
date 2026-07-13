@@ -4,13 +4,18 @@ import type { CardStatus, ConcludePayload, PipelineModule } from './types';
 /**
  * Tabela real por modulo - unica fonte que mapeia um modulo para seu backing store.
  */
-export const MODULE_TABLE: Record<PipelineModule, 'oportunidades' | 'sinistros' | 'emissoes' | 'pos_vendas' | 'financeiro_cobrancas'> = {
+export const MODULE_TABLE: Partial<Record<PipelineModule, 'oportunidades' | 'sinistros' | 'pos_vendas' | 'financeiro_cobrancas'>> = {
   comercial: 'oportunidades',
   sinistro: 'sinistros',
-  emissao: 'emissoes',
   pos_venda: 'pos_vendas',
   financeiro: 'financeiro_cobrancas',
 };
+
+function getModuleTable(module: PipelineModule) {
+  const table = MODULE_TABLE[module];
+  if (!table) throw new Error(`Modulo sem tabela generica: ${module}`);
+  return table;
+}
 
 /**
  * Atualiza apenas o stage_id de um card. Mantem status/concluded_at intactos.
@@ -21,7 +26,7 @@ export async function genericUpdateStage(
   cardId: string,
   toStageId: string,
 ): Promise<void> {
-  const table = MODULE_TABLE[module];
+  const table = getModuleTable(module);
   const { error } = await supabase
     .from(table)
     .update({ stage_id: toStageId })
@@ -40,7 +45,7 @@ export async function genericConclude(
   cardId: string,
   payload: ConcludePayload,
 ): Promise<void> {
-  const table = MODULE_TABLE[module];
+  const table = getModuleTable(module);
   const now = new Date().toISOString();
 
   const update: Record<string, unknown> = {
@@ -61,7 +66,7 @@ export async function genericConclude(
  * Util para reverter um "Ganho"/"Perdido" acidental.
  */
 export async function genericReopen(module: PipelineModule, cardId: string): Promise<void> {
-  const table = MODULE_TABLE[module];
+  const table = getModuleTable(module);
   const { error } = await supabase
     .from(table)
     .update({ status: 'pending', concluded_at: null })

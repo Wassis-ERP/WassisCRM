@@ -116,6 +116,7 @@ export type RecebimentoGradeTipo =
 
 export type RecebimentoBaseCalculo = 'PREMIO_LIQUIDO' | 'PREMIO_TOTAL' | 'PARCELA_LIQUIDA';
 export type RecebimentoPercentualSobre = 'COMISSAO_TOTAL' | 'PARCELA' | 'PREMIO';
+export type RecebimentoComissaoTipo = 'NORMAL' | 'AGENCIAMENTO' | 'VITALICIA' | 'ADICIONAL' | 'RESTITUICAO';
 
 export type RecebimentoGradeRow = {
   id: string;
@@ -142,6 +143,7 @@ export type RecebimentoGradeParcelaRow = {
   id: string;
   grade_id: string;
   numero: number;
+  tipo_comissao: RecebimentoComissaoTipo;
   percentual: number | null;
   percentual_sobre: RecebimentoPercentualSobre | null;
   dias_apos_vencimento: number | null;
@@ -393,6 +395,7 @@ export function buildRecebimentoGradeParcelaUpdatePayload(input: RecebimentoGrad
   return {
     grade_id: input.grade_id,
     numero: input.numero,
+    tipo_comissao: input.tipo_comissao,
     percentual: input.percentual,
     percentual_sobre: input.percentual_sobre,
     dias_apos_vencimento: input.dias_apos_vencimento,
@@ -932,6 +935,9 @@ export function useRecebimentoGradesAdmin() {
       if (!input.seguradora_id) throw new Error('Seguradora é obrigatória');
       if (!input.ramo_id) throw new Error('Ramo é obrigatório');
       if (input.qtd_parcelas <= 0) throw new Error('Quantidade de parcelas deve ser maior que zero');
+      if ((listQuery.data ?? []).some((grade) => grade.ativo && grade.seguradora_id === input.seguradora_id && grade.ramo_id === input.ramo_id && grade.nome.trim().toLocaleLowerCase('pt-BR') === input.nome.trim().toLocaleLowerCase('pt-BR'))) {
+        throw new Error('Já existe uma grade ativa com este nome para a seguradora e o ramo');
+      }
 
       const payload = buildRecebimentoGradeInsertPayload(input);
       const { data, error } = await supabase.from('recebimento_grades').insert(payload).select().single();
@@ -949,12 +955,76 @@ export function useRecebimentoGradesAdmin() {
     onSuccess: invalidateGrades,
   });
 
+  const duplicateMutation = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const source = (listQuery.data ?? []).find((grade) => grade.id === id);
+      if (!source) throw new Error('Grade de origem não encontrada');
+      const input: RecebimentoGradeInput = {
+        seguradora_id: source.seguradora_id,
+        ramo_id: source.ramo_id,
+        nome: name,
+        tipo: source.tipo,
+        qtd_parcelas: source.qtd_parcelas,
+        base_calculo: source.base_calculo ?? 'PREMIO_LIQUIDO',
+        percentual_default: source.percentual_default,
+        considera_iof: source.considera_iof,
+        considera_adicional_fracionamento: source.considera_adicional_fracionamento,
+        vitalicio: source.vitalicio,
+        ativo: false,
+        observacoes: source.observacoes ?? '',
+      };
+      const { data: created, error: createError } = await supabase
+        .from('recebimento_grades')
+        .insert(buildRecebimentoGradeInsertPayload(input))
+        .select()
+        .single();
+      if (createError) throw createError;
+      const { data: sourceEvents, error: eventsError } = await supabase
+        .from('recebimento_grade_parcelas')
+        .select('*')
+        .eq('grade_id', id)
+        .order('numero', { ascending: true });
+      if (eventsError) throw eventsError;
+      for (const event of (sourceEvents ?? []) as RecebimentoGradeParcelaRow[]) {
+        const eventInput: RecebimentoGradeParcelaInput = {
+          grade_id: created.id,
+          numero: event.numero,
+          tipo_comissao: event.tipo_comissao,
+          percentual: event.percentual,
+          percentual_sobre: event.percentual_sobre ?? 'COMISSAO_TOTAL',
+          dias_apos_vencimento: event.dias_apos_vencimento,
+          ativo: event.ativo,
+        };
+        const { error } = await supabase.from('recebimento_grade_parcelas').insert(buildRecebimentoGradeParcelaInsertPayload(eventInput));
+        if (error) throw error;
+      }
+      const { data: ready, error: updateError } = await supabase
+        .from('recebimento_grades')
+        .update({ ativo: source.ativo })
+        .eq('id', created.id)
+        .select()
+        .single();
+      if (updateError) throw updateError;
+      await supabase.from('audit_logs').insert({
+        action: 'DUPLICATE_RECEBIMENTO_GRADE',
+        entity_type: 'recebimento_grades',
+        entity_id: ready.id,
+        new_data: { source_id: source.id, copied_events: sourceEvents?.length ?? 0 },
+      });
+      return ready as RecebimentoGradeRow;
+    },
+    onSuccess: invalidateGrades,
+  });
+
   const updateMutation = useMutation({
     mutationFn: async ({ id, input }: { id: string; input: RecebimentoGradeInput }) => {
       if (!input.nome.trim()) throw new Error('Nome da grade é obrigatório');
       if (!input.seguradora_id) throw new Error('Seguradora é obrigatória');
       if (!input.ramo_id) throw new Error('Ramo é obrigatório');
       if (input.qtd_parcelas <= 0) throw new Error('Quantidade de parcelas deve ser maior que zero');
+      if ((listQuery.data ?? []).some((grade) => grade.id !== id && grade.ativo && grade.seguradora_id === input.seguradora_id && grade.ramo_id === input.ramo_id && grade.nome.trim().toLocaleLowerCase('pt-BR') === input.nome.trim().toLocaleLowerCase('pt-BR'))) {
+        throw new Error('Já existe uma grade ativa com este nome para a seguradora e o ramo');
+      }
 
       const payload = buildRecebimentoGradeUpdatePayload(input);
       const { data, error } = await supabase.from('recebimento_grades').update(payload).eq('id', id).select().single();
@@ -991,9 +1061,11 @@ export function useRecebimentoGradesAdmin() {
     isLoading: listQuery.isLoading,
     create: createMutation.mutateAsync,
     update: updateMutation.mutateAsync,
+    duplicate: duplicateMutation.mutateAsync,
     remove: removeMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
+    isDuplicating: duplicateMutation.isPending,
     isRemoving: removeMutation.isPending,
   };
 }
@@ -1026,6 +1098,9 @@ export function useRecebimentoGradeParcelasAdmin(gradeId: string | null) {
     mutationFn: async (input: RecebimentoGradeParcelaInput) => {
       if (!input.grade_id) throw new Error('Grade é obrigatória');
       if (input.numero <= 0) throw new Error('Número da parcela deve ser maior que zero');
+      if ((listQuery.data ?? []).some((event) => event.ativo && event.numero === input.numero)) {
+        throw new Error(`O evento ${input.numero} já existe nesta grade`);
+      }
 
       const payload = buildRecebimentoGradeParcelaInsertPayload(input);
       const { data, error } = await supabase.from('recebimento_grade_parcelas').insert(payload).select().single();
@@ -1047,6 +1122,9 @@ export function useRecebimentoGradeParcelasAdmin(gradeId: string | null) {
     mutationFn: async ({ id, input }: { id: string; input: RecebimentoGradeParcelaInput }) => {
       if (!input.grade_id) throw new Error('Grade é obrigatória');
       if (input.numero <= 0) throw new Error('Número da parcela deve ser maior que zero');
+      if ((listQuery.data ?? []).some((event) => event.id !== id && event.ativo && event.numero === input.numero)) {
+        throw new Error(`O evento ${input.numero} já existe nesta grade`);
+      }
 
       const payload = buildRecebimentoGradeParcelaUpdatePayload(input);
       const { data, error } = await supabase

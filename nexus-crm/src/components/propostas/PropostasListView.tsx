@@ -16,6 +16,7 @@ import {
   getDocumentSummary,
   getMovementLabel,
   getCurrentPolicyDocument,
+  getPolicyStatusReference,
   getPolicyExpansionIds,
   type DocumentTreeRow,
   type PolicyTreeRow,
@@ -24,11 +25,12 @@ import {
   STATUS_BADGE,
   fmtCompetence,
   fmtDate,
-  fmtMoney,
   initials,
 } from './propostaFormat'
 
 export type PropostasListMode = 'tree' | 'documents'
+
+const TABLE_GRID = 'grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)_minmax(0,3fr)_minmax(0,2fr)_minmax(0,2fr)_3rem]'
 
 interface PropostasListViewProps {
   proposals: Proposal[]
@@ -101,13 +103,13 @@ export function PropostasListView({
 
 function TableHeader({ firstColumn }: { firstColumn: string }) {
   return (
-    <div className="grid grid-cols-12 gap-3 border-b border-border-1 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-fg-4">
-      <div className="col-span-3">{firstColumn}</div>
-      <div className="col-span-2">Ramo</div>
-      <div className="col-span-3">Status</div>
-      <div className="col-span-1">Produtor</div>
-      <div className="col-span-2">Seguradora</div>
-      <div className="col-span-1 text-right">Ações</div>
+    <div className={`${TABLE_GRID} gap-2 border-b border-border-1 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-fg-4`}>
+      <div>{firstColumn}</div>
+      <div>Ramo</div>
+      <div>Status</div>
+      <div>Produtor</div>
+      <div>Seguradora</div>
+      <div className="text-right">Ações</div>
     </div>
   )
 }
@@ -123,18 +125,18 @@ function PolicyRow({
   onToggleExpand: (id: string) => void
   onSetExpanded: (ids: string[], open: boolean) => void
 }) {
-  const { policy, operationalStatus, documents, regularDocuments, invoices } = row
+  const { policy, documents, regularDocuments, invoices } = row
   const isOpen = expanded.has(policy.id)
-  const contractStatus = policy.currentStatus ?? policy.status
   const contentId = `policy-documents-${policy.id}`
   const expansionIds = getPolicyExpansionIds(row)
   const allExpanded = expansionIds.length > 1 && expansionIds.every((id) => expanded.has(id))
   const currentDocument = getCurrentPolicyDocument(row)
+  const statusReference = getPolicyStatusReference(row)
 
   return (
     <section className="border-b border-border-1 last:border-b-0">
-      <div className="grid grid-cols-12 items-center gap-3 px-4 py-3 text-sm hover:bg-bg-surface-2">
-        <div className="col-span-3 min-w-0">
+      <div className={`${TABLE_GRID} items-center gap-2 px-4 py-3 text-sm hover:bg-bg-surface-2`}>
+        <div className="min-w-0">
           <div className="flex items-start gap-2">
             <div className="flex shrink-0 flex-col items-center gap-0.5 pt-0.5">
               <ExpandButton
@@ -153,10 +155,7 @@ function PolicyRow({
               )}
             </div>
             <div className="min-w-0">
-              <p className="truncate font-semibold text-fg-1">{policy.insured}</p>
-              <p className="truncate font-mono text-[11px] text-fg-3">
-                {policy.policyNumber ?? 'Em emissão'}
-              </p>
+              <p className="truncate text-[13px] font-semibold text-fg-1">{policy.insured}</p>
               <p className="text-[11px] text-fg-4">
                 {policy.vigenciaInicial && policy.vigenciaFinal
                   ? `${fmtDate(policy.vigenciaInicial)} → ${fmtDate(policy.vigenciaFinal)}`
@@ -166,21 +165,25 @@ function PolicyRow({
           </div>
         </div>
 
-        <div className="col-span-2 min-w-0">
+        <div className="min-w-0">
           <p className="truncate text-fg-2">{policy.branch}</p>
-          <p className="mt-0.5 text-[11px] text-fg-4">{fmtMoney(policy.totalPremium)}</p>
         </div>
 
-        <div className="col-span-3">
+        <div className="min-w-0">
           <div className="flex flex-col items-start gap-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-fg-4">
-              Status contratual
-            </span>
-            <StatusBadge value={contractStatus} />
-            {operationalStatus && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-signal-warning/15 px-2 py-0.5 text-[10px] font-semibold text-signal-warning">
-                <FileClock size={11} />
-                {operationalStatus}
+            {statusReference.policyLabel && (
+              <span className="inline-flex max-w-full items-center rounded-full bg-signal-success/15 px-2 py-1 font-mono text-[10px] font-semibold text-signal-success">
+                <span className="truncate">{statusReference.policyLabel}</span>
+              </span>
+            )}
+            {statusReference.documentLabel && (
+              <span className={`inline-flex max-w-full items-center gap-1 rounded-full px-2 py-1 font-mono text-[10px] font-semibold ${
+                statusReference.pending
+                  ? 'bg-signal-warning/15 text-signal-warning'
+                  : 'bg-accent-primary-soft text-accent-primary'
+              }`}>
+                {statusReference.pending && <FileClock size={11} className="shrink-0" />}
+                <span className="truncate">{statusReference.documentLabel}</span>
               </span>
             )}
             <span className="text-[11px] text-fg-4">
@@ -189,7 +192,7 @@ function PolicyRow({
           </div>
         </div>
 
-        <PartyCell name={policy.producer.name} avatar span={1} />
+        <PartyCell name={policy.producer.name} avatar />
         <PartyCell name={policy.insurer} />
         <ActionLink
           to={`/apolices/${policy.id}`}
@@ -313,8 +316,8 @@ function DocumentRow({
 
   return (
     <div className="border-t border-border-1/70 bg-bg-surface-2 first:border-t-0">
-      <div className="grid grid-cols-12 items-center gap-3 py-2.5 pl-11 pr-4 text-sm hover:bg-bg-surface-3">
-        <div className="col-span-3 min-w-0">
+      <div className={`${TABLE_GRID} items-center gap-2 py-2.5 pl-11 pr-4 text-sm hover:bg-bg-surface-3`}>
+        <div className="min-w-0">
           <div className="flex items-start gap-2">
             <ExpandButton
               open={isOpen}
@@ -331,14 +334,14 @@ function DocumentRow({
           </div>
         </div>
 
-        <div className="col-span-2 text-xs text-fg-3">
+        <div className="min-w-0 text-xs text-fg-3">
           <p>{document.proposalType}</p>
           <p className="mt-0.5 text-[11px] text-fg-4">
             {document.vigenciaInicial ? `Início: ${fmtDate(document.vigenciaInicial)}` : 'Início não informado'}
           </p>
         </div>
 
-        <div className="col-span-3">
+        <div className="min-w-0">
           <div className="flex flex-col items-start gap-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-fg-4">
               Etapa do documento
@@ -350,14 +353,14 @@ function DocumentRow({
           </div>
         </div>
 
-        <PartyCell name={document.producer.name} avatar span={1} />
+        <PartyCell name={document.producer.name} avatar />
         <PartyCell name={document.insurer} />
         {document.apoliceId ? (
           <ActionLink
             to={`/apolices/${document.apoliceId}?documento=${document.id}`}
             label={`Abrir ${document.proposalType.toLowerCase()} ${row.documentNumber}`}
           />
-        ) : <div className="col-span-1" />}
+        ) : <div />}
       </div>
 
       {isOpen && (
@@ -407,57 +410,14 @@ function DocumentList({
 function DocumentDetails({ id, row }: { id: string; row: DocumentTreeRow }) {
   const { document } = row
   return (
-    <div id={id} className="grid grid-cols-2 gap-3 bg-bg-surface px-12 py-4 text-xs text-fg-2 md:grid-cols-4">
-      <Detail label="Tipo" value={row.typeLabel} />
-      <Detail label="Natureza" value={row.movementLabel} />
-      <Detail label="Efeito financeiro" value={row.financialEffect} />
-      <Detail label="Número" value={row.documentNumber} mono />
-      <Detail label="Transmissão" value={formatOptionalDate(document.transmissionDate)} />
-      <Detail label="Emissão" value={formatOptionalDate(document.issueDate)} />
-      <Detail label="Início dos efeitos" value={formatOptionalDate(document.vigenciaInicial)} />
-      <Detail
-        label="Competência"
-        value={document.proposalType === 'Fatura'
-          ? fmtCompetence(document.competenceStart, document.competenceEnd)
-          : undefined}
-      />
-      <Detail label="Prêmio do documento" value={fmtMoney(document.totalPremium)} mono />
-      <Detail label="Prêmio líquido" value={fmtMoney(document.netPremium)} mono />
-      <Detail label="Protocolo" value={document.insurerProtocol} mono />
-      <div className="col-span-2 md:col-span-4">
-        <Detail label="Resumo do movimento" value={row.summary} />
+    <div id={id} className="bg-bg-surface px-12 py-4 text-xs text-fg-2">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-fg-4">Item segurado</p>
+      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+        {(document.insuredItems?.length ? document.insuredItems : ['Não informado']).map((item) => (
+          <span key={item} className="font-semibold text-fg-2">{item}</span>
+        ))}
       </div>
-      {row.previewBeforeAfter && (
-        <div className="col-span-2 md:col-span-4">
-          <div className="grid grid-cols-[minmax(7rem,1fr)_minmax(0,2fr)_minmax(0,2fr)] gap-x-3 gap-y-1 rounded-[6px] border border-border-1 bg-bg-surface-2 p-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-fg-4">Campo</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-fg-4">{row.previewBeforeAfter.beforeLabel}</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-fg-4">{row.previewBeforeAfter.afterLabel}</span>
-            {row.previewBeforeAfter.fields.map((field) => (
-              <ChangePreviewRow key={field.label} {...field} />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
-  )
-}
-
-function ChangePreviewRow({
-  label,
-  before,
-  after,
-}: {
-  label: string
-  before?: string
-  after?: string
-}) {
-  return (
-    <>
-      <span className="font-semibold text-fg-3">{label}</span>
-      <span>{before || '—'}</span>
-      <span>{after || '—'}</span>
-    </>
   )
 }
 
@@ -519,9 +479,9 @@ function StatusBadge({ value }: { value: string }) {
   )
 }
 
-function PartyCell({ name, avatar = false, span = 2 }: { name: string; avatar?: boolean; span?: 1 | 2 }) {
+function PartyCell({ name, avatar = false }: { name: string; avatar?: boolean }) {
   return (
-    <div className={`${span === 1 ? 'col-span-1' : 'col-span-2'} flex min-w-0 items-center gap-2`}>
+    <div className="flex min-w-0 items-center gap-2">
       <div className={`${avatar ? 'rounded-full bg-accent-primary-soft text-accent-primary' : 'rounded bg-bg-surface-2 text-fg-3'} flex h-7 w-7 shrink-0 items-center justify-center text-[10px] font-bold`}>
         {initials(name)}
       </div>
@@ -532,7 +492,7 @@ function PartyCell({ name, avatar = false, span = 2 }: { name: string; avatar?: 
 
 function ActionLink({ to, label }: { to: string; label: string }) {
   return (
-    <div className="col-span-1 flex justify-end">
+    <div className="flex justify-end">
       <Link
         to={to}
         aria-label={label}
@@ -543,25 +503,4 @@ function ActionLink({ to, label }: { to: string; label: string }) {
       </Link>
     </div>
   )
-}
-
-function Detail({
-  label,
-  value,
-  mono = false,
-}: {
-  label: string
-  value?: string
-  mono?: boolean
-}) {
-  return (
-    <div>
-      <p className="text-[10px] font-bold uppercase tracking-wider text-fg-4">{label}</p>
-      <p className={mono ? 'font-mono' : undefined}>{value || '—'}</p>
-    </div>
-  )
-}
-
-function formatOptionalDate(value?: string) {
-  return value ? fmtDate(value) : undefined
 }
