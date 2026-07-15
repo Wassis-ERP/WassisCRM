@@ -74,7 +74,7 @@ const protectedInstallment = (row: ParcelaRow) => Boolean(
   || ['paga', 'baixada', 'estornada'].includes(row.status?.toLocaleLowerCase('pt-BR') ?? ''),
 )
 const protectedCommission = (row: ComissaoRow) => Boolean(
-  row.recebida_em || row.valor_recebido != null || row.extrato_numero || row.seguradora_lote
+  row.recebida_em || row.valor_recebido != null
   || ['RECEBIDA', 'DIVERGENTE'].includes(row.status ?? ''),
 )
 const protectedTransfer = (row: RepasseRow) => Boolean(
@@ -319,8 +319,6 @@ export function previewContractAgendas(
       status: 'PREVISTA',
       prevista_em: event.expectedDate,
       recebida_em: null,
-      extrato_numero: null,
-      seguradora_lote: null,
       competencia_inicio: document.competencia_inicio,
       competencia_fim: document.competencia_fim,
       observacoes: `Snapshot da grade ${grade.nome}.`,

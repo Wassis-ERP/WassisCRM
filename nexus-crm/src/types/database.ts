@@ -153,9 +153,102 @@ export type ItemImovelRow = { apolice_item_id: string; cep: string | null; ender
 export type ItemEmpresaRow = { apolice_item_id: string; cnpj_risco: string | null; razao_social_risco: string | null; atividade: string | null; cnae: string | null; faturamento_anual: number | null; cep: string | null; endereco: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; tipo_construcao: string | null; area_m2: number | null; qtd_funcionarios: number | null; valor_estoque: number | null; valor_equipamentos: number | null; protecao_incendio: string | null }
 export type ItemVidaRow = { apolice_item_id: string; pessoa_id: string | null; nome_grupo: string | null; n_vidas: number | null; certificado_individual: string | null; parentesco: string | null; data_nascimento: string | null; sexo: string | null; profissao: string | null; salario: number | null; capital_individual: number | null; data_inclusao: string | null; data_exclusao: string | null; beneficiarios_texto: string | null }
 export type ItemCoberturaRow = { id: string; apolice_item_id: string; cobertura_id: string | null; incluido_por_proposta_id: string | null; excluido_por_proposta_id: string | null; capital_lmi: number | null; franquia_valor: number | null; franquia_tipo: string | null; premio: number | null; premio_liquido: number | null; carencia_dias: number | null; participacao_obrigatoria_pct: number | null; vigencia_inicio: string | null; vigencia_fim: string | null; observacoes: string | null }
-export type ParcelaRow = { id: string; proposta_id: string; numero: number | null; vencimento: string | null; valor: number | null; valor_liquido: number | null; iof: number | null; adicional_fracionamento: number | null; status: string | null; forma_pagamento: string | null; nosso_numero: string | null; linha_digitavel: string | null; codigo_barras: string | null; data_pagamento: string | null; valor_pago: number | null; data_baixa: string | null; numero_fatura: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
+export type ParcelaStatus = 'em_aberto' | 'paga' | 'vencida' | 'cancelada' | 'estornada'
+export type ParcelaRow = { id: string; proposta_id: string; numero: number | null; vencimento: string | null; valor: number | null; valor_liquido: number | null; iof: number | null; adicional_fracionamento: number | null; status: ParcelaStatus | null; forma_pagamento: string | null; nosso_numero: string | null; linha_digitavel: string | null; codigo_barras: string | null; data_pagamento: string | null; valor_pago: number | null; data_baixa: string | null; numero_fatura: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
 export type ComissaoTipo = 'NORMAL' | 'AGENCIAMENTO' | 'VITALICIA' | 'ADICIONAL' | 'RESTITUICAO'
-export type ComissaoRow = { id: string; proposta_id: string; parcela_id: string | null; numero: number | null; tipo_comissao: ComissaoTipo; percentual: number | null; base_calculo: number | null; valor_previsto: number | null; valor_recebido: number | null; valor_diferenca: number | null; status: string | null; prevista_em: string | null; recebida_em: string | null; extrato_numero: string | null; seguradora_lote: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
+export type ComissaoStatus = 'PREVISTA' | 'PARCIAL' | 'RECEBIDA' | 'DIVERGENTE' | 'CANCELADA'
+export type ComissaoRow = { id: string; proposta_id: string; parcela_id: string | null; numero: number | null; tipo_comissao: ComissaoTipo; percentual: number | null; base_calculo: number | null; valor_previsto: number | null; valor_recebido: number | null; valor_diferenca: number | null; status: ComissaoStatus | null; prevista_em: string | null; recebida_em: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
+export type ComissaoExtratoOrigemTipo = 'MANUAL' | 'ARQUIVO' | 'INTEGRACAO'
+export type ComissaoExtratoFormato = 'PDF' | 'XLS' | 'XLSX' | 'CSV' | 'TXT' | 'XML' | 'OUTRO'
+export type ComissaoExtratoProcessamentoStatus = 'RECEBIDO' | 'NORMALIZANDO' | 'NORMALIZADO' | 'ERRO' | 'CANCELADO'
+export type ComissaoExtratoConciliacaoStatus = 'NAO_INICIADA' | 'EM_ANALISE' | 'PARCIAL' | 'CONCILIADO' | 'COM_OCORRENCIAS'
+export type ComissaoExtratoErroCodigo = 'LAYOUT_NAO_SUPORTADO' | 'ERRO_DE_LEITURA' | 'ARQUIVO_CORROMPIDO' | 'ARQUIVO_PROTEGIDO' | 'FORMATO_NAO_SUPORTADO'
+export type ComissaoExtratoItemStatus = 'PENDENTE' | 'SUGERIDO' | 'CONCILIADO' | 'PRONTO_PARA_BAIXAR' | 'PARCIAL' | 'AMBIGUO' | 'NAO_ENCONTRADO' | 'DIVERGENTE' | 'IGNORADO'
+export type ComissaoConciliacaoTipo = 'EXATA' | 'PARCIAL' | 'SUGERIDA' | 'MANUAL'
+export type ComissaoConciliacaoStatus = 'SUGERIDA' | 'CONFIRMADA' | 'REJEITADA' | 'CANCELADA'
+export type ComissaoConciliacaoOcorrenciaTipo =
+  | 'COMISSAO_NAO_ENCONTRADA' | 'DOCUMENTO_NAO_ENCONTRADO' | 'MULTIPLAS_COMISSOES'
+  | 'VALOR_DIVERGENTE' | 'PERCENTUAL_DIVERGENTE' | 'COMPETENCIA_DIVERGENTE'
+  | 'PARCELA_DIVERGENTE' | 'PROPOSTA_DIVERGENTE' | 'APOLICE_DIVERGENTE'
+  | 'SEGURADO_DIVERGENTE' | 'ITEM_DUPLICADO' | 'COMISSAO_JA_CONCILIADA' | 'COMISSAO_JA_RECEBIDA'
+  | 'IDENTIFICACAO_INSUFICIENTE'
+export type ComissaoConciliacaoOcorrenciaStatus = 'ABERTA' | 'EM_ANALISE' | 'RESOLVIDA' | 'IGNORADA'
+export type ComissaoConciliacaoResolucaoTipo = 'VINCULO_CORRIGIDO' | 'DADO_CORRIGIDO' | 'DIVERGENCIA_ACEITA' | 'ITEM_DESCARTADO' | 'REPROCESSADO'
+export type ComissaoBaixaTipo = 'BAIXA' | 'ESTORNO'
+export type ComissaoBaixaMotivoTipo = 'EXATA' | 'PARCIAL' | 'DIVERGENCIA_ACEITA' | 'CORRECAO' | 'ESTORNO' | 'OUTRO'
+
+export type ComissaoExtratoRow = {
+  id: string; tenant_id: string; filial_id: string; seguradora_id: string
+  identificacao_externa: string | null; competencia: string | null
+  periodo_inicio: string | null; periodo_fim: string | null; data_emissao: string | null
+  data_recebimento: string | null; arquivo_nome: string | null; arquivo_referencia: string | null
+  origem_tipo: ComissaoExtratoOrigemTipo; origem_formato: ComissaoExtratoFormato | null
+  arquivo_mime_type: string | null; arquivo_hash_sha256: string | null; chave_idempotencia: string
+  parser_identificador: string | null; parser_versao: string | null; tentativa_processamento: number
+  status_processamento: ComissaoExtratoProcessamentoStatus
+  status_conciliacao: ComissaoExtratoConciliacaoStatus
+  quantidade_itens: number | null; valor_bruto_total: number | null
+  valor_liquido_total: number | null; valor_descontos_total: number | null; moeda: string | null
+  erro_codigo: ComissaoExtratoErroCodigo | null; erro_mensagem_segura: string | null
+  recebido_por_id: string | null; processado_por_id: string | null
+  recebido_em: string | null; processamento_iniciado_em: string | null
+  processamento_concluido_em: string | null; criado_em: string
+  atualizado_em: string; observacoes: string | null
+}
+
+export type ComissaoExtratoItemRow = {
+  id: string; extrato_id: string; identificacao_externa: string | null
+  sequencia_externa: string | null; chave_idempotencia: string
+  produtor_id: string | null; ramo_id: string | null; produtor_beneficiario_informado: string | null
+  proposta_numero_informado: string | null; apolice_numero_informado: string | null
+  endosso_numero_informado: string | null; documento_numero_informado: string | null
+  parcela_numero_informado: string | null; segurado_nome_informado: string | null
+  competencia: string | null; data_credito: string | null; data_recebimento_informada: string | null
+  valor_bruto_informado: number | null; valor_liquido_informado: number | null
+  valor_descontos_informado: number | null; percentual_informado: number | null
+  tipo_comissao: ComissaoTipo | null; seguradora_lote_informado: string | null
+  seguradora_referencia_informada: string | null; descricao_original: string | null
+  status_conciliacao: ComissaoExtratoItemStatus; normalizado_em: string | null
+  criado_em: string; atualizado_em: string
+}
+
+export type ComissaoConciliacaoRow = {
+  id: string; item_id: string; comissao_id: string; chave_idempotencia: string
+  tipo_associacao: ComissaoConciliacaoTipo; status: ComissaoConciliacaoStatus
+  confianca_pct: number | null; valor_previsto_snapshot: number | null
+  valor_informado_alocado: number | null; valor_conciliado: number | null
+  valor_diferenca: number | null; percentual_previsto_snapshot: number | null
+  percentual_informado_snapshot: number | null; percentual_diferenca: number | null
+  competencia_prevista_inicio: string | null; competencia_prevista_fim: string | null
+  competencia_informada: string | null; motivo: string | null
+  associado_por_id: string | null; confirmado_por_id: string | null
+  criado_em: string; confirmado_em: string | null; atualizado_em: string
+}
+
+export type ComissaoConciliacaoOcorrenciaRow = {
+  id: string; item_id: string; conciliacao_id: string | null
+  tipo: ComissaoConciliacaoOcorrenciaTipo
+  status: ComissaoConciliacaoOcorrenciaStatus; motivo: string | null
+  valor_esperado: number | null; valor_encontrado: number | null
+  percentual_esperado: number | null; percentual_encontrado: number | null
+  competencia_esperada_inicio: string | null; competencia_esperada_fim: string | null
+  competencia_encontrada: string | null; resolucao_tipo: ComissaoConciliacaoResolucaoTipo | null
+  resolucao_observacao: string | null; identificada_por_id: string | null
+  resolvida_por_id: string | null; identificada_em: string
+  resolvida_em: string | null; atualizado_em: string
+}
+export type ComissaoBaixaRow = {
+  id: string; comissao_id: string; tipo: ComissaoBaixaTipo
+  baixa_origem_id: string | null; origem_tipo: ComissaoExtratoOrigemTipo
+  data_efetiva: string; valor_efetivo: number; motivo_tipo: ComissaoBaixaMotivoTipo
+  justificativa: string | null; chave_idempotencia: string
+  saldo_apos: number; status_resultante: Exclude<ComissaoStatus, 'CANCELADA'>
+  criado_por_id: string; criado_em: string
+}
+export type ComissaoBaixaConciliacaoRow = {
+  id: string; baixa_id: string; conciliacao_id: string
+  valor_aplicado: number; criado_em: string
+}
 export type RepasseRow = { id: string; proposta_id: string; comissao_id: string | null; beneficiario_id: string; regra_id: string | null; numero: number | null; papel_beneficiario: string | null; base: string | null; percentual: number | null; valor_previsto: number | null; valor_pago: number | null; valor_diferenca: number | null; status: string | null; previsto_em: string | null; liberado_em: string | null; pago_em: string | null; forma_pagamento: string | null; comprovante_referencia: string | null; observacoes: string | null }
 
 type ApoliceTable = {
@@ -203,6 +296,12 @@ export type Database = {
       item_coberturas: DbTable<ItemCoberturaRow, "apolice_item_id">
       parcelas: DbTable<ParcelaRow, "proposta_id">
       comissoes: DbTable<ComissaoRow, "proposta_id">
+      comissao_extratos: DbTable<ComissaoExtratoRow, "tenant_id" | "filial_id" | "seguradora_id" | "chave_idempotencia">
+      comissao_extrato_itens: DbTable<ComissaoExtratoItemRow, "extrato_id" | "chave_idempotencia">
+      comissao_conciliacoes: DbTable<ComissaoConciliacaoRow, "item_id" | "comissao_id" | "chave_idempotencia">
+      comissao_conciliacao_ocorrencias: DbTable<ComissaoConciliacaoOcorrenciaRow, "item_id">
+      comissao_baixas: DbTable<ComissaoBaixaRow, "comissao_id" | "tipo" | "origem_tipo" | "data_efetiva" | "valor_efetivo" | "motivo_tipo" | "chave_idempotencia" | "saldo_apos" | "status_resultante" | "criado_por_id" | "criado_em">
+      comissao_baixa_conciliacoes: DbTable<ComissaoBaixaConciliacaoRow, "baixa_id" | "conciliacao_id" | "valor_aplicado" | "criado_em">
       repasses: DbTable<RepasseRow, "proposta_id" | "beneficiario_id">
       endosso_subtipos: DbTable<EndossoSubtipoRow, "tenant_id" | "nome" | "natureza_canonica" | "ativo">
       cancelamento_motivos: DbTable<CancelamentoMotivoRow, "tenant_id" | "nome" | "ativo">

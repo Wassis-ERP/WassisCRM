@@ -241,8 +241,8 @@ export function createComissao(input: {
     tipo_comissao: input.tipoComissao, percentual: input.percentual,
     base_calculo: input.baseCalculo, valor_previsto: input.valorPrevisto,
     valor_recebido: null, valor_diferenca: null, status: 'PREVISTA',
-    prevista_em: input.previstaEm, recebida_em: null, extrato_numero: null,
-    seguradora_lote: null, competencia_inicio: null, competencia_fim: null,
+    prevista_em: input.previstaEm, recebida_em: null,
+    competencia_inicio: null, competencia_fim: null,
     observacoes: input.observacoes,
   }
   typedRows<ComissaoRow>('comissoes').push(row)

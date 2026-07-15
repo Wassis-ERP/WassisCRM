@@ -66,4 +66,6 @@ export const queryKeys = {
   profileFiliais: (profileId: string) => ['profile_filiais', profileId] as const,
   team: ['team_members'] as const,
   permissions: ['role_permissions'] as const,
+  financeiroParcelas: ['financeiro', 'parcelas'] as const,
+  financeiroComissoes: ['financeiro', 'comissoes'] as const,
 };

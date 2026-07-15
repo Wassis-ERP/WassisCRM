@@ -25,6 +25,12 @@ const TABLES = [
   'item_coberturas',
   'parcelas',
   'comissoes',
+  'comissao_extratos',
+  'comissao_extrato_itens',
+  'comissao_conciliacoes',
+  'comissao_conciliacao_ocorrencias',
+  'comissao_baixas',
+  'comissao_baixa_conciliacoes',
   'repasses',
   'pos_vendas',
   'financeiro_cobrancas',
@@ -216,6 +222,21 @@ export const RELATIONS: Record<
   'propostas.recebimento_grades': { target: 'recebimento_grades', localFk: 'recebimento_grade_id', kind: 'forward' },
   'propostas.endosso_subtipos': { target: 'endosso_subtipos', localFk: 'endosso_subtipo_id', kind: 'forward' },
   'propostas.cancelamento_motivos': { target: 'cancelamento_motivos', localFk: 'cancelamento_motivo_id', kind: 'forward' },
+  'comissao_extratos.tenants': { target: 'tenants', localFk: 'tenant_id', kind: 'forward' },
+  'comissao_extratos.filiais': { target: 'filiais', localFk: 'filial_id', kind: 'forward' },
+  'comissao_extratos.seguradoras': { target: 'seguradoras', localFk: 'seguradora_id', kind: 'forward' },
+  'comissao_extrato_itens.comissao_extratos': { target: 'comissao_extratos', localFk: 'extrato_id', kind: 'forward' },
+  'comissao_extrato_itens.produtores': { target: 'produtores', localFk: 'produtor_id', kind: 'forward' },
+  'comissao_extrato_itens.ramos': { target: 'ramos', localFk: 'ramo_id', kind: 'forward' },
+  'comissao_conciliacoes.comissao_extrato_itens': { target: 'comissao_extrato_itens', localFk: 'item_id', kind: 'forward' },
+  'comissao_conciliacoes.comissoes': { target: 'comissoes', localFk: 'comissao_id', kind: 'forward' },
+  'comissao_conciliacao_ocorrencias.comissao_extrato_itens': { target: 'comissao_extrato_itens', localFk: 'item_id', kind: 'forward' },
+  'comissao_conciliacao_ocorrencias.comissao_conciliacoes': { target: 'comissao_conciliacoes', localFk: 'conciliacao_id', kind: 'forward' },
+  'comissao_baixas.comissoes': { target: 'comissoes', localFk: 'comissao_id', kind: 'forward' },
+  'comissao_baixas.comissao_baixas': { target: 'comissao_baixas', localFk: 'baixa_origem_id', kind: 'forward' },
+  'comissao_baixas.profiles': { target: 'profiles', localFk: 'criado_por_id', kind: 'forward' },
+  'comissao_baixa_conciliacoes.comissao_baixas': { target: 'comissao_baixas', localFk: 'baixa_id', kind: 'forward' },
+  'comissao_baixa_conciliacoes.comissao_conciliacoes': { target: 'comissao_conciliacoes', localFk: 'conciliacao_id', kind: 'forward' },
   'pos_vendas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
   'sinistros.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
   'financeiro_cobrancas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
@@ -1432,6 +1453,106 @@ export function seed(): void {
   materializeDocumentAgendas('mock-proposta-aurora-fatura-junho', '2026-06-10', 'FAT-2026-06');
   // Reprocessamento deliberado: o guard por proposta preserva idempotencia.
   materializeDocumentAgendas('mock-proposta-aurora-fatura-junho', '2026-06-10', 'FAT-2026-06');
+  // Prova estrutural do contrato 3.2: conciliar não altera nem baixa a comissão.
+  const commissionForStatement = db.comissoes.find((row) => row.proposta_id === 'mock-proposta-viaforte-original');
+  const policyForStatement = db.apolices.find((row) => row.id === 'mock-apolice-viaforte');
+  const insuredForStatement = db.segurados.find((row) => row.id === policyForStatement?.segurado_id);
+  if (commissionForStatement && policyForStatement?.seguradora_id && insuredForStatement?.filial_id) {
+    const expectedValue = Number(commissionForStatement.valor_previsto ?? 0);
+    db.comissao_extratos.push({
+      id: 'mock-extrato-comissao-porto-jul-2026', tenant_id: MOCK_TENANT_ID,
+      filial_id: insuredForStatement.filial_id, seguradora_id: policyForStatement.seguradora_id,
+      identificacao_externa: 'EXT-PORTO-2026-07', competencia: '2026-07-01',
+      periodo_inicio: '2026-07-01', periodo_fim: '2026-07-31', data_emissao: '2026-07-11',
+      data_recebimento: '2026-07-12', arquivo_nome: 'extrato-porto-julho-2026.pdf',
+      arquivo_referencia: 'mock://extratos/extrato-porto-julho-2026.pdf', origem_tipo: 'ARQUIVO',
+      origem_formato: 'PDF', arquivo_mime_type: 'application/pdf',
+      arquivo_hash_sha256: 'mock-sha256-extrato-porto-julho-2026',
+      chave_idempotencia: `${insuredForStatement.filial_id}|${policyForStatement.seguradora_id}|mock-sha256-extrato-porto-julho-2026`,
+      parser_identificador: null, parser_versao: null, tentativa_processamento: 1,
+      status_processamento: 'NORMALIZADO', status_conciliacao: 'COM_OCORRENCIAS',
+      quantidade_itens: 2, valor_bruto_total: expectedValue + 37.5,
+      valor_liquido_total: expectedValue + 37.5, valor_descontos_total: 0, moeda: 'BRL',
+      erro_codigo: null, erro_mensagem_segura: null, recebido_por_id: MOCK_USER_ID,
+      processado_por_id: MOCK_USER_ID, recebido_em: '2026-07-12T12:00:00.000Z',
+      processamento_iniciado_em: '2026-07-12T12:01:00.000Z',
+      processamento_concluido_em: '2026-07-12T12:01:02.000Z',
+      criado_em: '2026-07-12T12:00:00.000Z', atualizado_em: '2026-07-12T12:01:02.000Z',
+      observacoes: 'Massa minima do contrato 3.2; sem leitura ou baixa funcional.',
+    });
+    db.comissao_extrato_itens.push(
+      {
+        id: 'mock-extrato-item-conciliado', extrato_id: 'mock-extrato-comissao-porto-jul-2026',
+        identificacao_externa: 'PORTO-LINHA-001', sequencia_externa: '1',
+        chave_idempotencia: 'mock-extrato-comissao-porto-jul-2026|PORTO-LINHA-001',
+        produtor_id: null, ramo_id: policyForStatement.ramo_id ?? null,
+        produtor_beneficiario_informado: null, proposta_numero_informado: 'FROTA-2026-00991',
+        apolice_numero_informado: policyForStatement.numero_apolice ?? null,
+        endosso_numero_informado: null, documento_numero_informado: 'FROTA-2026-00991',
+        parcela_numero_informado: String(commissionForStatement.numero ?? 1),
+        segurado_nome_informado: insuredForStatement.nome ?? null, competencia: '2026-07-01',
+        data_credito: '2026-07-11', data_recebimento_informada: '2026-07-11',
+        valor_bruto_informado: expectedValue, valor_liquido_informado: expectedValue,
+        valor_descontos_informado: 0, percentual_informado: commissionForStatement.percentual ?? null,
+        tipo_comissao: commissionForStatement.tipo_comissao ?? null, seguradora_lote_informado: 'LOTE-0711',
+        seguradora_referencia_informada: 'PORTO-REF-001', descricao_original: 'Comissao apolice frota',
+        status_conciliacao: 'CONCILIADO', normalizado_em: '2026-07-12T12:01:01.000Z',
+        criado_em: '2026-07-12T12:01:01.000Z', atualizado_em: '2026-07-12T12:01:02.000Z',
+      },
+      {
+        id: 'mock-extrato-item-nao-encontrado', extrato_id: 'mock-extrato-comissao-porto-jul-2026',
+        identificacao_externa: 'PORTO-LINHA-002', sequencia_externa: '2',
+        chave_idempotencia: 'mock-extrato-comissao-porto-jul-2026|PORTO-LINHA-002',
+        produtor_id: null, ramo_id: null, produtor_beneficiario_informado: null,
+        proposta_numero_informado: null, apolice_numero_informado: 'NAO-CADASTRADA-999',
+        endosso_numero_informado: null, documento_numero_informado: 'NAO-CADASTRADA-999',
+        parcela_numero_informado: '1', segurado_nome_informado: 'Segurado não localizado',
+        competencia: '2026-07-01', data_credito: '2026-07-11',
+        data_recebimento_informada: '2026-07-11', valor_bruto_informado: 37.5,
+        valor_liquido_informado: 37.5, valor_descontos_informado: 0,
+        percentual_informado: null, tipo_comissao: 'NORMAL', seguradora_lote_informado: 'LOTE-0711',
+        seguradora_referencia_informada: 'PORTO-REF-002', descricao_original: 'Documento não localizado',
+        status_conciliacao: 'NAO_ENCONTRADO', normalizado_em: '2026-07-12T12:01:01.000Z',
+        criado_em: '2026-07-12T12:01:01.000Z', atualizado_em: '2026-07-12T12:01:02.000Z',
+      },
+    );
+    db.comissao_conciliacoes.push({
+      id: 'mock-conciliacao-exata', item_id: 'mock-extrato-item-conciliado',
+      comissao_id: commissionForStatement.id,
+      chave_idempotencia: `mock-extrato-item-conciliado|${commissionForStatement.id}`,
+      tipo_associacao: 'EXATA', status: 'CONFIRMADA', confianca_pct: 100,
+      valor_previsto_snapshot: expectedValue, valor_informado_alocado: expectedValue,
+      valor_conciliado: expectedValue, valor_diferenca: 0,
+      percentual_previsto_snapshot: commissionForStatement.percentual ?? null,
+      percentual_informado_snapshot: commissionForStatement.percentual ?? null,
+      percentual_diferenca: 0, competencia_prevista_inicio: commissionForStatement.competencia_inicio ?? null,
+      competencia_prevista_fim: commissionForStatement.competencia_fim ?? null,
+      competencia_informada: '2026-07-01', motivo: null, associado_por_id: MOCK_USER_ID,
+      confirmado_por_id: MOCK_USER_ID, criado_em: '2026-07-12T12:01:02.000Z',
+      confirmado_em: '2026-07-12T12:01:02.000Z', atualizado_em: '2026-07-12T12:01:02.000Z',
+    });
+    db.comissao_conciliacao_ocorrencias.push({
+      id: 'mock-ocorrencia-documento-nao-encontrado', item_id: 'mock-extrato-item-nao-encontrado',
+      conciliacao_id: null, tipo: 'DOCUMENTO_NAO_ENCONTRADO', status: 'ABERTA',
+      motivo: 'Nenhuma comissao elegivel foi encontrada para o documento informado.',
+      valor_esperado: null, valor_encontrado: 37.5, percentual_esperado: null,
+      percentual_encontrado: null, competencia_esperada_inicio: null,
+      competencia_esperada_fim: null, competencia_encontrada: '2026-07-01',
+      resolucao_tipo: null, resolucao_observacao: null, identificada_por_id: MOCK_USER_ID,
+      resolvida_por_id: null, identificada_em: '2026-07-12T12:01:02.000Z',
+      resolvida_em: null, atualizado_em: '2026-07-12T12:01:02.000Z',
+    });
+  }
+  // Estados operacionais da Fase 3.1 sobre fatos previamente materializados.
+  const viafortePaid = db.parcelas.find((row) => row.proposta_id === 'mock-proposta-viaforte-original' && row.numero === 1);
+  if (viafortePaid) Object.assign(viafortePaid, {
+    status: 'paga', data_pagamento: '2026-07-10', data_baixa: '2026-07-10', valor_pago: viafortePaid.valor,
+  });
+  const auroraCancelled = db.parcelas.find((row) => row.proposta_id === 'mock-proposta-aurora-original' && row.numero === 11);
+  if (auroraCancelled) Object.assign(auroraCancelled, { status: 'cancelada' });
+  const auroraReversed = db.parcelas.find((row) => row.proposta_id === 'mock-proposta-aurora-original' && row.numero === 12);
+  if (auroraReversed) Object.assign(auroraReversed, { status: 'estornada' });
+  db.parcelas.filter((row) => Number(row.valor) < 0).forEach((row) => Object.assign(row, { status: 'estornada' }));
   // Caso deliberadamente divergente para validar a recuperação coletiva do 2.9b.
   db.parcelas.push({
     id: 'mock-parcela-rafael-manual-10', proposta_id: 'mock-proposta-rafael', numero: 10,
