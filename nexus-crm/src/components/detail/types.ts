@@ -52,6 +52,10 @@ export interface Anexo {
   data?: string
   autor?: string
   descricao?: string
+  categoria?: string
+  status?: string
+  mimeType?: string
+  disponivelParaDownload?: boolean
 }
 
 export type LogTipo =

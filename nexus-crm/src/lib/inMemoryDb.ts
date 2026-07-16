@@ -35,6 +35,7 @@ const TABLES = [
   'pos_vendas',
   'financeiro_cobrancas',
   'sinistros',
+  'sinistro_envolvidos',
   'segurados',
   'pessoa_contato',
   'pipelines',
@@ -94,6 +95,78 @@ export interface AgendaMaterializationResult {
   parcelas: number;
   comissoes: number;
   repasses: number;
+}
+
+import {
+  createSinistroAtomic,
+  type SinistroAberturaInput,
+  type SinistroCreationResult,
+  type SinistroCreationStore,
+} from '../modules/sinistro/opening'
+import {
+  maintainSinistroAtomic,
+  type SinistroMaintenanceInput,
+  type SinistroMaintenanceResult,
+  type SinistroMaintenanceStore,
+} from '../modules/sinistro/maintenance'
+
+export type SinistroInMemoryContext = {
+  tenantId: string
+  filialId?: string | null
+  sessionUserId: string | null
+  pipelineId?: string | null
+}
+
+/**
+ * Único ponto de escrita da abertura de Sinistro no mock. O domínio restaura
+ * Sinistro, envolvidos e auditoria se qualquer etapa da operação falhar.
+ */
+export function createSinistroInMemory(
+  input: SinistroAberturaInput,
+  context: SinistroInMemoryContext,
+): SinistroCreationResult {
+  const store: SinistroCreationStore = {
+    apolices: db.apolices as unknown as SinistroCreationStore['apolices'],
+    apoliceItens: db.apolice_itens as unknown as SinistroCreationStore['apoliceItens'],
+    propostas: db.propostas as unknown as SinistroCreationStore['propostas'],
+    segurados: db.segurados as unknown as SinistroCreationStore['segurados'],
+    pipelines: db.pipelines as unknown as SinistroCreationStore['pipelines'],
+    stages: db.pipeline_stages as unknown as SinistroCreationStore['stages'],
+    profiles: db.profiles as unknown as SinistroCreationStore['profiles'],
+    sinistros: db.sinistros as unknown as SinistroCreationStore['sinistros'],
+    envolvidos: db.sinistro_envolvidos as unknown as SinistroCreationStore['envolvidos'],
+    auditLogs: db.audit_logs as unknown as SinistroCreationStore['auditLogs'],
+  }
+
+  return createSinistroAtomic(store, input, {
+    ...context,
+    now: nowIso,
+    newId,
+  })
+}
+
+/**
+ * Manutenção atômica do Sinistro já persistido. Apólice, status e etapa não
+ * fazem parte do comando; envolvidos e auditorias compartilham o mesmo rollback.
+ */
+export function maintainSinistroInMemory(
+  input: SinistroMaintenanceInput,
+  context: Pick<SinistroInMemoryContext, 'tenantId' | 'sessionUserId'>,
+): SinistroMaintenanceResult {
+  const store: SinistroMaintenanceStore = {
+    apolices: db.apolices as unknown as SinistroMaintenanceStore['apolices'],
+    apoliceItens: db.apolice_itens as unknown as SinistroMaintenanceStore['apoliceItens'],
+    profiles: db.profiles as unknown as SinistroMaintenanceStore['profiles'],
+    sinistros: db.sinistros as unknown as SinistroMaintenanceStore['sinistros'],
+    envolvidos: db.sinistro_envolvidos as unknown as SinistroMaintenanceStore['envolvidos'],
+    auditLogs: db.audit_logs as unknown as SinistroMaintenanceStore['auditLogs'],
+  }
+
+  return maintainSinistroAtomic(store, input, {
+    ...context,
+    now: nowIso,
+    newId,
+  })
 }
 
 function contractAgendaTables(): ContractAgendaTables {
@@ -238,7 +311,11 @@ export const RELATIONS: Record<
   'comissao_baixa_conciliacoes.comissao_baixas': { target: 'comissao_baixas', localFk: 'baixa_id', kind: 'forward' },
   'comissao_baixa_conciliacoes.comissao_conciliacoes': { target: 'comissao_conciliacoes', localFk: 'conciliacao_id', kind: 'forward' },
   'pos_vendas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
-  'sinistros.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
+  'sinistros.apolices': { target: 'apolices', localFk: 'apolice_id', kind: 'forward' },
+  'sinistros.pipeline_stages': { target: 'pipeline_stages', localFk: 'stage_id', kind: 'forward' },
+  'sinistros.profiles': { target: 'profiles', localFk: 'responsavel_id', kind: 'forward' },
+  'sinistro_envolvidos.sinistros': { target: 'sinistros', localFk: 'sinistro_id', kind: 'forward' },
+  'sinistro_envolvidos.apolice_itens': { target: 'apolice_itens', localFk: 'apolice_item_id', kind: 'forward' },
   'financeiro_cobrancas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
   'recebimento_grades.seguradoras': { target: 'seguradoras', localFk: 'seguradora_id', kind: 'forward' },
   'recebimento_grades.ramos': { target: 'ramos', localFk: 'ramo_id', kind: 'forward' },
@@ -270,6 +347,7 @@ export const RELATIONS: Record<
   'pipelines.pipeline_stages': { target: 'pipeline_stages', childFk: 'pipeline_id', kind: 'reverse' },
   'apolices.propostas': { target: 'propostas', childFk: 'apolice_id', kind: 'reverse' },
   'apolices.apolice_itens': { target: 'apolice_itens', childFk: 'apolice_id', kind: 'reverse' },
+  'sinistros.sinistro_envolvidos': { target: 'sinistro_envolvidos', childFk: 'sinistro_id', kind: 'reverse' },
   'apolice_itens.apolices': { target: 'apolices', localFk: 'apolice_id', kind: 'forward' },
   'apolice_itens.proposta_inclusao': { target: 'propostas', localFk: 'incluido_por_proposta_id', kind: 'forward' },
   'apolice_itens.proposta_exclusao': { target: 'propostas', localFk: 'excluido_por_proposta_id', kind: 'forward' },
@@ -1199,8 +1277,10 @@ export function seed(): void {
   const aguardandoStageId = propostaStageId('Aguardando proposta');
   const analiseStageId = propostaStageId('Em análise');
   const recusadaStageId = propostaStageId('Recusada');
+  const sinistroAvisoStageId = db.pipeline_stages.find((stage) => stage.nome === 'Aviso' &&
+    db.pipelines.some((pipeline) => pipeline.id === stage.pipeline_id && pipeline.entidade_tipo === 'sinistro'))?.id;
 
-  if (!emitidaStageId || !aguardandoStageId || !analiseStageId || !recusadaStageId) return;
+  if (!emitidaStageId || !aguardandoStageId || !analiseStageId || !recusadaStageId || !sinistroAvisoStageId) return;
 
   const demoSegurados = [
     { id: 'mock-segurado-viaforte', nome: 'Viaforte Logística Ltda', tipo: 'PJ', cpf_cnpj: '12345678000110', cidade: 'São Paulo', estado: 'SP', email: 'seguros@viaforte.com.br', telefone: '1130550198' },
@@ -1444,6 +1524,172 @@ export function seed(): void {
   addCobertura('mock-cob-aurora-consultas', 'mock-item-aurora-grupo', saudeCoberturaIds[0], 1200000, 3600, 'mock-proposta-aurora-original');
   addCobertura('mock-cob-aurora-internacoes', 'mock-item-aurora-grupo', saudeCoberturaIds[1], 1200000, 3600, 'mock-proposta-aurora-original');
   addCobertura('mock-cob-camila-incendio', 'mock-item-camila-imovel', residencialCoberturaIds[0], 650000, 620, 'mock-proposta-camila');
+
+  const SINISTRO_DEMO_ID = 'mock-sinistro-viaforte';
+  db.sinistros.push({
+    id: SINISTRO_DEMO_ID,
+    apolice_id: 'mock-apolice-viaforte',
+    stage_id: sinistroAvisoStageId,
+    responsavel_id: MOCK_USER_ID,
+    numero_sinistro: '531-2026-004981',
+    numero_aviso: 'AVI-2026-00042',
+    protocolo_seguradora: 'PORTO-2026-883104',
+    cobertura_codigo: 'casco',
+    cobertura_nome: 'Casco',
+    data_ocorrencia: '2026-07-12',
+    data_aviso: '2026-07-13',
+    data_registro_aviso: '2026-07-13',
+    data_documentacao_completa: null,
+    data_liquidacao_financeira: null,
+    data_conclusao: null,
+    tipo_sinistro: 'administrativo',
+    causa: 'Colisão traseira em via urbana',
+    descricao: 'Veículo segurado atingiu um automóvel parado durante manobra de baixa velocidade.',
+    local_ocorrencia: 'Avenida Paulista, São Paulo/SP',
+    status: 'aberto',
+    valor_estimado: 18400,
+    valor_indenizado: null,
+    valor_pendente: 18400,
+    valor_despesas_regulacao: null,
+    valor_salvado: null,
+    data_salvado: null,
+    valor_ressarcimento: null,
+    data_ressarcimento: null,
+    negativa_motivo: null,
+    regulador_nome: 'Marcos Vieira',
+    oficina_nome: 'Oficina Central Paulista',
+    observacoes: 'Aguardando vistoria e documentação complementar do terceiro.',
+  });
+  db.sinistro_envolvidos.push(
+    {
+      id: 'mock-sinistro-envolvido-segurado',
+      sinistro_id: SINISTRO_DEMO_ID,
+      apolice_item_id: 'mock-item-viaforte-2',
+      tipo: 'SEGURADO',
+      nome: 'Viaforte Logística Ltda',
+      cpf_cnpj: '12345678000110',
+      email: 'seguros@viaforte.com.br',
+      telefone: '1130550198',
+      placa: 'BRA2E19',
+      seguradora_terceiro: null,
+      apolice_terceiro: null,
+      tipo_dano: 'Danos materiais no veículo segurado',
+      valor_reclamado: 12400,
+      valor_indenizado: null,
+      responsavel_pelo_evento: true,
+      observacoes: 'Item 2 da apólice, vigente na data da ocorrência.',
+    },
+    {
+      id: 'mock-sinistro-envolvido-terceiro',
+      sinistro_id: SINISTRO_DEMO_ID,
+      apolice_item_id: null,
+      tipo: 'TERCEIRO',
+      nome: 'Carlos Eduardo Lima',
+      cpf_cnpj: '98765432100',
+      email: 'carlos.lima@example.com',
+      telefone: '11995554433',
+      placa: 'DEF7G89',
+      seguradora_terceiro: 'Azul Seguros',
+      apolice_terceiro: 'AZ-442190-7',
+      tipo_dano: 'Danos materiais na traseira do veículo',
+      valor_reclamado: 6000,
+      valor_indenizado: null,
+      responsavel_pelo_evento: false,
+      observacoes: 'Terceiro descritivo; não integra o cadastro de segurados.',
+    },
+  );
+  db.atividades.push({
+    id: 'mock-tarefa-vistoria-sinistro',
+    tenant_id: MOCK_TENANT_ID,
+    filial_id: MATRIZ_ID,
+    responsavel_id: MOCK_USER_ID,
+    entidade_tipo: 'sinistro',
+    entidade_id: SINISTRO_DEMO_ID,
+    tipo: 'tarefa',
+    titulo: 'Acompanhar vistoria do veículo segurado',
+    descricao: 'Confirmar data, oficina e laudo da vistoria.',
+    status: 'pendente',
+    prioridade: 'alta',
+    vencimento: '2026-07-17',
+    concluida_em: null,
+    fixada_em: null,
+    canal: null,
+    origem: 'mock',
+    lembrete_em: null,
+    recorrente: false,
+    observacoes: null,
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  });
+  db.anexos.push({
+    id: 'mock-anexo-aviso-sinistro',
+    tenant_id: MOCK_TENANT_ID,
+    filial_id: MATRIZ_ID,
+    entidade_tipo: 'sinistro',
+    entidade_id: SINISTRO_DEMO_ID,
+    nome_arquivo: 'aviso-sinistro-avi-2026-00042.pdf',
+    mime_type: 'application/pdf',
+    tamanho_bytes: 186_240,
+    url_armazenamento: null,
+    categoria: 'aviso',
+    descricao: 'Metadado demo do aviso enviado à seguradora.',
+    origem: 'mock',
+    status: 'ativo',
+    hash_sha256: null,
+    anexado_em: nowIso(),
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  });
+  db.audit_logs.push({
+    id: 'mock-audit-abertura-sinistro',
+    tenant_id: MOCK_TENANT_ID,
+    user_id: MOCK_USER_ID,
+    entidade_tipo: 'sinistro',
+    entidade_id: SINISTRO_DEMO_ID,
+    campo: null,
+    valor_antigo: null,
+    valor_novo: 'aberto',
+    acao: 'INSERT',
+    ocorrido_em: nowIso(),
+    origem: 'MOCK_SEED',
+    ip: null,
+    user_agent: 'mock',
+  });
+  db.campo_definicoes.push({
+    id: 'mock-campo-sinistro-bo',
+    tenant_id: MOCK_TENANT_ID,
+    filial_id: null,
+    entidade_tipo: 'sinistro',
+    chave: 'numero_boletim_ocorrencia',
+    nome: 'Número do boletim de ocorrência',
+    tipo_dado: 'TEXTO_CURTO',
+    formato: null,
+    obrigatorio: false,
+    ordem: 10,
+    ajuda: 'Referência operacional quando houver boletim de ocorrência.',
+    min_valor: null,
+    max_valor: null,
+    tamanho_max: 40,
+    mascara: null,
+    placeholder: 'Ex.: 2026-004219',
+    agrupamento: 'Ocorrência',
+    visivel_em_listagem: false,
+    ativo: true,
+  });
+  db.campo_valores.push({
+    id: 'mock-campo-valor-sinistro-bo',
+    campo_definicao_id: 'mock-campo-sinistro-bo',
+    entidade_id: SINISTRO_DEMO_ID,
+    valor_texto: '2026-004219',
+    valor_numero: null,
+    valor_data: null,
+    valor_datahora: null,
+    valor_booleano: null,
+    valor_opcao_id: null,
+    preenchido_em: nowIso(),
+    validado_em: null,
+    origem: 'mock',
+  });
 
   materializeDocumentAgendas('mock-proposta-viaforte-original', '2026-07-10');
   materializeDocumentAgendas('mock-proposta-viaforte-endosso-3', '2026-07-15');

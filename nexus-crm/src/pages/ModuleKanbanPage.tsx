@@ -48,7 +48,17 @@ export default function ModuleKanbanPage({ module, title, description }: ModuleK
   const ramosQuery = useRamos();
 
   const CreateModal = adapter.createModalComponent;
+  const createRoute = adapter.createRoute;
   const createLabel = adapter.createLabel ?? 'Novo';
+
+  const handleCreate = () => {
+    if (!active) return;
+    if (createRoute) {
+      navigate(createRoute(active.id));
+      return;
+    }
+    setIsCreateOpen(true);
+  };
 
   const setFilter = <K extends keyof KanbanFilters>(key: K, value: KanbanFilters[K]) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -106,9 +116,9 @@ export default function ModuleKanbanPage({ module, title, description }: ModuleK
             />
           )}
 
-          {CreateModal && (
+          {(CreateModal || createRoute) && (
             <button
-              onClick={() => setIsCreateOpen(true)}
+              onClick={handleCreate}
               disabled={!active}
               className="flex items-center gap-2 px-4 py-2 bg-accent-primary text-fg-on-brand rounded-full text-[10px] font-black uppercase tracking-widest shadow-[var(--shadow-brand)] hover:bg-accent-primary-hover transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >

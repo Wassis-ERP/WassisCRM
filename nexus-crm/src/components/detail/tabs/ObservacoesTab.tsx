@@ -111,11 +111,13 @@ export default function ObservacoesTab({
   onAdd,
   onTogglePin,
   mentionCandidates,
+  readOnly = false,
 }: {
   observacoes: Observacao[]
   onAdd: (o: Omit<Observacao, 'id'>, mentions?: ResolvedMention[]) => void
   onTogglePin: (id: string) => void
   mentionCandidates: MentionCandidate[]
+  readOnly?: boolean
 }) {
   const ordered = useMemo(
     () => [...observacoes].sort((a, b) => Number(b.pinned) - Number(a.pinned)),
@@ -124,7 +126,7 @@ export default function ObservacoesTab({
 
   return (
     <DetailCard title="Observações" icon={Pin}>
-      <NovaObservacaoForm onSubmit={onAdd} mentionCandidates={mentionCandidates} />
+      {!readOnly && <NovaObservacaoForm onSubmit={onAdd} mentionCandidates={mentionCandidates} />}
       {ordered.length ? (
         <div className="space-y-2">
           {ordered.map((o) => (
@@ -142,14 +144,16 @@ export default function ObservacoesTab({
                     <Pin size={12} /> Fixada
                   </span>
                 )}
-                <button
-                  type="button"
-                  onClick={() => onTogglePin(o.id)}
-                  className="ml-auto p-1 text-fg-4 hover:text-accent-primary transition-colors"
-                  title={o.pinned ? 'Desafixar' : 'Fixar no topo'}
-                >
-                  <Pin size={14} className={o.pinned ? 'fill-current' : ''} />
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => onTogglePin(o.id)}
+                    className="ml-auto p-1 text-fg-4 hover:text-accent-primary transition-colors"
+                    title={o.pinned ? 'Desafixar' : 'Fixar no topo'}
+                  >
+                    <Pin size={14} className={o.pinned ? 'fill-current' : ''} />
+                  </button>
+                )}
               </div>
               <p className="text-sm text-fg-1 whitespace-pre-wrap leading-snug">{o.texto}</p>
               <div className="flex items-center gap-2 text-xs text-fg-4 mt-1.5">

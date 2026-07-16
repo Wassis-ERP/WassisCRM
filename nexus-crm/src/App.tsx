@@ -11,6 +11,7 @@ import OportunidadesPage from './pages/OportunidadesPage'
 import OportunidadeDetalhePage from './pages/OportunidadeDetalhePage'
 import ModuleKanbanPage from './pages/ModuleKanbanPage'
 import SinistroDetalhePage from './pages/SinistroDetalhePage'
+import NovoSinistroPage from './pages/NovoSinistroPage'
 import FinanceiroPage from './pages/FinanceiroPage'
 import ImportacaoDemonstrativoComissoesPage from './pages/ImportacaoDemonstrativoComissoesPage'
 import PosVendaDetalhePage from './pages/PosVendaDetalhePage'
@@ -200,6 +201,7 @@ function AppLayout() {
               path="/sinistros"
               element={<ModuleKanbanPage module="sinistro" title="Sinistros" description="Funil de atendimento e regulacao" />}
             />
+            <Route path="/sinistros/novo" element={<NovoSinistroPage />} />
             <Route path="/sinistros/:id" element={<SinistroDetalhePage />} />
             <Route path="/emissoes" element={<Navigate to="/propostas?visao=kanban&origem=emissoes" replace />} />
             <Route path="/emissoes/:id" element={<Navigate to="/propostas?visao=kanban&origem=emissoes" replace />} />

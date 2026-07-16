@@ -148,6 +148,69 @@ export type ApoliceItemRow = {
   observacoes: string | null
 }
 
+export type SinistroTipo = 'administrativo' | 'judicial'
+export type SinistroStatus =
+  | 'aberto'
+  | 'encerrado_sem_indenizacao'
+  | 'encerrado_com_indenizacao'
+  | 'reaberto'
+  | 'cancelado'
+
+export type SinistroRow = {
+  id: string
+  apolice_id: string
+  stage_id: string
+  responsavel_id: string | null
+  numero_sinistro: string | null
+  numero_aviso: string | null
+  protocolo_seguradora: string | null
+  cobertura_codigo: string | null
+  cobertura_nome: string | null
+  data_ocorrencia: string | null
+  data_aviso: string | null
+  data_registro_aviso: string | null
+  data_documentacao_completa: string | null
+  data_liquidacao_financeira: string | null
+  data_conclusao: string | null
+  tipo_sinistro: SinistroTipo | null
+  causa: string | null
+  descricao: string | null
+  local_ocorrencia: string | null
+  status: SinistroStatus | null
+  valor_estimado: number | null
+  valor_indenizado: number | null
+  valor_pendente: number | null
+  valor_despesas_regulacao: number | null
+  valor_salvado: number | null
+  data_salvado: string | null
+  valor_ressarcimento: number | null
+  data_ressarcimento: string | null
+  negativa_motivo: string | null
+  regulador_nome: string | null
+  oficina_nome: string | null
+  observacoes: string | null
+}
+
+export type SinistroEnvolvidoTipo = 'SEGURADO' | 'TERCEIRO'
+export type SinistroEnvolvidoRow = {
+  id: string
+  sinistro_id: string
+  apolice_item_id: string | null
+  tipo: SinistroEnvolvidoTipo | null
+  nome: string | null
+  cpf_cnpj: string | null
+  email: string | null
+  telefone: string | null
+  placa: string | null
+  seguradora_terceiro: string | null
+  apolice_terceiro: string | null
+  tipo_dano: string | null
+  valor_reclamado: number | null
+  valor_indenizado: number | null
+  responsavel_pelo_evento: boolean | null
+  observacoes: string | null
+}
+
 export type ItemVeiculoRow = { apolice_item_id: string; codigo_fipe: string | null; marca: string | null; modelo: string | null; versao: string | null; ano_fabricacao: number | null; ano_modelo: number | null; placa: string | null; chassi: string | null; renavam: string | null; zero_km: boolean | null; combustivel: string | null; cambio: string | null; categoria: string | null; uso: string | null; cep_pernoite: string | null; classe_bonus: number | null; blindado: boolean | null; alienado: boolean | null; rastreador: boolean | null; antifurto: boolean | null; kit_gas: boolean | null; condutor_principal_nome: string | null; condutor_principal_cpf: string | null; condutor_principal_data_nascimento: string | null }
 export type ItemImovelRow = { apolice_item_id: string; cep: string | null; endereco: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; tipo_imovel: string | null; tipo_ocupacao: string | null; tipo_construcao: string | null; area_m2: number | null; valor_imovel: number | null; condominio_fechado: boolean | null; desocupado: boolean | null }
 export type ItemEmpresaRow = { apolice_item_id: string; cnpj_risco: string | null; razao_social_risco: string | null; atividade: string | null; cnae: string | null; faturamento_anual: number | null; cep: string | null; endereco: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; tipo_construcao: string | null; area_m2: number | null; qtd_funcionarios: number | null; valor_estoque: number | null; valor_equipamentos: number | null; protecao_incendio: string | null }
@@ -289,6 +352,8 @@ export type Database = {
     Tables: {
       apolices: ApoliceTable
       apolice_itens: DbTable<ApoliceItemRow, "apolice_id">
+      sinistros: DbTable<SinistroRow, "apolice_id" | "stage_id">
+      sinistro_envolvidos: DbTable<SinistroEnvolvidoRow, "sinistro_id">
       item_veiculo: DbTable<ItemVeiculoRow, "apolice_item_id">
       item_imovel: DbTable<ItemImovelRow, "apolice_item_id">
       item_empresa: DbTable<ItemEmpresaRow, "apolice_item_id">
@@ -1888,98 +1953,6 @@ export type Database = {
           },
         ]
       }
-      sinistros: {
-        Row: {
-          concluded_at: string | null
-          created_at: string
-          data_aviso: string | null
-          data_sinistro: string | null
-          id: string
-          metadata: Json
-          numero_sinistro: string | null
-          observacoes: string | null
-          oportunidade_id: string
-          pipeline_id: string | null
-          responsavel_id: string
-          stage_id: string | null
-          status: Database["public"]["Enums"]["card_status"]
-          tenant_id: string | null
-          tipo_sinistro: Database["public"]["Enums"]["tipo_sinistro"] | null
-          updated_at: string
-          valor_indenizacao: number | null
-          valor_prejuizo: number | null
-        }
-        Insert: {
-          concluded_at?: string | null
-          created_at?: string
-          data_aviso?: string | null
-          data_sinistro?: string | null
-          id?: string
-          metadata?: Json
-          numero_sinistro?: string | null
-          observacoes?: string | null
-          oportunidade_id: string
-          pipeline_id?: string | null
-          responsavel_id: string
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          tipo_sinistro?: Database["public"]["Enums"]["tipo_sinistro"] | null
-          updated_at?: string
-          valor_indenizacao?: number | null
-          valor_prejuizo?: number | null
-        }
-        Update: {
-          concluded_at?: string | null
-          created_at?: string
-          data_aviso?: string | null
-          data_sinistro?: string | null
-          id?: string
-          metadata?: Json
-          numero_sinistro?: string | null
-          observacoes?: string | null
-          oportunidade_id?: string
-          pipeline_id?: string | null
-          responsavel_id?: string
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          tipo_sinistro?: Database["public"]["Enums"]["tipo_sinistro"] | null
-          updated_at?: string
-          valor_indenizacao?: number | null
-          valor_prejuizo?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sinistros_oportunidade_id_fkey"
-            columns: ["oportunidade_id"]
-            isOneToOne: false
-            referencedRelation: "oportunidades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sinistros_pipeline_id_fkey"
-            columns: ["pipeline_id"]
-            isOneToOne: false
-            referencedRelation: "pipelines"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sinistros_stage_id_fkey"
-            columns: ["stage_id"]
-            isOneToOne: false
-            referencedRelation: "pipeline_stages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sinistros_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       tenants: {
         Row: {
           created_at: string
@@ -2050,12 +2023,6 @@ export type Database = {
       status_pessoa: "Ativo" | "Inativo" | "Prospecto"
       tipo_negocio: "novo" | "renovacao" | "endosso"
       tipo_pessoa: "PF" | "PJ"
-      tipo_sinistro:
-        | "colisao"
-        | "roubo_furto"
-        | "incendio"
-        | "alagamento"
-        | "outros"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2209,13 +2176,6 @@ export const Constants = {
       status_pessoa: ["Ativo", "Inativo", "Prospecto"],
       tipo_negocio: ["novo", "renovacao", "endosso"],
       tipo_pessoa: ["PF", "PJ"],
-      tipo_sinistro: [
-        "colisao",
-        "roubo_furto",
-        "incendio",
-        "alagamento",
-        "outros",
-      ],
     },
   },
 } as const

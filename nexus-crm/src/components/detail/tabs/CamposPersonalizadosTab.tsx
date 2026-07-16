@@ -74,11 +74,13 @@ function CampoEditor({
   isSaving,
   onSave,
   onClear,
+  readOnly = false,
 }: {
   campo: CampoPersonalizadoOperacional
   isSaving: boolean
   onSave: (campo: CampoPersonalizadoOperacional, value: CampoValorInput) => Promise<unknown>
   onClear: (campoDefinicaoId: string) => Promise<unknown>
+  readOnly?: boolean
 }) {
   const [value, setValue] = useState<CampoValorInput>(() => valueFromCampo(campo))
   const [error, setError] = useState<string | null>(null)
@@ -116,6 +118,7 @@ function CampoEditor({
       case 'TEXTO_LONGO':
         return (
           <textarea
+            disabled={readOnly}
             value={typeof value === 'string' ? value : ''}
             onChange={(event) => setValue(event.target.value)}
             rows={3}
@@ -128,6 +131,7 @@ function CampoEditor({
       case 'DECIMAL':
         return (
           <input
+            disabled={readOnly}
             type="number"
             step={campo.tipo_dado === 'INTEIRO' ? 1 : 'any'}
             min={campo.min_valor ?? undefined}
@@ -143,6 +147,7 @@ function CampoEditor({
           <label className="flex h-[42px] items-center gap-2 rounded-[6px] border border-border-1 bg-bg-surface px-3 text-sm font-black text-fg-2">
             <input
               type="checkbox"
+              disabled={readOnly}
               checked={Boolean(value)}
               onChange={(event) => setValue(event.target.checked)}
               className="h-4 w-4 accent-accent-primary"
@@ -154,6 +159,7 @@ function CampoEditor({
         return (
           <input
             type="date"
+            disabled={readOnly}
             value={typeof value === 'string' ? value : ''}
             onChange={(event) => setValue(event.target.value)}
             className={inputCls}
@@ -163,6 +169,7 @@ function CampoEditor({
         return (
           <input
             type="datetime-local"
+            disabled={readOnly}
             value={typeof value === 'string' ? value : ''}
             onChange={(event) => setValue(event.target.value)}
             className={inputCls}
@@ -171,6 +178,7 @@ function CampoEditor({
       case 'LISTA_UNICA':
         return (
           <select
+            disabled={readOnly}
             value={typeof value === 'string' ? value : ''}
             onChange={(event) => setValue(event.target.value)}
             className={inputCls}
@@ -193,7 +201,7 @@ function CampoEditor({
                     <input
                       type="checkbox"
                       checked={selectedIds.includes(opcao.id)}
-                      disabled={!opcao.ativo && !selectedIds.includes(opcao.id)}
+                      disabled={readOnly || (!opcao.ativo && !selectedIds.includes(opcao.id))}
                       onChange={() => toggleOption(opcao.id)}
                       className="h-4 w-4 accent-accent-primary"
                     />
@@ -210,6 +218,7 @@ function CampoEditor({
       default:
         return (
           <input
+            disabled={readOnly}
             value={typeof value === 'string' ? value : ''}
             onChange={(event) => setValue(event.target.value)}
             maxLength={campo.tamanho_max ?? undefined}
@@ -248,7 +257,7 @@ function CampoEditor({
         </div>
       )}
 
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
+      {!readOnly && <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
         <button
           type="button"
           onClick={clear}
@@ -266,7 +275,7 @@ function CampoEditor({
           {isSaving ? <Loader2 size={15} className="animate-spin" /> : hasValue ? <Save size={15} /> : <Check size={15} />}
           Salvar
         </button>
-      </div>
+      </div>}
     </div>
   )
 }
@@ -274,9 +283,11 @@ function CampoEditor({
 export default function CamposPersonalizadosTab({
   entidadeTipo,
   entidadeId,
+  readOnly = false,
 }: {
   entidadeTipo: CampoEntidadeTipo
   entidadeId: string
+  readOnly?: boolean
 }) {
   const { campos, isLoading, isSaving, saveValue, clearValue } = useCamposPersonalizados(entidadeTipo, entidadeId)
   const grupos = useMemo(() => {
@@ -313,6 +324,7 @@ export default function CamposPersonalizadosTab({
                       isSaving={isSaving}
                       onSave={(definicao, value) => saveValue({ definicao, value })}
                       onClear={clearValue}
+                      readOnly={readOnly}
                     />
                   ))}
                 </div>
