@@ -19,6 +19,8 @@ import type { Proposal } from '../types/proposta'
 type DetailTab = 'visao' | 'itens' | 'agendas' | 'repasses' | 'tarefas' | 'personalizados' | 'anexos' | 'observacoes'
 type RecordsScope = 'apolice' | 'proposta'
 
+const DETAIL_TABS: readonly DetailTab[] = ['visao', 'itens', 'agendas', 'repasses', 'tarefas', 'personalizados', 'anexos', 'observacoes']
+
 const tabs = [
   { id: 'visao' as const, label: 'Visão geral' },
   { id: 'itens' as const, label: 'Itens segurados' },
@@ -61,7 +63,10 @@ export default function ApoliceDetalhePage() {
   } = usePropostas()
   const confirm = useConfirm()
   const { notify } = useSystemFeedback()
-  const [activeTab, setActiveTab] = useState<DetailTab>('visao')
+  const [activeTab, setActiveTab] = useState<DetailTab>(() => {
+    const requestedTab = searchParams.get('aba')
+    return DETAIL_TABS.includes(requestedTab as DetailTab) ? requestedTab as DetailTab : 'visao'
+  })
   const [recordsScope, setRecordsScope] = useState<RecordsScope>('proposta')
   const [query, setQuery] = useState('')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)

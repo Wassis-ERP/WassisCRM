@@ -168,7 +168,7 @@ export default function FinanceiroPage() {
           {!canUpdate && <span className="inline-flex items-center gap-2 rounded-full bg-signal-warning/12 px-3 py-1.5 text-xs font-black text-signal-warning"><ShieldAlert size={14} />Somente leitura</span>}
         </div>
         <nav aria-label="Visões do Financeiro" className="mt-5 flex flex-wrap gap-1 rounded-[8px] bg-bg-surface-3 p-1">
-          {TABS.map((tab) => { const Icon = tab.icon; const active = tab.id === activeView; return <button key={tab.id} type="button" onClick={() => setView(tab.id)} className={`inline-flex items-center gap-2 rounded-[6px] px-4 py-2.5 text-sm font-black transition-colors ${active ? 'bg-bg-surface text-accent-primary shadow-[var(--shadow-1)]' : 'text-fg-3 hover:bg-bg-surface-2 hover:text-fg-1'}`}><Icon size={15} />{tab.label}{tab.id !== 'parcelas' && <span className="text-[9px] font-bold text-fg-4">{tab.phase}</span>}</button> })}
+          {TABS.map((tab) => { const Icon = tab.icon; const active = tab.id === activeView; return <button key={tab.id} type="button" onClick={() => setView(tab.id)} className={`inline-flex items-center gap-2 rounded-[6px] px-4 py-2.5 text-sm font-black transition-colors ${active ? 'bg-bg-surface text-accent-primary shadow-[var(--shadow-1)]' : 'text-fg-3 hover:bg-bg-surface-2 hover:text-fg-1'}`}><Icon size={15} />{tab.label}{tab.id !== 'parcelas' && tab.id !== 'comissoes' && <span className="text-[9px] font-bold text-fg-4">{tab.phase}</span>}</button> })}
         </nav>
       </header>
 

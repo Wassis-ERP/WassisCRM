@@ -107,6 +107,8 @@
 - Ao aplicar comandos ou heuristicas do Impeccable, preserve os tokens, componentes e decisoes da `wassis-design-uiux` como fonte visual de marca/produto.
 - Preserve consistencia com a experiencia existente do WassisCRM e priorize telas operacionais, claras e eficientes para corretoras de seguros.
 - Fluxos de produto nao devem usar dialogos nativos do navegador (`window.confirm`, `window.alert`, `window.prompt` ou `alert`). Use o confirmador/feedback interno do sistema para confirmacoes, erros e placeholders temporarios.
+- Fluxos longos, minuciosos ou multietapas — especialmente importacao, processamento, revisao em lote, conciliacao e configuracao assistida — devem usar pagina e rota dedicadas, nunca modal. Preserve o estado entre as etapas e ofereca saida explicita; se sair puder causar perda de trabalho, use a confirmacao interna do sistema.
+- Reserve modais para acoes curtas, delimitadas e de baixo volume de estado, como confirmacoes ou edicoes pontuais.
 - Modais devem permitir fechamento por clique fora e tecla `Esc`, exceto quando houver salvamento em andamento ou risco explicito de perda de dados.
 
 ## Escopo tecnico

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   AlertCircle, CheckCircle2, ChevronRight, CircleDollarSign, FileUp, FilterX,
   History, Loader2, Plus, Search, ShieldCheck, Split, TriangleAlert,
@@ -67,13 +67,14 @@ function StatusBadge({ status }: { status: ComissaoStatusOperacional }) {
 }
 
 export default function CommissionsView({ branchIds, canUpdate }: CommissionsViewProps) {
+  const [searchParams, setSearchParams] = useSearchParams()
   const query = useFinanceiroComissoes(branchIds)
   const registerReceipt = useRegistrarBaixaManualComissao()
   const reverseReceipt = useEstornarBaixaComissao()
   const { notify } = useSystemFeedback()
   const [filters, setFilters] = useState<ComissaoFilters>(EMPTY_FILTERS)
   const [selected, setSelected] = useState<string[]>([])
-  const [modalIds, setModalIds] = useState<string[] | null>(null)
+  const [modalIds, setModalIds] = useState<string[] | null>(() => searchParams.get('baixa')?.split(',').filter(Boolean) ?? null)
   const [historyRow, setHistoryRow] = useState<FinanceiroComissao | null>(null)
   const rows = useMemo(() => query.data ?? [], [query.data])
   const filtered = useMemo(() => filterFinanceiroComissoes(rows, filters), [filters, rows])
@@ -94,10 +95,18 @@ export default function CommissionsView({ branchIds, canUpdate }: CommissionsVie
 
   const updateFilter = <K extends keyof ComissaoFilters>(key: K, value: ComissaoFilters[K]) => setFilters((current) => ({ ...current, [key]: value }))
 
+  const closeReceipt = () => {
+    setModalIds(null)
+    if (!searchParams.has('baixa')) return
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('baixa')
+    setSearchParams(nextParams, { replace: true })
+  }
+
   const handleReceipt = async (command: BaixaManualCommand) => {
     try {
       const result = await registerReceipt.mutateAsync(command)
-      setModalIds(null)
+      closeReceipt()
       setSelected([])
       notify({
         title: result.idempotent ? 'Baixa já registrada' : result.baixaIds.length === 1 ? 'Baixa registrada' : `${result.baixaIds.length} baixas registradas`,
@@ -128,7 +137,7 @@ export default function CommissionsView({ branchIds, canUpdate }: CommissionsVie
   return <section className="border-t border-border-1 bg-bg-surface">
     <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border-1 px-5 py-4 lg:px-7">
       <div><h2 className="text-base font-black text-fg-1">Comissões a receber</h2><p className="mt-0.5 text-xs text-fg-3">Agenda contratual, demonstrativos, conciliações e recebimentos em uma leitura operacional.</p></div>
-      <div className="flex flex-wrap gap-2"><button type="button" onClick={() => notify({ title: 'Leitura automática no recorte 3.4', description: 'PDF, XLS e XLSX serão importados sem alterar a baixa manual entregue no 3.3.', tone: 'info' })} className="inline-flex items-center gap-2 rounded-full border border-border-1 bg-bg-surface px-4 py-2.5 text-xs font-black text-fg-2 hover:bg-bg-surface-2"><FileUp size={14} />Importar demonstrativo</button><button type="button" disabled={!canUpdate || rows.every((row) => Math.abs(row.saldo) <= 0.01 || row.statusOperacional === 'CANCELADA' || row.ocorrenciasAbertas > 0 || row.conciliacoesPendentes > 0)} onClick={() => setModalIds([])} className="inline-flex items-center gap-2 rounded-full bg-accent-primary px-4 py-2.5 text-xs font-black text-fg-on-brand shadow-[var(--shadow-brand)] disabled:opacity-40"><Plus size={14} />Registrar baixa</button></div>
+      <div className="flex flex-wrap gap-2"><Link to="/financeiro/importar-demonstrativo" className="inline-flex items-center gap-2 rounded-full border border-border-1 bg-bg-surface px-4 py-2.5 text-xs font-black text-fg-2 hover:bg-bg-surface-2"><FileUp size={14} />Importar demonstrativo</Link><button type="button" disabled={!canUpdate || rows.every((row) => Math.abs(row.saldo) <= 0.01 || row.statusOperacional === 'CANCELADA' || row.ocorrenciasAbertas > 0 || row.conciliacoesPendentes > 0)} onClick={() => setModalIds([])} className="inline-flex items-center gap-2 rounded-full bg-accent-primary px-4 py-2.5 text-xs font-black text-fg-on-brand shadow-[var(--shadow-brand)] disabled:opacity-40"><Plus size={14} />Registrar baixa</button></div>
     </div>
 
     <div className="grid divide-y divide-border-1 border-b border-border-1 sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-6">
@@ -161,7 +170,7 @@ export default function CommissionsView({ branchIds, canUpdate }: CommissionsVie
         </tbody></table></div>}
     <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border-1 bg-bg-surface-2 px-5 py-3 text-xs font-bold text-fg-3 lg:px-7"><span>{filtered.length} de {rows.length} comissões</span><span>Previsto, informado, conciliado e recebido permanecem separados</span></footer>
 
-    {modalIds && <CommissionReceiptModal rows={rows} initialIds={modalIds} isSaving={registerReceipt.isPending} onClose={() => setModalIds(null)} onConfirm={(command) => void handleReceipt(command)} />}
+    {modalIds && <CommissionReceiptModal rows={rows} initialIds={modalIds} isSaving={registerReceipt.isPending} onClose={closeReceipt} onConfirm={(command) => void handleReceipt(command)} />}
     {historyRow && <CommissionHistoryModal row={rows.find((row) => row.id === historyRow.id) ?? historyRow} isSaving={reverseReceipt.isPending} onClose={() => setHistoryRow(null)} onReverse={(event, justification) => void handleReverse(event, justification)} />}
     {(registerReceipt.isPending || reverseReceipt.isPending) && <div className="pointer-events-none fixed bottom-5 right-5 z-[90] inline-flex items-center gap-2 rounded-full bg-fg-1 px-4 py-2 text-xs font-black text-bg-surface shadow-[var(--shadow-2)]"><Loader2 size={14} className="animate-spin" />Atualizando comissões</div>}
   </section>

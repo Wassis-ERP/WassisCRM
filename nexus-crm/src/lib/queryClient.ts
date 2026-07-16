@@ -68,4 +68,5 @@ export const queryKeys = {
   permissions: ['role_permissions'] as const,
   financeiroParcelas: ['financeiro', 'parcelas'] as const,
   financeiroComissoes: ['financeiro', 'comissoes'] as const,
+  financeiroExtratos: ['financeiro', 'comissao-extratos'] as const,
 };
