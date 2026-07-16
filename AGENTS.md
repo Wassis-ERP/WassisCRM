@@ -148,6 +148,39 @@
 - Nao considere uma subtela funcional concluida apenas com `tsc`, build ou testes unitarios se o fluxo principal nao foi exercitado.
 - Se algum comando nao puder ser executado, informe o motivo e o risco residual.
 
+## Checkpoints e publicacao sem validacao redundante
+- Encerramento de implementacao e checkpoint/publicacao sao gates diferentes,
+  mas nao devem repetir automaticamente as mesmas validacoes sobre a mesma
+  arvore de trabalho.
+- Reaproveite uma validacao anterior quando o comando e o resultado estiverem
+  documentados, o escopo cobrir todo o diff atual e nao houver mudanca funcional
+  posterior nos arquivos validados. Se qualquer uma dessas condicoes for
+  incerta, execute novamente o gate correspondente.
+- Para checkpoint ou publicacao de um conjunto frontend consolidado, use por
+  padrao apenas este conjunto nao sobreposto:
+  1. revisar status, diff completo, arquivos nao rastreados e diff em stage;
+  2. verificar no diff novos `any`, `setState(` problematicos e dialogos nativos;
+  3. executar `tsc -b` uma vez;
+  4. executar a suite Vitest completa uma vez;
+  5. executar ESLint focado nos arquivos alterados;
+  6. executar o build de producao uma vez.
+- Nao rode testes focados e depois a suite completa por padrao, pois a suite ja
+  inclui os testes focados. Use testes focados durante desenvolvimento,
+  diagnostico ou quando a suite completa nao puder ser executada.
+- Nao rode `eslint .` depois do ESLint focado por padrao. O lint global so e
+  necessario quando houver pedido explicito, mudanca de configuracao/lint,
+  suspeita de impacto transversal ou baseline global previamente limpa.
+- Nao repita validacao no navegador quando o fluxo ja tiver sido validado e
+  documentado depois da ultima mudanca funcional ou visual. Repita apenas se a
+  interface mudou depois da evidencia, se a evidencia estiver incompleta ou se
+  o usuario pedir nova comprovacao.
+- Depois de ajuste apenas documental, formatacao ou fim de arquivo, valide o
+  diff e o gate diretamente afetado; nao reinicie toda a matriz sem risco
+  tecnico correspondente.
+- Se uma correcao funcional for feita durante o checkpoint, repita os gates
+  afetados e os seus dependentes. A skill `wassis-git-pr-flow` deve seguir esta
+  mesma politica.
+
 ## Contexto rapido
 - Artefatos principais: `.codex\artefatos\instrucoes_projeto_wassis_v2_0.md` e `.codex\artefatos\wassis_erp_esqueleto_v2_0.dbml`.
 - Planos: `.codex\plans\macro_plano.md` e micro-planos na mesma pasta.
