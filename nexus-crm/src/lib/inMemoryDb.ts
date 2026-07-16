@@ -109,6 +109,12 @@ import {
   type SinistroMaintenanceResult,
   type SinistroMaintenanceStore,
 } from '../modules/sinistro/maintenance'
+import {
+  executeSinistroOperationalCommandAtomic,
+  type SinistroOperationalInput,
+  type SinistroOperationalResult,
+  type SinistroOperationalStore,
+} from '../modules/sinistro/closure'
 
 export type SinistroInMemoryContext = {
   tenantId: string
@@ -163,6 +169,27 @@ export function maintainSinistroInMemory(
   }
 
   return maintainSinistroAtomic(store, input, {
+    ...context,
+    now: nowIso,
+    newId,
+  })
+}
+
+/**
+ * Comandos finais atomicos de Sinistro. A operacao preserva apolice, etapa e
+ * envolvidos e restaura o estado completo se a atualizacao ou auditoria falhar.
+ */
+export function executeSinistroOperationalInMemory(
+  input: SinistroOperationalInput,
+  context: Pick<SinistroInMemoryContext, 'tenantId' | 'sessionUserId'>,
+): SinistroOperationalResult {
+  const store: SinistroOperationalStore = {
+    sinistros: db.sinistros as unknown as SinistroOperationalStore['sinistros'],
+    envolvidos: db.sinistro_envolvidos as unknown as SinistroOperationalStore['envolvidos'],
+    auditLogs: db.audit_logs as unknown as SinistroOperationalStore['auditLogs'],
+  }
+
+  return executeSinistroOperationalCommandAtomic(store, input, {
     ...context,
     now: nowIso,
     newId,
