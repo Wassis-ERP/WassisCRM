@@ -15,6 +15,7 @@ import NovoSinistroPage from './pages/NovoSinistroPage'
 import FinanceiroPage from './pages/FinanceiroPage'
 import ImportacaoDemonstrativoComissoesPage from './pages/ImportacaoDemonstrativoComissoesPage'
 import PosVendaDetalhePage from './pages/PosVendaDetalhePage'
+import NovoPosVendaPage from './pages/NovoPosVendaPage'
 import PropostasPage from './pages/PropostasPage'
 import NovaPropostaApolicePage from './pages/NovaPropostaApolicePage'
 import ImportacaoDocumentosPage from './pages/ImportacaoDocumentosPage'
@@ -210,6 +211,7 @@ function AppLayout() {
               element={<ModuleKanbanPage module="pos_venda" title="Pos-Venda" description="Relacionamento e renovacoes" />}
             />
             <Route path="/pos-venda/:id" element={<PosVendaDetalhePage />} />
+            <Route path="/pos-venda/novo" element={<NovoPosVendaPage />} />
             <Route
               path="/financeiro"
               element={<FinanceiroPage />}

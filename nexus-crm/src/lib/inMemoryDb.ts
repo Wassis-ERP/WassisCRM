@@ -115,12 +115,64 @@ import {
   type SinistroOperationalResult,
   type SinistroOperationalStore,
 } from '../modules/sinistro/closure'
+import {
+  createPosVendaAtomic,
+  maintainPosVendaAtomic,
+  movePosVendaStageAtomic,
+  type PosVendaCreateInput,
+  type PosVendaCreationResult,
+  type PosVendaMaintenanceInput,
+  type PosVendaMaintenanceResult,
+  type PosVendaStore,
+} from '../modules/pos_venda/domain'
 
 export type SinistroInMemoryContext = {
   tenantId: string
   filialId?: string | null
   sessionUserId: string | null
   pipelineId?: string | null
+}
+
+export type PosVendaInMemoryContext = {
+  tenantId: string
+  filialId?: string | null
+  sessionUserId: string | null
+  pipelineId: string
+}
+
+function posVendaStore(): PosVendaStore {
+  return {
+    apolices: db.apolices as unknown as PosVendaStore['apolices'],
+    segurados: db.segurados as unknown as PosVendaStore['segurados'],
+    ramos: db.ramos as unknown as PosVendaStore['ramos'],
+    pipelines: db.pipelines as unknown as PosVendaStore['pipelines'],
+    stages: db.pipeline_stages as unknown as PosVendaStore['stages'],
+    profiles: db.profiles as unknown as PosVendaStore['profiles'],
+    posVendas: db.pos_vendas as unknown as PosVendaStore['posVendas'],
+    atividades: db.atividades as unknown as PosVendaStore['atividades'],
+    auditLogs: db.audit_logs as unknown as PosVendaStore['auditLogs'],
+  }
+}
+
+export function createPosVendaInMemory(
+  input: PosVendaCreateInput,
+  context: PosVendaInMemoryContext,
+): PosVendaCreationResult {
+  return createPosVendaAtomic(posVendaStore(), input, { ...context, now: nowIso, newId })
+}
+
+export function maintainPosVendaInMemory(
+  input: PosVendaMaintenanceInput,
+  context: Pick<PosVendaInMemoryContext, 'tenantId' | 'sessionUserId'>,
+): PosVendaMaintenanceResult {
+  return maintainPosVendaAtomic(posVendaStore(), input, { ...context, now: nowIso, newId })
+}
+
+export function movePosVendaStageInMemory(
+  input: { id: string; toStageId: string },
+  context: Pick<PosVendaInMemoryContext, 'tenantId' | 'sessionUserId'>,
+): PosVendaMaintenanceResult {
+  return movePosVendaStageAtomic(posVendaStore(), input, { ...context, now: nowIso, newId })
 }
 
 /**
@@ -337,7 +389,9 @@ export const RELATIONS: Record<
   'comissao_baixas.profiles': { target: 'profiles', localFk: 'criado_por_id', kind: 'forward' },
   'comissao_baixa_conciliacoes.comissao_baixas': { target: 'comissao_baixas', localFk: 'baixa_id', kind: 'forward' },
   'comissao_baixa_conciliacoes.comissao_conciliacoes': { target: 'comissao_conciliacoes', localFk: 'conciliacao_id', kind: 'forward' },
-  'pos_vendas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
+  'pos_vendas.apolices': { target: 'apolices', localFk: 'apolice_id', kind: 'forward' },
+  'pos_vendas.pipeline_stages': { target: 'pipeline_stages', localFk: 'stage_id', kind: 'forward' },
+  'pos_vendas.profiles': { target: 'profiles', localFk: 'responsavel_id', kind: 'forward' },
   'sinistros.apolices': { target: 'apolices', localFk: 'apolice_id', kind: 'forward' },
   'sinistros.pipeline_stages': { target: 'pipeline_stages', localFk: 'stage_id', kind: 'forward' },
   'sinistros.profiles': { target: 'profiles', localFk: 'responsavel_id', kind: 'forward' },
@@ -1235,12 +1289,22 @@ export function seed(): void {
     },
     {
       entidade_tipo: 'pos_venda',
-      nome: 'Pipeline Pós-Venda',
+      nome: 'Pós-venda · Onboarding',
       ordem: 30,
       stages: [
-        { nome: 'Onboarding', cor: 'bg-slate-400' },
-        { nome: 'Acompanhamento', cor: 'bg-blue-400' },
-        { nome: 'Renovação', cor: 'bg-emerald-400', sucesso: true },
+        { nome: 'A iniciar', cor: 'bg-slate-400' },
+        { nome: 'Em andamento', cor: 'bg-blue-400' },
+        { nome: 'Orientação concluída', cor: 'bg-emerald-400', sucesso: true },
+      ],
+    },
+    {
+      entidade_tipo: 'pos_venda',
+      nome: 'Pós-venda · Acompanhamento mensal',
+      ordem: 35,
+      stages: [
+        { nome: 'Planejado', cor: 'bg-slate-400' },
+        { nome: 'Em contato', cor: 'bg-blue-400' },
+        { nome: 'Acompanhado', cor: 'bg-emerald-400', sucesso: true },
       ],
     },
     {
@@ -1306,8 +1370,17 @@ export function seed(): void {
   const recusadaStageId = propostaStageId('Recusada');
   const sinistroAvisoStageId = db.pipeline_stages.find((stage) => stage.nome === 'Aviso' &&
     db.pipelines.some((pipeline) => pipeline.id === stage.pipeline_id && pipeline.entidade_tipo === 'sinistro'))?.id;
+  const onboardingPipeline = db.pipelines.find((pipeline) =>
+    pipeline.entidade_tipo === 'pos_venda' && pipeline.nome === 'Pós-venda · Onboarding');
+  const monthlyPipeline = db.pipelines.find((pipeline) =>
+    pipeline.entidade_tipo === 'pos_venda' && pipeline.nome === 'Pós-venda · Acompanhamento mensal');
+  const onboardingStageId = db.pipeline_stages.find((stage) =>
+    stage.pipeline_id === onboardingPipeline?.id && stage.nome === 'A iniciar')?.id;
+  const monthlyStageId = db.pipeline_stages.find((stage) =>
+    stage.pipeline_id === monthlyPipeline?.id && stage.nome === 'Planejado')?.id;
 
-  if (!emitidaStageId || !aguardandoStageId || !analiseStageId || !recusadaStageId || !sinistroAvisoStageId) return;
+  if (!emitidaStageId || !aguardandoStageId || !analiseStageId || !recusadaStageId ||
+      !sinistroAvisoStageId || !onboardingStageId || !monthlyStageId) return;
 
   const demoSegurados = [
     { id: 'mock-segurado-viaforte', nome: 'Viaforte Logística Ltda', tipo: 'PJ', cpf_cnpj: '12345678000110', cidade: 'São Paulo', estado: 'SP', email: 'seguros@viaforte.com.br', telefone: '1130550198' },
@@ -1390,6 +1463,144 @@ export function seed(): void {
     observacoes: null,
     ...policy,
   }));
+
+  db.pos_vendas.push(
+    {
+      id: 'mock-pos-venda-onboarding-rafael',
+      apolice_id: 'mock-apolice-rafael',
+      stage_id: onboardingStageId,
+      responsavel_id: MOCK_USER_ID,
+      tipo_processo: null,
+      status: null,
+      prioridade: 'alta',
+      assunto: 'Onboarding da Apólice Auto',
+      descricao: 'Orientação inicial após a emissão e entrega do contexto contratual.',
+      data_abertura: '2026-07-16',
+      data_conclusao_prevista: '2026-07-18',
+      data_conclusao: null,
+      motivo_pendencia: null,
+      resultado: null,
+      observacoes: 'Apólice e dados mestres permanecem consultados por vínculo.',
+    },
+    {
+      id: 'mock-pos-venda-mensal-aurora',
+      apolice_id: 'mock-apolice-aurora',
+      stage_id: monthlyStageId,
+      responsavel_id: 'mock-user-renato',
+      tipo_processo: null,
+      status: null,
+      prioridade: 'media',
+      assunto: 'Acompanhamento mensal de Saúde',
+      descricao: 'Contato operacional recorrente do contrato faturável.',
+      data_abertura: '2026-07-01',
+      data_conclusao_prevista: '2026-08-01',
+      data_conclusao: null,
+      motivo_pendencia: null,
+      resultado: null,
+      observacoes: null,
+    },
+  );
+  db.atividades.push(
+    {
+      id: 'mock-tarefa-pos-venda-onboarding',
+      tenant_id: MOCK_TENANT_ID,
+      filial_id: MATRIZ_ID,
+      responsavel_id: MOCK_USER_ID,
+      entidade_tipo: 'pos_venda',
+      entidade_id: 'mock-pos-venda-onboarding-rafael',
+      tipo: 'tarefa',
+      titulo: 'Onboarding do segurado',
+      descricao: 'Orientar Rafael Mendes após a emissão da Apólice.',
+      status: 'pendente',
+      prioridade: 'alta',
+      vencimento: '2026-07-18',
+      concluida_em: null,
+      fixada_em: null,
+      canal: null,
+      origem: 'pos_venda',
+      lembrete_em: null,
+      recorrente: false,
+      observacoes: null,
+    },
+    {
+      id: 'mock-tarefa-pos-venda-mensal',
+      tenant_id: MOCK_TENANT_ID,
+      filial_id: MATRIZ_ID,
+      responsavel_id: 'mock-user-renato',
+      entidade_tipo: 'pos_venda',
+      entidade_id: 'mock-pos-venda-mensal-aurora',
+      tipo: 'followup',
+      titulo: 'Acompanhamento mensal do contrato',
+      descricao: 'Realizar acompanhamento mensal do contrato de Aurora Tecnologia Ltda.',
+      status: 'pendente',
+      prioridade: 'media',
+      vencimento: '2026-08-01',
+      concluida_em: null,
+      fixada_em: null,
+      canal: null,
+      origem: 'pos_venda',
+      lembrete_em: null,
+      recorrente: true,
+      observacoes: null,
+    },
+  );
+  db.audit_logs.push(
+    {
+      id: 'mock-audit-pos-venda-onboarding',
+      tenant_id: MOCK_TENANT_ID,
+      user_id: MOCK_USER_ID,
+      entidade_tipo: 'pos_venda',
+      entidade_id: 'mock-pos-venda-onboarding-rafael',
+      campo: 'apolice_id',
+      valor_antigo: null,
+      valor_novo: 'mock-apolice-rafael',
+      acao: 'INSERT',
+      ocorrido_em: nowIso(),
+      origem: 'MOCK_SEED',
+      ip: null,
+      user_agent: 'mock',
+    },
+    {
+      id: 'mock-audit-pos-venda-mensal',
+      tenant_id: MOCK_TENANT_ID,
+      user_id: 'mock-user-renato',
+      entidade_tipo: 'pos_venda',
+      entidade_id: 'mock-pos-venda-mensal-aurora',
+      campo: 'apolice_id',
+      valor_antigo: null,
+      valor_novo: 'mock-apolice-aurora',
+      acao: 'INSERT',
+      ocorrido_em: nowIso(),
+      origem: 'MOCK_SEED',
+      ip: null,
+      user_agent: 'mock',
+    },
+  );
+  db.campo_definicoes.push({
+    id: 'mock-campo-pos-venda-canal-preferencial',
+    tenant_id: MOCK_TENANT_ID,
+    filial_id: null,
+    entidade_tipo: 'pos_venda',
+    chave: 'canal_preferencial_contato',
+    nome: 'Canal preferencial de contato',
+    tipo_dado: 'LISTA_UNICA',
+    formato: null,
+    obrigatorio: false,
+    ordem: 10,
+    ajuda: 'Canal definido pela corretora para o acompanhamento operacional.',
+    min_valor: null,
+    max_valor: null,
+    tamanho_max: null,
+    mascara: null,
+    placeholder: null,
+    agrupamento: 'Relacionamento',
+    visivel_em_listagem: false,
+    ativo: true,
+  });
+  db.campo_opcoes.push(
+    { id: 'mock-opcao-pos-venda-whatsapp', campo_definicao_id: 'mock-campo-pos-venda-canal-preferencial', rotulo: 'WhatsApp', valor: 'WHATSAPP', ordem: 10, ativo: true },
+    { id: 'mock-opcao-pos-venda-email', campo_definicao_id: 'mock-campo-pos-venda-canal-preferencial', rotulo: 'E-mail', valor: 'EMAIL', ordem: 20, ativo: true },
+  );
 
   db.endosso_subtipos.push(
     { id: 'mock-endosso-alteracao-dados', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Alteração de dados', natureza_canonica: 'ALTERACAO_DADOS', ordem: 5, ativo: true, observacoes: null },

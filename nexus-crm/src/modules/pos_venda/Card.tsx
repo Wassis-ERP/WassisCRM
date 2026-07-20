@@ -1,5 +1,15 @@
-import { LifeBuoy } from 'lucide-react';
-import { makeKanbanCard } from '../KanbanCardShell';
+import { LifeBuoy } from 'lucide-react'
+import { KanbanCardShell } from '../KanbanCardShell'
+import type { KanbanCardProps } from '../types'
 
-/** Card do modulo Pos-Venda. Accent bar ambar + icone de apoio. */
-export const PosVendaCard = makeKanbanCard({ accent: 'warning', accentBar: true, LeftIcon: LifeBuoy });
+export function PosVendaCard(props: KanbanCardProps) {
+  return (
+    <KanbanCardShell
+      {...props}
+      onConclude={undefined}
+      accent="info"
+      accentBar
+      LeftIcon={LifeBuoy}
+    />
+  )
+}
