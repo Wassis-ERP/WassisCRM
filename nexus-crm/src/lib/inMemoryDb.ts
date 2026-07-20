@@ -32,6 +32,8 @@ const TABLES = [
   'comissao_baixas',
   'comissao_baixa_conciliacoes',
   'repasses',
+  'repasse_recibos',
+  'repasse_recibo_itens',
   'pos_vendas',
   'financeiro_cobrancas',
   'sinistros',
@@ -364,6 +366,12 @@ export const RELATIONS: Record<
   'repasses.comissoes': { target: 'comissoes', localFk: 'comissao_id', kind: 'forward' },
   'repasses.produtores': { target: 'produtores', localFk: 'beneficiario_id', kind: 'forward' },
   'repasses.repasse_regras': { target: 'repasse_regras', localFk: 'regra_id', kind: 'forward' },
+  'repasse_recibos.filiais': { target: 'filiais', localFk: 'filial_id', kind: 'forward' },
+  'repasse_recibos.produtores': { target: 'produtores', localFk: 'beneficiario_id', kind: 'forward' },
+  'repasse_recibos.emitido_por': { target: 'profiles', localFk: 'emitido_por_id', kind: 'forward' },
+  'repasse_recibos.cancelado_por': { target: 'profiles', localFk: 'cancelado_por_id', kind: 'forward' },
+  'repasse_recibo_itens.repasse_recibos': { target: 'repasse_recibos', localFk: 'recibo_id', kind: 'forward' },
+  'repasse_recibo_itens.repasses': { target: 'repasses', localFk: 'repasse_id', kind: 'forward' },
 };
 
 let seeded = false;
@@ -1699,6 +1707,12 @@ export function seed(): void {
   materializeDocumentAgendas('mock-proposta-aurora-fatura-junho', '2026-06-10', 'FAT-2026-06');
   // Reprocessamento deliberado: o guard por proposta preserva idempotencia.
   materializeDocumentAgendas('mock-proposta-aurora-fatura-junho', '2026-06-10', 'FAT-2026-06');
+  // Massa operacional do 3.5: a baixa de comissão é o gatilho contratual que
+  // torna repasses elegíveis; o pagamento continua dependendo de recibo.
+  db.repasses.slice(0, 5).forEach((row, index) => Object.assign(row, {
+    status: 'LIBERADO',
+    liberado_em: index < 3 ? '2026-07-15' : '2026-07-16',
+  }));
   // Prova estrutural do contrato 3.2: conciliar não altera nem baixa a comissão.
   const commissionForStatement = db.comissoes.find((row) => row.proposta_id === 'mock-proposta-viaforte-original');
   const policyForStatement = db.apolices.find((row) => row.id === 'mock-apolice-viaforte');

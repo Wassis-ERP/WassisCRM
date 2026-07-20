@@ -312,7 +312,27 @@ export type ComissaoBaixaConciliacaoRow = {
   id: string; baixa_id: string; conciliacao_id: string
   valor_aplicado: number; criado_em: string
 }
-export type RepasseRow = { id: string; proposta_id: string; comissao_id: string | null; beneficiario_id: string; regra_id: string | null; numero: number | null; papel_beneficiario: string | null; base: string | null; percentual: number | null; valor_previsto: number | null; valor_pago: number | null; valor_diferenca: number | null; status: string | null; previsto_em: string | null; liberado_em: string | null; pago_em: string | null; forma_pagamento: string | null; comprovante_referencia: string | null; observacoes: string | null }
+export type RepasseStatus = 'PREVISTO' | 'LIBERADO' | 'PAGO' | 'CANCELADO'
+export type RepasseReciboSentido = 'CREDITO' | 'DEBITO'
+export type RepasseReciboStatus = 'EMITIDO' | 'CANCELADO'
+export type RepasseFormaPagamento = 'TRANSFERENCIA_BANCARIA' | 'DINHEIRO' | 'CHEQUE' | 'OUTRO'
+export type RepasseRow = { id: string; proposta_id: string; comissao_id: string | null; beneficiario_id: string; regra_id: string | null; numero: number | null; papel_beneficiario: string | null; base: string | null; percentual: number | null; valor_previsto: number | null; valor_pago: number | null; valor_diferenca: number | null; status: RepasseStatus | null; previsto_em: string | null; liberado_em: string | null; pago_em: string | null; forma_pagamento: string | null; comprovante_referencia: string | null; observacoes: string | null }
+export type RepasseReciboRow = {
+  id: string; filial_id: string; beneficiario_id: string; numero: string
+  sentido: RepasseReciboSentido; status: RepasseReciboStatus; data_pagamento: string
+  forma_pagamento: RepasseFormaPagamento; comprovante_referencia: string | null
+  observacoes: string | null; chave_idempotencia: string; chave_cancelamento: string | null
+  filial_nome_snapshot: string; beneficiario_nome_snapshot: string
+  emitido_por_id: string; emitido_em: string; cancelado_por_id: string | null
+  cancelado_em: string | null; motivo_cancelamento: string | null; atualizado_em: string
+}
+export type RepasseReciboItemRow = {
+  id: string; recibo_id: string; repasse_id: string; numero_repasse_snapshot: number | null
+  documento_referencia_snapshot: string; segurado_nome_snapshot: string
+  seguradora_nome_snapshot: string; ramo_nome_snapshot: string
+  papel_beneficiario_snapshot: string | null; valor_previsto_snapshot: number
+  valor_pago_snapshot: number; criado_em: string
+}
 
 type ApoliceTable = {
   Row: ApoliceRow
@@ -368,6 +388,8 @@ export type Database = {
       comissao_baixas: DbTable<ComissaoBaixaRow, "comissao_id" | "tipo" | "origem_tipo" | "data_efetiva" | "valor_efetivo" | "motivo_tipo" | "chave_idempotencia" | "saldo_apos" | "status_resultante" | "criado_por_id" | "criado_em">
       comissao_baixa_conciliacoes: DbTable<ComissaoBaixaConciliacaoRow, "baixa_id" | "conciliacao_id" | "valor_aplicado" | "criado_em">
       repasses: DbTable<RepasseRow, "proposta_id" | "beneficiario_id">
+      repasse_recibos: DbTable<RepasseReciboRow, "filial_id" | "beneficiario_id" | "numero" | "sentido" | "status" | "data_pagamento" | "forma_pagamento" | "chave_idempotencia" | "filial_nome_snapshot" | "beneficiario_nome_snapshot" | "emitido_por_id" | "emitido_em" | "atualizado_em">
+      repasse_recibo_itens: DbTable<RepasseReciboItemRow, "recibo_id" | "repasse_id" | "documento_referencia_snapshot" | "segurado_nome_snapshot" | "seguradora_nome_snapshot" | "ramo_nome_snapshot" | "valor_previsto_snapshot" | "valor_pago_snapshot" | "criado_em">
       endosso_subtipos: DbTable<EndossoSubtipoRow, "tenant_id" | "nome" | "natureza_canonica" | "ativo">
       cancelamento_motivos: DbTable<CancelamentoMotivoRow, "tenant_id" | "nome" | "ativo">
       anexos: {
