@@ -50,7 +50,7 @@ export function KanbanColumn({
       >
         <div className={`w-2 h-2 rounded-full mb-4 ${stage.color}`} />
         <div className="flex-1 flex items-center justify-center">
-          <h3 className="font-black text-[9px] uppercase tracking-widest text-fg-3 whitespace-nowrap rotate-90 origin-center">
+          <h3 className="font-black !text-[9px] uppercase tracking-widest text-fg-3 whitespace-nowrap rotate-90 origin-center">
             {stage.name}
           </h3>
         </div>
@@ -69,7 +69,7 @@ export function KanbanColumn({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <div className={`w-2 h-2 rounded-full shrink-0 ${stage.color}`} />
-            <h3 className="font-black text-[10px] uppercase tracking-wider text-fg-3 truncate">{stage.name}</h3>
+            <h3 className="font-black !text-[10px] uppercase tracking-wider text-fg-3 truncate">{stage.name}</h3>
             <div className="bg-bg-surface px-1.5 py-0.5 rounded-md border border-border-1 text-[9px] font-black text-fg-4 shrink-0">
               {cards.length}
             </div>

@@ -1,5 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createSinistroInMemory, maintainSinistroInMemory } from '../lib/inMemoryDb'
+import {
+  createSinistroInMemory,
+  executeSinistroOperationalInMemory,
+  maintainSinistroInMemory,
+} from '../lib/inMemoryDb'
 import { supabase } from '../lib/supabase'
 import {
   filterApolicesForSinistro,
@@ -11,6 +15,10 @@ import type {
   SinistroMaintenanceInput,
   SinistroMaintenanceResult,
 } from '../modules/sinistro/maintenance'
+import type {
+  SinistroOperationalInput,
+  SinistroOperationalResult,
+} from '../modules/sinistro/closure'
 import type {
   ApoliceItemRow,
   Database,
@@ -210,6 +218,28 @@ export function useMaintainSinistro() {
     mutationFn: async (input: SinistroMaintenanceInput): Promise<SinistroMaintenanceResult> => {
       if (!user?.tenantId) throw new Error('Usuário sem tenant válido para manter o Sinistro.')
       return maintainSinistroInMemory(input, {
+        tenantId: user.tenantId,
+        sessionUserId: user.id,
+      })
+    },
+    onSuccess: async (result) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['sinistro', result.sinistro.id] }),
+        queryClient.invalidateQueries({ queryKey: ['kanban_cards', 'sinistro'] }),
+        queryClient.invalidateQueries({ queryKey: ['entity_tabs', 'sinistro', result.sinistro.id] }),
+      ])
+    },
+  })
+}
+
+export function useOperateSinistro() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async (input: SinistroOperationalInput): Promise<SinistroOperationalResult> => {
+      if (!user?.tenantId) throw new Error('Usuário sem tenant válido para operar o Sinistro.')
+      return executeSinistroOperationalInMemory(input, {
         tenantId: user.tenantId,
         sessionUserId: user.id,
       })

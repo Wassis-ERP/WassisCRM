@@ -18,6 +18,7 @@ import {
 import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import SinistroMaintenanceForm, { SinistroEnvolvidosEditor } from '../components/sinistro/SinistroMaintenanceForm'
+import SinistroOperationalActions from '../components/sinistro/SinistroOperationalActions'
 import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
 import { EntityTabsBar, type EntityTab } from '../components/detail/EntityTabsBar'
 import { DetailCard, DetailField, EmptyState, StatusBadge, type BadgeTone } from '../components/detail/primitives'
@@ -29,10 +30,12 @@ import { useEntityTabsState } from '../components/detail/useEntityTabsState'
 import { usePermission } from '../hooks/usePermission'
 import {
   useMaintainSinistro,
+  useOperateSinistro,
   useSinistro,
   useSinistroResponsaveis,
   type SinistroEnvolvidoDetalhe,
 } from '../hooks/useSinistros'
+import type { SinistroOperationalAction, SinistroOperationalInput } from '../modules/sinistro/closure'
 import type { SinistroStatus } from '../types/database'
 import { fmtDate } from '../utils/date'
 
@@ -46,6 +49,44 @@ const STATUS_VIEW: Record<SinistroStatus, { label: string; tone: BadgeTone }> = 
   encerrado_sem_indenizacao: { label: 'Encerrado sem indenização', tone: 'neutral' },
   encerrado_com_indenizacao: { label: 'Encerrado com indenização', tone: 'success' },
   cancelado: { label: 'Cancelado', tone: 'danger' },
+}
+
+const OPERATION_VIEW: Record<SinistroOperationalAction, {
+  title: string
+  description: string
+  confirmLabel: string
+  tone: 'success' | 'warning' | 'danger'
+}> = {
+  CONCLUIR_SEM_INDENIZACAO: {
+    title: 'Concluir sem indenização?',
+    description: 'O Sinistro será encerrado sem pagamento. A etapa do Kanban será preservada.',
+    confirmLabel: 'Concluir',
+    tone: 'warning',
+  },
+  CONCLUIR_COM_INDENIZACAO: {
+    title: 'Concluir com indenização?',
+    description: 'Datas e valores finais serão registrados e auditados. A etapa do Kanban será preservada.',
+    confirmLabel: 'Concluir',
+    tone: 'success',
+  },
+  NEGAR: {
+    title: 'Registrar negativa?',
+    description: 'O Sinistro será encerrado sem indenização, preservando o motivo informado na auditoria.',
+    confirmLabel: 'Registrar negativa',
+    tone: 'warning',
+  },
+  CANCELAR: {
+    title: 'Cancelar Sinistro?',
+    description: 'O processo será cancelado sem apagar dados, envolvidos ou histórico anteriores.',
+    confirmLabel: 'Cancelar Sinistro',
+    tone: 'danger',
+  },
+  REABRIR: {
+    title: 'Reabrir Sinistro?',
+    description: 'O processo voltará à operação e manterá integralmente datas, valores e histórico anteriores.',
+    confirmLabel: 'Reabrir',
+    tone: 'warning',
+  },
 }
 
 function formatCurrency(value: number | null): string | undefined {
@@ -82,13 +123,14 @@ export default function SinistroDetalhePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [editing, setEditing] = useState<'overview' | 'envolvidos' | null>(null)
+  const [editing, setEditing] = useState<'overview' | 'envolvidos' | 'operational' | null>(null)
   const confirm = useConfirm()
   const { notify } = useSystemFeedback()
   const { can } = usePermission('sinistro')
   const detail = useSinistro(id)
   const responsaveis = useSinistroResponsaveis()
   const maintain = useMaintainSinistro()
+  const operate = useOperateSinistro()
   const sinistro = detail.data
   const filialId = sinistro?.apolices?.segurados?.filial_id ?? null
   const tabsState = useEntityTabsState('sinistro', id, { filialId })
@@ -164,6 +206,35 @@ export default function SinistroDetalhePage() {
         description: error instanceof Error ? error.message : 'A operação foi revertida integralmente.',
         tone: 'danger',
       })
+    }
+  }
+
+  const handleOperationalCommand = async (input: SinistroOperationalInput): Promise<boolean> => {
+    const view = OPERATION_VIEW[input.action]
+    const confirmed = await confirm({
+      title: view.title,
+      description: view.description,
+      confirmLabel: view.confirmLabel,
+      tone: view.tone,
+    })
+    if (!confirmed) return false
+
+    try {
+      const result = await operate.mutateAsync(input)
+      setEditing(null)
+      notify({
+        title: 'Operação concluída',
+        description: `${result.changedFields} campo(s) atualizado(s) com auditoria.`,
+        tone: 'success',
+      })
+      return true
+    } catch (error) {
+      notify({
+        title: 'Não foi possível concluir a operação',
+        description: error instanceof Error ? error.message : 'A operação foi revertida integralmente.',
+        tone: 'danger',
+      })
+      return false
     }
   }
 
@@ -269,6 +340,15 @@ export default function SinistroDetalhePage() {
           </p>
         </div>
       </div>
+
+      {canUpdate && activeTab === 'visao' && (editing === null || editing === 'operational') && (
+        <SinistroOperationalActions
+          sinistro={sinistro}
+          isSaving={operate.isPending}
+          onExecute={handleOperationalCommand}
+          onActiveChange={(active) => setEditing(active ? 'operational' : null)}
+        />
+      )}
 
       <EntityTabsBar tabs={tabs} active={activeTab} onChange={handleTabChange} />
 

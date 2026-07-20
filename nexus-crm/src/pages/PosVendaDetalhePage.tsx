@@ -1,350 +1,309 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
-  Check,
+  CalendarDays,
+  ChevronRight,
+  ClipboardList,
   ExternalLink,
+  FileCheck2,
   LifeBuoy,
-  Mail,
-  Phone,
-  X,
-} from 'lucide-react';
-import DateField from '../components/DateField';
-import ConcludeCardModal from '../components/kanban/ConcludeCardModal';
-import { usePosVenda, useUpdatePosVenda } from '../hooks/usePosVendas';
-import { usePipelineStages } from '../hooks/usePipelineStages';
-import { POS_VENDA_METADATA } from '../modules/pos_venda/fieldSchema';
-import type { CardStatus, KanbanCard } from '../modules/types';
+  Pencil,
+  ShieldCheck,
+  UserRound,
+} from 'lucide-react'
+import { useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import DateField from '../components/DateField'
+import { EntityTabsBar, type EntityTab } from '../components/detail/EntityTabsBar'
+import { DetailCard, DetailField, EmptyState, StatusBadge } from '../components/detail/primitives'
+import AnexosLogsTab from '../components/detail/tabs/AnexosLogsTab'
+import CamposPersonalizadosTab from '../components/detail/tabs/CamposPersonalizadosTab'
+import ObservacoesTab from '../components/detail/tabs/ObservacoesTab'
+import TarefasTab from '../components/detail/tabs/TarefasTab'
+import { useEntityTabsState } from '../components/detail/useEntityTabsState'
+import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
+import {
+  useMaintainPosVenda,
+  usePosVenda,
+  usePosVendaPipeline,
+  usePosVendaResponsaveis,
+  type PosVendaDetalhe,
+} from '../hooks/usePosVendas'
+import { usePermission } from '../hooks/usePermission'
+import { inferPosVendaProcesso, type PosVendaMaintenanceInput } from '../modules/pos_venda/domain'
+import { fmtDate } from '../utils/date'
 
-interface JoinSegurado {
-  id: string;
-  nome: string;
-  cpf_cnpj: string | null;
-  telefone: string | null;
-  email: string | null;
+type TabId = 'visao' | 'tarefas' | 'personalizados' | 'anexos' | 'observacoes'
+const VALID_TABS: TabId[] = ['visao', 'tarefas', 'personalizados', 'anexos', 'observacoes']
+
+function safeDate(value: string | null): string | undefined {
+  return value ? fmtDate(value) : undefined
 }
 
-interface JoinOportunidade {
-  id: string;
-  nome: string;
-  segurados: JoinSegurado | null;
-  ramos: { id: string; nome: string } | null;
-  seguradoras: { id: string; nome: string } | null;
+function formatCurrency(value: number | null): string | undefined {
+  if (value == null) return undefined
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
-interface JoinProfile {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-}
-
-/**
- * Detalhe de um registro de pos-venda (endosso/renovacao/cancelamento).
- * Edicao de campos core + metadata JSONB (tipo_demanda, data_referencia, motivo).
- */
-export default function PosVendaDetalhePage() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const posVendaId = String(id ?? '');
-
-  const detail = usePosVenda(posVendaId);
-  const update = useUpdatePosVenda();
-
-  const rawRow = (detail.data as Record<string, unknown> | undefined) ?? undefined;
-  const pipelineId = (rawRow?.pipeline_id as string | null | undefined) ?? undefined;
-  const stagesQuery = usePipelineStages(pipelineId);
-
-  const oportunidade = (rawRow?.oportunidades ?? null) as JoinOportunidade | null;
-  const segurado = oportunidade?.segurados ?? null;
-  const responsavel = (rawRow?.profiles ?? null) as JoinProfile | null;
-
-  const [formData, setFormData] = useState({ proximoFollowup: '', stageId: '', observacoes: '' });
-  const [metaFields, setMetaFields] = useState<Record<string, unknown>>({});
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [concludeMode, setConcludeMode] = useState<Exclude<CardStatus, 'pending'> | null>(null);
-
-  useEffect(() => {
-    if (!rawRow) return;
-    setFormData({
-      proximoFollowup: (rawRow.proximo_followup as string | null) ?? '',
-      stageId: (rawRow.stage_id as string | null) ?? '',
-      observacoes: (rawRow.observacoes as string | null) ?? '',
-    });
-    setMetaFields((rawRow.metadata as Record<string, unknown> | null) ?? {});
-  }, [rawRow]);
-
-  const funnelSteps = stagesQuery.data ?? [];
-  const currentIdx = useMemo(
-    () => funnelSteps.findIndex((s) => s.id === formData.stageId),
-    [funnelSteps, formData.stageId],
-  );
-  const safeCurrentIdx = currentIdx === -1 ? 0 : currentIdx;
-  const currentStage = funnelSteps.find((s) => s.id === formData.stageId);
-  const canWin = !!currentStage?.is_win_eligible;
-  const isConcluded = (rawRow?.status as CardStatus | undefined) !== 'pending' && !!rawRow?.status;
-
-  const cardForConclude: KanbanCard | null = rawRow
-    ? {
-        id: posVendaId,
-        pipelineId: (rawRow.pipeline_id as string | null) ?? null,
-        stageId: (rawRow.stage_id as string | null) ?? null,
-        status: (rawRow.status as CardStatus) ?? 'pending',
-        title: oportunidade?.nome ?? 'Pos-Venda',
-        responsavelId: (rawRow.responsavel_id as string | null) ?? null,
-        raw: rawRow,
-      }
-    : null;
-
-  const handleDiscard = () => {
-    if (!rawRow) return;
-    setFormData({
-      proximoFollowup: (rawRow.proximo_followup as string | null) ?? '',
-      stageId: (rawRow.stage_id as string | null) ?? '',
-      observacoes: (rawRow.observacoes as string | null) ?? '',
-    });
-    setMetaFields((rawRow.metadata as Record<string, unknown> | null) ?? {});
-    setSaveStatus('idle');
-    setSaveError(null);
-  };
-
-  const handleSave = async () => {
-    setSaveStatus('saving');
-    setSaveError(null);
-    try {
-      await update.mutateAsync({
-        id: posVendaId,
-        patch: {
-          proximo_followup: formData.proximoFollowup || null,
-          stage_id: formData.stageId || null,
-          observacoes: formData.observacoes || null,
-          metadata: metaFields as never,
-        },
-      });
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 1800);
-    } catch (err) {
-      setSaveStatus('error');
-      setSaveError(err instanceof Error ? err.message : 'Erro ao salvar');
-    }
-  };
-
-  if (detail.isLoading) {
-    return (
-      <div className="animate-fade-in flex items-center justify-center py-24">
-        <p className="text-fg-4 font-bold uppercase tracking-widest text-xs">Carregando registro...</p>
-      </div>
-    );
-  }
-
-  if (detail.isError || !rawRow) {
-    return (
-      <div className="animate-fade-in flex flex-col items-center justify-center py-24 gap-4">
-        <p className="text-signal-danger font-bold uppercase tracking-widest text-xs">Registro nao encontrado</p>
-        <button onClick={() => navigate(-1)} className="px-5 py-2 bg-bg-surface-2 text-fg-1 rounded-[6px] text-sm font-bold">
-          Voltar
-        </button>
-      </div>
-    );
-  }
-
-  const clienteNome = segurado?.nome ?? oportunidade?.nome ?? 'Pos-Venda';
-  const email = segurado?.email ?? '';
-  const telefone = segurado?.telefone ?? '';
-  const criadoPor = responsavel?.full_name ?? '-';
-  const shortId = posVendaId.slice(0, 8).toUpperCase();
-  const tipoDemanda = metaFields.tipo_demanda ? String(metaFields.tipo_demanda) : null;
+function EditForm({
+  posVenda,
+  responsaveis,
+  saving,
+  onCancel,
+  onSave,
+}: {
+  posVenda: PosVendaDetalhe
+  responsaveis: ReturnType<typeof usePosVendaResponsaveis>['data']
+  saving: boolean
+  onCancel: () => void
+  onSave: (input: PosVendaMaintenanceInput) => void
+}) {
+  const [assunto, setAssunto] = useState(posVenda.assunto ?? '')
+  const [descricao, setDescricao] = useState(posVenda.descricao ?? '')
+  const [prioridade, setPrioridade] = useState(posVenda.prioridade ?? '')
+  const [responsavelId, setResponsavelId] = useState(posVenda.responsavel_id ?? '')
+  const [dataPrevista, setDataPrevista] = useState(posVenda.data_conclusao_prevista ?? '')
+  const [motivoPendencia, setMotivoPendencia] = useState(posVenda.motivo_pendencia ?? '')
+  const [resultado, setResultado] = useState(posVenda.resultado ?? '')
+  const [observacoes, setObservacoes] = useState(posVenda.observacoes ?? '')
 
   return (
-    <div className="animate-fade-in max-w-7xl mx-auto pb-12">
-      <div className="relative z-0 bg-bg-surface backdrop-blur-md border-b border-border-1 -mx-4 px-4 md:-mx-8 md:px-8 mb-8 shadow-[var(--shadow-1)]">
-        <div className="max-w-[1440px] mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4">
-            <div className="flex items-center gap-4">
-              <button onClick={() => navigate(-1)} className="p-2.5 hover:bg-bg-surface-2 rounded-[6px] text-fg-3 transition-colors border border-transparent hover:border-border-1">
-                <ArrowLeft size={18} />
-              </button>
-              <div>
-                <h1 className="text-xl font-black tracking-tight text-fg-1 flex items-center gap-2">
-                  <LifeBuoy size={18} className="text-accent-primary" /> #{shortId}
-                  <span className="text-fg-3 text-base font-medium">| {clienteNome}</span>
-                </h1>
-                <p className="text-[10px] text-fg-4 font-bold uppercase tracking-wider">
-                  Registrado por {criadoPor}{tipoDemanda ? ` - ${tipoDemanda}` : ''}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {!isConcluded && (
-                <>
-                  {canWin && (
-                    <button onClick={() => setConcludeMode('won')} className="flex items-center gap-2 px-4 py-2.5 bg-signal-success/10 hover:bg-signal-success/20 border border-signal-success/20 text-signal-success rounded-full text-xs font-black uppercase tracking-widest transition-all">
-                      <Check size={14} /> Concluido
-                    </button>
-                  )}
-                  <button onClick={() => setConcludeMode('lost')} className="flex items-center gap-2 px-4 py-2.5 bg-signal-danger/10 hover:bg-signal-danger/20 border border-signal-danger/20 text-signal-danger rounded-full text-xs font-black uppercase tracking-widest transition-all">
-                    <X size={14} /> Cancelado
-                  </button>
-                </>
-              )}
-
-              {isConcluded && (
-                <span className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest ${
-                  (rawRow.status as CardStatus) === 'won'
-                    ? 'bg-signal-success/10 text-signal-success border border-signal-success/20'
-                    : 'bg-signal-danger/10 text-signal-danger border border-signal-danger/20'
-                }`}>
-                  {(rawRow.status as CardStatus) === 'won' ? 'Concluido' : 'Cancelado'}
-                </span>
-              )}
-
-              <button onClick={handleDiscard} className="px-5 py-2.5 text-sm font-bold text-fg-3 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[6px] transition-all">
-                Descartar
-              </button>
-              <button onClick={handleSave} disabled={saveStatus === 'saving'} className="bg-accent-primary hover:bg-accent-primary-hover active:scale-95 text-fg-on-brand px-8 py-2.5 rounded-full text-sm font-black shadow-[var(--shadow-brand)] transition-all flex items-center gap-2 disabled:opacity-60">
-                {saveStatus === 'saving' ? 'Salvando...' : saveStatus === 'saved' ? 'Salvo!' : 'Salvar Alteracoes'}
-              </button>
-            </div>
-          </div>
-
-          <div className="py-3 border-t border-border-1 flex items-center gap-1 overflow-x-auto no-scrollbar">
-            {funnelSteps.map((step, idx) => {
-              const isActive = step.id === formData.stageId;
-              const isPast = idx < safeCurrentIdx;
-              return (
-                <div key={step.id} className="flex items-center gap-1">
-                  <button
-                    onClick={() => setFormData({ ...formData, stageId: step.id })}
-                    className={`relative h-8 px-4 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap ${
-                      isActive ? 'bg-accent-primary text-fg-on-brand border-accent-primary shadow-[var(--shadow-brand)]'
-                      : isPast ? 'bg-signal-success/10 text-signal-success border-signal-success/20 hover:bg-signal-success/20'
-                      : 'bg-bg-surface-2 text-fg-4 border-border-1 hover:border-border-2'
-                    }`}
-                  >
-                    {isPast && <div className="w-1.5 h-1.5 rounded-full bg-signal-success" />}
-                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-fg-on-brand" />}
-                    {step.name}
-                  </button>
-                  {idx < funnelSteps.length - 1 && <div className={`h-[2px] w-4 ${isPast ? 'bg-signal-success/40' : 'bg-border-1'}`} />}
-                </div>
-              );
-            })}
-          </div>
-
-          {saveError && <div className="pb-3 text-[11px] font-bold text-signal-danger">{saveError}</div>}
-        </div>
+    <DetailCard title="Editar dados operacionais" icon={Pencil}>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <label className="sm:col-span-2">
+          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-fg-3">Assunto *</span>
+          <input value={assunto} onChange={(event) => setAssunto(event.target.value)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1 focus:border-accent-primary focus:outline-none" />
+        </label>
+        <label className="sm:col-span-2">
+          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-fg-3">Descrição</span>
+          <textarea value={descricao} onChange={(event) => setDescricao(event.target.value)} rows={3} className="w-full resize-none rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm text-fg-1 focus:border-accent-primary focus:outline-none" />
+        </label>
+        <label>
+          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-fg-3">Prioridade</span>
+          <select value={prioridade} onChange={(event) => setPrioridade(event.target.value)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1">
+            <option value="">Não informada</option>
+            <option value="baixa">Baixa</option>
+            <option value="media">Média</option>
+            <option value="alta">Alta</option>
+          </select>
+        </label>
+        <label>
+          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-fg-3">Responsável</span>
+          <select value={responsavelId} onChange={(event) => setResponsavelId(event.target.value)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1">
+            <option value="">Sem responsável</option>
+            {(responsaveis ?? []).map((responsavel) => <option key={responsavel.id} value={responsavel.id}>{responsavel.full_name ?? responsavel.email ?? responsavel.id}</option>)}
+          </select>
+        </label>
+        <DateField label="Conclusão prevista" value={dataPrevista} onChange={setDataPrevista} inputClassName="text-sm" />
+        <label>
+          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-fg-3">Motivo da pendência</span>
+          <input value={motivoPendencia} onChange={(event) => setMotivoPendencia(event.target.value)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm text-fg-1" />
+        </label>
+        <label className="sm:col-span-2">
+          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-fg-3">Resultado</span>
+          <textarea value={resultado} onChange={(event) => setResultado(event.target.value)} rows={2} className="w-full resize-none rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm text-fg-1" />
+        </label>
+        <label className="sm:col-span-2">
+          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-fg-3">Observação contratual</span>
+          <textarea value={observacoes} onChange={(event) => setObservacoes(event.target.value)} rows={3} className="w-full resize-none rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm text-fg-1" />
+        </label>
       </div>
-
-      {oportunidade && (
-        <div className="bg-accent-primary-soft border border-accent-primary/10 rounded-[8px] p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[var(--shadow-1)]">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-[8px] bg-gradient-to-br from-accent-primary to-brand-primary-deep flex items-center justify-center text-fg-on-brand text-2xl font-bold shadow-[var(--shadow-2)]">
-              {clienteNome.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-fg-1 uppercase tracking-tight">{clienteNome}</h2>
-              <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-fg-3 font-bold">
-                <span className="flex items-center gap-1.5 bg-bg-surface px-3 py-1 rounded-full shadow-[var(--shadow-1)]">
-                  <Mail size={14} className="text-accent-primary" /> {email || '-'}
-                </span>
-                <span className="flex items-center gap-1.5 bg-bg-surface px-3 py-1 rounded-full shadow-[var(--shadow-1)]">
-                  <Phone size={14} className="text-accent-primary" /> {telefone || '-'}
-                </span>
-              </div>
-            </div>
-          </div>
-          <button onClick={() => oportunidade.id && navigate(`/oportunidades/${oportunidade.id}`)} className="px-6 py-2.5 bg-bg-surface text-accent-primary border border-accent-primary/20 rounded-full text-sm font-black shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] hover:-translate-y-0.5 transition-all flex items-center gap-2">
-            <ExternalLink size={16} /> Oportunidade Vinculada
-          </button>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12 animate-fade-in">
-        <div className="lg:col-span-7 space-y-6">
-          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-6">Dados da Demanda</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {POS_VENDA_METADATA.filter((f) => f.type !== 'textarea').map((field) => (
-                <div key={field.key} className="space-y-2">
-                  <label className="text-[10px] font-bold text-fg-3 uppercase">{field.label}</label>
-                  {field.type === 'select' ? (
-                    <select
-                      value={String(metaFields[field.key] ?? '')}
-                      onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                      className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                    >
-                      <option value="">Selecione</option>
-                      {(field.options ?? []).map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  ) : field.type === 'date' ? (
-                    <DateField
-                      value={String(metaFields[field.key] ?? '')}
-                      onChange={(v) => setMetaFields((prev) => ({ ...prev, [field.key]: v }))}
-                      inputClassName="bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl"
-                    />
-                  ) : (
-                    <input
-                      type="text"
-                      value={String(metaFields[field.key] ?? '')}
-                      onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                      className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {POS_VENDA_METADATA.filter((f) => f.type === 'textarea').map((field) => (
-              <div key={field.key} className="space-y-2 mt-6">
-                <label className="text-[10px] font-bold text-fg-3 uppercase">{field.label}</label>
-                <textarea
-                  value={String(metaFields[field.key] ?? '')}
-                  onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                  rows={3}
-                  className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl p-4 text-sm resize-none focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-4">Observacoes</h3>
-            <textarea
-              value={formData.observacoes}
-              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-              className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl p-4 text-sm h-32 resize-none focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-              placeholder="Anotacoes sobre a demanda..."
-            />
-          </div>
-        </div>
-
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-6">Agendamento</h3>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-fg-3 uppercase">Proximo Followup</label>
-              <DateField
-                value={formData.proximoFollowup}
-                onChange={(v) => setFormData({ ...formData, proximoFollowup: v })}
-                inputClassName="bg-accent-primary-soft text-accent-primary border border-accent-primary/20"
-              />
-            </div>
-          </div>
-        </div>
+      <div className="mt-6 flex justify-end gap-3 border-t border-border-1 pt-5">
+        <button type="button" onClick={onCancel} className="rounded-full border border-border-1 px-4 py-2.5 text-sm font-bold text-fg-3 hover:bg-bg-surface-2">Cancelar</button>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => onSave({
+            id: posVenda.id,
+            patch: {
+              assunto,
+              descricao,
+              prioridade,
+              responsavel_id: responsavelId || null,
+              data_conclusao_prevista: dataPrevista || null,
+              motivo_pendencia: motivoPendencia,
+              resultado,
+              observacoes,
+            },
+          })}
+          className="rounded-full bg-accent-primary px-5 py-2.5 text-sm font-bold text-fg-on-brand shadow-[var(--shadow-brand)] hover:bg-accent-primary-hover disabled:opacity-50"
+        >
+          {saving ? 'Salvando...' : 'Salvar alterações'}
+        </button>
       </div>
+    </DetailCard>
+  )
+}
 
-      <ConcludeCardModal
-        isOpen={!!concludeMode}
-        card={cardForConclude}
-        mode={concludeMode ?? 'won'}
-        module="pos_venda"
-        pipelineId={(rawRow.pipeline_id as string | null) ?? ''}
-        onClose={() => setConcludeMode(null)}
-        onDone={() => detail.refetch()}
-      />
+function Overview({ posVenda, processLabel }: { posVenda: PosVendaDetalhe; processLabel: string }) {
+  const apolice = posVenda.apolices
+  return (
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+      <div className="space-y-6">
+        <DetailCard title="Operação de Pós-venda" icon={ClipboardList}>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <DetailField label="Processo">{processLabel}</DetailField>
+            <DetailField label="Etapa">{posVenda.pipeline_stages?.nome}</DetailField>
+            <DetailField label="Status operacional">{posVenda.status ?? 'Não definido no contrato vigente'}</DetailField>
+            <DetailField label="Prioridade">{posVenda.prioridade}</DetailField>
+            <DetailField label="Responsável">{posVenda.profiles?.full_name}</DetailField>
+            <DetailField label="Abertura" mono>{safeDate(posVenda.data_abertura)}</DetailField>
+            <DetailField label="Conclusão prevista" mono>{safeDate(posVenda.data_conclusao_prevista)}</DetailField>
+            <DetailField label="Conclusão" mono>{safeDate(posVenda.data_conclusao)}</DetailField>
+            <DetailField label="Assunto" full>{posVenda.assunto}</DetailField>
+            <DetailField label="Descrição" full>{posVenda.descricao}</DetailField>
+            <DetailField label="Motivo da pendência" full>{posVenda.motivo_pendencia}</DetailField>
+            <DetailField label="Resultado" full>{posVenda.resultado}</DetailField>
+          </div>
+        </DetailCard>
+        {posVenda.observacoes && (
+          <DetailCard title="Observação contratual" icon={FileCheck2}>
+            <p className="max-w-[72ch] whitespace-pre-wrap text-sm font-medium leading-relaxed text-fg-2">{posVenda.observacoes}</p>
+          </DetailCard>
+        )}
+      </div>
+      <DetailCard title="Apólice vinculada" icon={ShieldCheck}>
+        <div className="space-y-4">
+          <DetailField label="Apólice" mono>{apolice?.numero_apolice}</DetailField>
+          <DetailField label="Segurado">{apolice?.segurados?.nome}</DetailField>
+          <DetailField label="CPF/CNPJ" mono>{apolice?.segurados?.cpf_cnpj}</DetailField>
+          <DetailField label="Seguradora">{apolice?.seguradoras?.nome}</DetailField>
+          <DetailField label="Ramo">{apolice?.ramos?.nome}</DetailField>
+          <DetailField label="Ramo faturável">{apolice?.ramos?.is_monthly ? 'Sim' : 'Não'}</DetailField>
+          <DetailField label="Vigência" mono>{apolice?.vigencia_inicio && apolice.vigencia_fim ? `${fmtDate(apolice.vigencia_inicio)} a ${fmtDate(apolice.vigencia_fim)}` : undefined}</DetailField>
+          <DetailField label="Prêmio" mono>{formatCurrency(apolice?.premio_total ?? null)}</DetailField>
+        </div>
+      </DetailCard>
     </div>
-  );
+  )
+}
+
+export default function PosVendaDetalhePage() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const confirm = useConfirm()
+  const { notify } = useSystemFeedback()
+  const { can } = usePermission('pos_venda')
+  const detail = usePosVenda(id)
+  const responsaveis = usePosVendaResponsaveis()
+  const maintain = useMaintainPosVenda()
+  const [editing, setEditing] = useState(false)
+  const posVenda = detail.data
+  const pipeline = usePosVendaPipeline(posVenda?.pipeline_stages?.pipeline_id)
+  const tabsState = useEntityTabsState('pos_venda', id, { filialId: posVenda?.apolices?.segurados?.filial_id })
+  const requestedTab = searchParams.get('tab')
+  const activeTab: TabId = VALID_TABS.includes(requestedTab as TabId) ? requestedTab as TabId : 'visao'
+
+  if (!id || detail.isError || (!detail.isLoading && !posVenda)) {
+    return (
+      <div className="flex min-h-[45vh] flex-col items-center justify-center text-center">
+        <LifeBuoy size={28} className="mb-3 text-signal-warning" />
+        <p className="font-semibold text-fg-2">Pós-venda não encontrado ou sem permissão de acesso.</p>
+        <button type="button" onClick={() => navigate('/pos-venda')} className="mt-4 text-sm font-bold text-accent-primary hover:underline">Voltar para Pós-venda</button>
+      </div>
+    )
+  }
+  if (detail.isLoading || !posVenda) return <div className="animate-pulse py-24 text-center text-sm font-semibold text-fg-4">Carregando Pós-venda...</div>
+
+  const apolice = posVenda.apolices
+  const processo = inferPosVendaProcesso(pipeline.data?.nome ?? null)
+  const processLabel = processo === 'ACOMPANHAMENTO_MENSAL'
+    ? 'Acompanhamento mensal'
+    : processo === 'ONBOARDING'
+      ? 'Onboarding do segurado'
+      : pipeline.data?.nome ?? 'Processo configurado'
+  const canUpdate = can('update')
+  const canDelete = can('delete')
+  const pendentes = tabsState.tarefas.filter((tarefa) => tarefa.status !== 'Concluída').length
+  const tabs: EntityTab<TabId>[] = [
+    { id: 'visao', label: 'Visão geral' },
+    { id: 'tarefas', label: 'Tarefas', badge: pendentes || undefined },
+    { id: 'personalizados', label: 'Campos personalizados' },
+    { id: 'anexos', label: 'Anexos e logs', badge: tabsState.anexos.length || undefined },
+    { id: 'observacoes', label: 'Observações', badge: tabsState.observacoes.length || undefined },
+  ]
+
+  const handleTabChange = (nextTab: TabId) => {
+    if (editing) {
+      notify({ title: 'Conclua ou cancele a edição', description: 'A edição permanece no mesmo bloco para evitar perda de alterações.', tone: 'warning' })
+      return
+    }
+    const next = new URLSearchParams(searchParams)
+    if (nextTab === 'visao') next.delete('tab')
+    else next.set('tab', nextTab)
+    setSearchParams(next, { replace: true })
+  }
+
+  const handleSave = async (input: PosVendaMaintenanceInput) => {
+    try {
+      const result = await maintain.mutateAsync(input)
+      setEditing(false)
+      notify({ title: 'Pós-venda atualizado', description: `${result.changedFields} campo(s) alterado(s) com auditoria.`, tone: 'success' })
+    } catch (error) {
+      notify({ title: 'Não foi possível salvar', description: error instanceof Error ? error.message : 'A operação foi revertida integralmente.', tone: 'danger' })
+    }
+  }
+
+  const runTabAction = async (action: () => Promise<void>, successTitle?: string) => {
+    try {
+      await action()
+      if (successTitle) notify({ title: successTitle, tone: 'success' })
+    } catch (error) {
+      notify({ title: 'Não foi possível concluir a ação', description: error instanceof Error ? error.message : 'Tente novamente.', tone: 'danger' })
+    }
+  }
+
+  const confirmRemove = (title: string, description: string) => confirm({ title, description, confirmLabel: 'Remover', tone: 'danger' })
+
+  return (
+    <div className="animate-fade-in pb-10">
+      <div className="mb-5 flex items-center gap-2 text-sm text-fg-3">
+        <button type="button" onClick={() => navigate('/pos-venda')} className="inline-flex items-center gap-1.5 font-semibold hover:text-accent-primary"><ArrowLeft size={15} /> Pós-venda</button>
+        <ChevronRight size={14} className="text-fg-4" />
+        <span className="truncate font-medium text-fg-1">{posVenda.assunto ?? posVenda.id}</span>
+      </div>
+
+      <section className="mb-5 rounded-[8px] border border-border-1 bg-bg-surface p-6 shadow-[var(--shadow-1)]">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[8px] bg-accent-primary-soft text-accent-primary"><LifeBuoy size={25} /></span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-bold tracking-[-0.02em] text-fg-1">{apolice?.segurados?.nome ?? posVenda.assunto ?? 'Pós-venda'}</h1>
+                <StatusBadge status={processLabel} tone={processo === 'ACOMPANHAMENTO_MENSAL' ? 'warning' : 'info'} />
+              </div>
+              <p className="mt-1 text-sm font-semibold text-fg-3">{posVenda.assunto ?? 'Demanda operacional'} · {apolice?.ramos?.nome ?? 'Ramo não informado'}</p>
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-fg-3">
+                <span className="inline-flex items-center gap-1.5"><CalendarDays size={13} /> {safeDate(posVenda.data_abertura) ?? 'Data não informada'}</span>
+                <span className="inline-flex items-center gap-1.5"><ClipboardList size={13} /> {posVenda.pipeline_stages?.nome ?? 'Etapa não identificada'}</span>
+                <span className="inline-flex items-center gap-1.5"><UserRound size={13} /> {posVenda.profiles?.full_name ?? 'Sem responsável'}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {canUpdate && activeTab === 'visao' && !editing && <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-2 rounded-full border border-accent-primary px-4 py-2.5 text-sm font-bold text-accent-primary hover:bg-accent-primary-soft"><Pencil size={15} /> Editar</button>}
+            {apolice && <button type="button" onClick={() => navigate(`/apolices/${apolice.id}`)} className="inline-flex items-center gap-2 rounded-full bg-accent-primary px-4 py-2.5 text-sm font-bold text-fg-on-brand shadow-[var(--shadow-brand)] hover:bg-accent-primary-hover"><ShieldCheck size={15} /> Abrir Apólice <ExternalLink size={13} /></button>}
+          </div>
+        </div>
+      </section>
+
+      <div className="mb-6 flex items-start gap-3 rounded-[6px] border border-accent-primary/20 bg-accent-primary-soft px-4 py-3 text-sm text-fg-2">
+        <FileCheck2 size={18} className="mt-0.5 shrink-0 text-accent-primary" />
+        <div><p className="font-bold text-fg-1">Contrato protegido</p><p className="mt-0.5 text-xs font-semibold text-fg-3">A Apólice é imutável e a etapa é movimentada exclusivamente no Kanban. Status não é tratado como etapa nem como campo livre.</p></div>
+      </div>
+
+      <EntityTabsBar tabs={tabs} active={activeTab} onChange={handleTabChange} />
+      <div role="tabpanel">
+        {activeTab === 'visao' && (editing
+          ? <EditForm posVenda={posVenda} responsaveis={responsaveis.data} saving={maintain.isPending} onCancel={() => setEditing(false)} onSave={(input) => void handleSave(input)} />
+          : <Overview posVenda={posVenda} processLabel={processLabel} />)}
+        {activeTab === 'tarefas' && (tabsState.tarefas.length > 0 || canUpdate
+          ? <TarefasTab tarefas={tabsState.tarefas} onAdd={(task) => void runTabAction(() => tabsState.addTarefa(task), 'Tarefa criada')} onEdit={canUpdate ? (taskId, task) => void runTabAction(() => tabsState.updateTarefa(taskId, task), 'Tarefa atualizada') : undefined} onToggle={(taskId) => void runTabAction(() => tabsState.toggleTarefa(taskId))} onRemove={canDelete ? (taskId) => void (async () => { if (await confirmRemove('Remover tarefa?', 'A tarefa será removida deste Pós-venda.')) await runTabAction(() => tabsState.removeTarefa(taskId), 'Tarefa removida') })() : undefined} readOnly={!canUpdate} />
+          : <EmptyState icon={ClipboardList} title="Nenhuma tarefa registrada" hint="Onboarding e acompanhamentos são representados por atividades do Pós-venda." />)}
+        {activeTab === 'personalizados' && <CamposPersonalizadosTab entidadeTipo="pos_venda" entidadeId={posVenda.id} readOnly={!canUpdate} />}
+        {activeTab === 'anexos' && <AnexosLogsTab anexos={tabsState.anexos} logs={tabsState.logs} onAddAnexo={tabsState.addAnexo} onEditAnexo={canUpdate ? (anexoId, anexo) => void runTabAction(() => tabsState.updateAnexo(anexoId, anexo), 'Metadados atualizados') : undefined} onRemoveAnexo={canDelete ? (anexoId) => void (async () => { if (await confirmRemove('Remover anexo?', 'Somente os metadados do mock serão removidos.')) await runTabAction(() => tabsState.removeAnexo(anexoId), 'Metadado removido') })() : undefined} autorPadrao="Usuário da sessão" showAuditLogs={tabsState.showAuditLogs} onToggleAuditLogs={tabsState.setShowAuditLogs} metadataOnly readOnly={!canUpdate} />}
+        {activeTab === 'observacoes' && <ObservacoesTab observacoes={tabsState.observacoes} onAdd={tabsState.addObservacao} onTogglePin={tabsState.togglePin} mentionCandidates={tabsState.mentionCandidates} readOnly={!canUpdate} />}
+      </div>
+    </div>
+  )
 }

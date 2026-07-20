@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-type ApoliceRow = {
+export type ApoliceRow = {
   id: string
   segurado_id: string
   seguradora_id: string | null
@@ -211,6 +211,24 @@ export type SinistroEnvolvidoRow = {
   observacoes: string | null
 }
 
+export type PosVendaRow = {
+  id: string
+  apolice_id: string
+  stage_id: string
+  responsavel_id: string | null
+  tipo_processo: string | null
+  status: string | null
+  prioridade: string | null
+  assunto: string | null
+  descricao: string | null
+  data_abertura: string | null
+  data_conclusao_prevista: string | null
+  data_conclusao: string | null
+  motivo_pendencia: string | null
+  resultado: string | null
+  observacoes: string | null
+}
+
 export type ItemVeiculoRow = { apolice_item_id: string; codigo_fipe: string | null; marca: string | null; modelo: string | null; versao: string | null; ano_fabricacao: number | null; ano_modelo: number | null; placa: string | null; chassi: string | null; renavam: string | null; zero_km: boolean | null; combustivel: string | null; cambio: string | null; categoria: string | null; uso: string | null; cep_pernoite: string | null; classe_bonus: number | null; blindado: boolean | null; alienado: boolean | null; rastreador: boolean | null; antifurto: boolean | null; kit_gas: boolean | null; condutor_principal_nome: string | null; condutor_principal_cpf: string | null; condutor_principal_data_nascimento: string | null }
 export type ItemImovelRow = { apolice_item_id: string; cep: string | null; endereco: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; tipo_imovel: string | null; tipo_ocupacao: string | null; tipo_construcao: string | null; area_m2: number | null; valor_imovel: number | null; condominio_fechado: boolean | null; desocupado: boolean | null }
 export type ItemEmpresaRow = { apolice_item_id: string; cnpj_risco: string | null; razao_social_risco: string | null; atividade: string | null; cnae: string | null; faturamento_anual: number | null; cep: string | null; endereco: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; tipo_construcao: string | null; area_m2: number | null; qtd_funcionarios: number | null; valor_estoque: number | null; valor_equipamentos: number | null; protecao_incendio: string | null }
@@ -372,6 +390,7 @@ export type Database = {
     Tables: {
       apolices: ApoliceTable
       apolice_itens: DbTable<ApoliceItemRow, "apolice_id">
+      pos_vendas: DbTable<PosVendaRow, "apolice_id" | "stage_id">
       sinistros: DbTable<SinistroRow, "apolice_id" | "stage_id">
       sinistro_envolvidos: DbTable<SinistroEnvolvidoRow, "sinistro_id">
       item_veiculo: DbTable<ItemVeiculoRow, "apolice_item_id">
@@ -1511,83 +1530,6 @@ export type Database = {
           },
           {
             foreignKeyName: "pipelines_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pos_vendas: {
-        Row: {
-          concluded_at: string | null
-          created_at: string
-          id: string
-          metadata: Json
-          observacoes: string | null
-          oportunidade_id: string
-          pipeline_id: string | null
-          proximo_followup: string | null
-          responsavel_id: string
-          stage_id: string | null
-          status: Database["public"]["Enums"]["card_status"]
-          tenant_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          concluded_at?: string | null
-          created_at?: string
-          id?: string
-          metadata?: Json
-          observacoes?: string | null
-          oportunidade_id: string
-          pipeline_id?: string | null
-          proximo_followup?: string | null
-          responsavel_id: string
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          concluded_at?: string | null
-          created_at?: string
-          id?: string
-          metadata?: Json
-          observacoes?: string | null
-          oportunidade_id?: string
-          pipeline_id?: string | null
-          proximo_followup?: string | null
-          responsavel_id?: string
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pos_vendas_oportunidade_id_fkey"
-            columns: ["oportunidade_id"]
-            isOneToOne: false
-            referencedRelation: "oportunidades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pos_vendas_pipeline_id_fkey"
-            columns: ["pipeline_id"]
-            isOneToOne: false
-            referencedRelation: "pipelines"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pos_vendas_stage_id_fkey"
-            columns: ["stage_id"]
-            isOneToOne: false
-            referencedRelation: "pipeline_stages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pos_vendas_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
