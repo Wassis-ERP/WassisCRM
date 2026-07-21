@@ -8,6 +8,7 @@ import {
 import PaymentModal from '../components/financeiro/PaymentModal'
 import CommissionsView from '../components/financeiro/CommissionsView'
 import RepassesView from '../components/financeiro/RepassesView'
+import CobrancasView from '../components/financeiro/CobrancasView'
 import { useSystemFeedback } from '../components/feedback/systemFeedbackContext'
 import { useAuth } from '../hooks/useAuth'
 import {
@@ -81,22 +82,6 @@ function Select({ label, value, onChange, options }: { label: string; value: str
   </label>
 }
 
-function FutureView({ view, onBack }: { view: Exclude<FinanceView, 'parcelas' | 'comissoes'>; onBack: () => void }) {
-  const tab = TABS.find((item) => item.id === view) ?? TABS[1]
-  const Icon = tab.icon
-  const message = view === 'cobrancas'
-    ? 'A abertura e o kanban serão reconstruídos por parcela_id no recorte 3.6. Nenhum dado é gravado na estrutura legada por oportunidade.'
-    : `${tab.label} já faz parte da arquitetura deste cockpit e será habilitada no recorte ${tab.phase}.`
-  return <section className="flex min-h-[360px] items-center justify-center border-t border-border-1 bg-bg-surface px-6 py-14">
-    <div className="max-w-xl text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[12px] bg-accent-primary-soft text-accent-primary"><Icon size={22} /></div>
-      <h2 className="mt-5 text-xl font-black text-fg-1">{tab.label} na mesma superfície</h2>
-      <p className="mx-auto mt-2 max-w-[62ch] text-sm leading-relaxed text-fg-3">{message}</p>
-      <button type="button" onClick={onBack} className="mt-6 rounded-full bg-accent-primary px-5 py-2.5 text-sm font-black text-fg-on-brand shadow-[var(--shadow-brand)] hover:bg-accent-primary-hover">Voltar para Parcelas</button>
-    </div>
-  </section>
-}
-
 export default function FinanceiroPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedView = searchParams.get('visao') as FinanceView | null
@@ -114,12 +99,18 @@ export default function FinanceiroPage() {
   const [selected, setSelected] = useState<string[]>([])
   const [paymentRows, setPaymentRows] = useState<FinanceiroParcela[] | null>(null)
   const rows = useMemo(() => query.data ?? [], [query.data])
-  const filtered = useMemo(() => filterFinanceiroParcelas(rows, filters), [filters, rows])
+  const requestedParcelaId = searchParams.get('parcela')
+  const filtered = useMemo(() => {
+    const result = filterFinanceiroParcelas(rows, filters)
+    return activeView === 'parcelas' && requestedParcelaId
+      ? result.filter((row) => row.id === requestedParcelaId)
+      : result
+  }, [activeView, filters, requestedParcelaId, rows])
   const selectedRows = useMemo(() => rows.filter((row) => selected.includes(row.id)), [rows, selected])
   const confirmEligible = selectedRows.length > 0 && selectedRows.every((row) => ['em_aberto', 'vencida'].includes(row.statusEfetivo))
   const reverseEligible = selectedRows.length > 0 && selectedRows.every((row) => row.statusEfetivo === 'paga')
   const allVisibleSelected = filtered.length > 0 && filtered.every((row) => selected.includes(row.id))
-  const hasFilters = Object.values(filters).some(Boolean)
+  const hasFilters = Object.values(filters).some(Boolean) || (activeView === 'parcelas' && Boolean(requestedParcelaId))
 
   const totals = useMemo(() => ({
     previsto: rows.reduce((sum, row) => sum + (row.valor ?? 0), 0),
@@ -129,6 +120,10 @@ export default function FinanceiroPage() {
   }), [rows])
 
   const setView = (view: FinanceView) => setSearchParams(view === 'parcelas' ? {} : { visao: view })
+  const clearParcelaFilters = () => {
+    setFilters(EMPTY_FILTERS)
+    if (requestedParcelaId) setSearchParams({}, { replace: true })
+  }
   const updateFilter = <K extends keyof ParcelaFilters>(key: K, value: ParcelaFilters[K]) => setFilters((current) => ({ ...current, [key]: value }))
 
   const handleConfirm = async (dataPagamento: string, valorPago?: number) => {
@@ -173,7 +168,7 @@ export default function FinanceiroPage() {
         </nav>
       </header>
 
-      {activeView === 'comissoes' ? <CommissionsView branchIds={branchIds} canUpdate={canUpdate} /> : activeView === 'repasses' ? <RepassesView branchIds={branchIds} canUpdate={canUpdate} /> : activeView !== 'parcelas' ? <FutureView view={activeView} onBack={() => setView('parcelas')} /> : <>
+      {activeView === 'comissoes' ? <CommissionsView branchIds={branchIds} canUpdate={canUpdate} /> : activeView === 'repasses' ? <RepassesView branchIds={branchIds} canUpdate={canUpdate} /> : activeView === 'cobrancas' ? <CobrancasView branchIds={branchIds} requestedParcelaId={requestedParcelaId} canUpdate={canUpdate} onRequestHandled={() => setSearchParams({ visao: 'cobrancas' }, { replace: true })} /> : <>
         {query.isLoading ? <div className="space-y-4 p-6"><div className="h-20 animate-pulse rounded-[8px] bg-bg-surface-2" /><div className="h-28 animate-pulse rounded-[8px] bg-bg-surface-2" /><div className="h-64 animate-pulse rounded-[8px] bg-bg-surface-2" /></div>
         : query.isError ? <div className="p-8 text-center"><AlertCircle className="mx-auto text-signal-danger" size={28} /><h2 className="mt-3 text-lg font-black text-fg-1">Não foi possível carregar as parcelas</h2><p className="mt-1 text-sm text-fg-3">{query.error instanceof Error ? query.error.message : 'Tente novamente.'}</p><button type="button" onClick={() => void query.refetch()} className="mt-5 rounded-full bg-accent-primary px-5 py-2.5 text-sm font-black text-fg-on-brand">Tentar novamente</button></div>
         : <>
@@ -189,7 +184,7 @@ export default function FinanceiroPage() {
               <Select label="Ramo" value={filters.ramoId} onChange={(value) => updateFilter('ramoId', value)} options={uniqueOptions(rows, 'ramoId', 'ramoNome')} />
               <label className="space-y-1.5 xl:col-span-2"><span className="block text-[9px] font-black uppercase tracking-wider text-fg-3">Proposta / apólice</span><div className="relative"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" /><input value={filters.documento} onChange={(event) => updateFilter('documento', event.target.value)} placeholder="Número do documento" className="w-full rounded-[6px] border border-border-1 bg-bg-surface py-2.5 pl-9 pr-3 text-xs font-bold text-fg-1 placeholder:text-fg-3 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20" /></div></label>
               <Select label="Status" value={filters.status} onChange={(value) => updateFilter('status', value as ParcelaFilters['status'])} options={Object.entries(STATUS_META).map(([value, meta]) => ({ value, text: meta.label }))} />
-              <button type="button" onClick={() => setFilters(EMPTY_FILTERS)} disabled={!hasFilters} className="mt-auto inline-flex h-[38px] items-center justify-center gap-2 rounded-[6px] border border-border-1 px-3 text-xs font-black text-fg-3 hover:bg-bg-surface-2 disabled:opacity-40"><FilterX size={14} />Limpar</button>
+              <button type="button" onClick={clearParcelaFilters} disabled={!hasFilters} className="mt-auto inline-flex h-[38px] items-center justify-center gap-2 rounded-[6px] border border-border-1 px-3 text-xs font-black text-fg-3 hover:bg-bg-surface-2 disabled:opacity-40"><FilterX size={14} />Limpar</button>
             </div>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:max-w-md">
               <label className="space-y-1.5"><span className="block text-[9px] font-black uppercase tracking-wider text-fg-3">Vencimento de</span><input type="date" value={filters.vencimentoDe} onChange={(event) => updateFilter('vencimentoDe', event.target.value)} className="w-full rounded-[6px] border border-border-1 bg-bg-surface px-3 py-2 text-xs font-bold text-fg-1" /></label>
@@ -200,7 +195,7 @@ export default function FinanceiroPage() {
           {selectedRows.length > 0 && <div className="flex flex-wrap items-center gap-3 border-b border-border-1 bg-accent-primary-soft px-5 py-3 lg:px-7"><span className="text-sm font-black text-accent-primary">{selectedRows.length} selecionada{selectedRows.length > 1 ? 's' : ''}</span><button type="button" disabled={!canUpdate || !confirmEligible} title={!confirmEligible ? 'Selecione apenas parcelas em aberto ou vencidas.' : undefined} onClick={() => setPaymentRows(selectedRows)} className="inline-flex items-center gap-2 rounded-full bg-accent-primary px-4 py-2 text-xs font-black text-fg-on-brand disabled:opacity-40"><CalendarCheck2 size={14} />Confirmar pagamentos</button><button type="button" disabled={!canUpdate || !reverseEligible} title={!reverseEligible ? 'Selecione apenas parcelas pagas.' : undefined} onClick={() => void handleReverse(selectedRows)} className="inline-flex items-center gap-2 rounded-full border border-signal-warning/40 bg-bg-surface px-4 py-2 text-xs font-black text-signal-warning disabled:opacity-40"><RotateCcw size={14} />Desfazer pagamentos</button><button type="button" onClick={() => setSelected([])} className="ml-auto text-xs font-bold text-fg-3 hover:text-fg-1">Limpar seleção</button></div>}
 
           {rows.length === 0 ? <div className="px-6 py-16 text-center"><ReceiptText className="mx-auto text-fg-4" size={30} /><h2 className="mt-4 text-lg font-black text-fg-1">Nenhuma parcela materializada</h2><p className="mx-auto mt-2 max-w-lg text-sm text-fg-3">Gere as agendas no documento da apólice para que as parcelas apareçam neste cockpit.</p><Link to="/apolices" className="mt-5 inline-flex items-center gap-2 rounded-full bg-accent-primary px-5 py-2.5 text-sm font-black text-fg-on-brand">Abrir apólices<ArrowUpRight size={15} /></Link></div>
-          : filtered.length === 0 ? <div className="px-6 py-14 text-center"><FilterX className="mx-auto text-fg-4" size={28} /><h2 className="mt-3 text-lg font-black text-fg-1">Nenhuma parcela corresponde aos filtros</h2><button type="button" onClick={() => setFilters(EMPTY_FILTERS)} className="mt-5 rounded-full bg-accent-primary px-5 py-2.5 text-sm font-black text-fg-on-brand">Limpar filtros</button></div>
+          : filtered.length === 0 ? <div className="px-6 py-14 text-center"><FilterX className="mx-auto text-fg-4" size={28} /><h2 className="mt-3 text-lg font-black text-fg-1">Nenhuma parcela corresponde aos filtros</h2><button type="button" onClick={clearParcelaFilters} className="mt-5 rounded-full bg-accent-primary px-5 py-2.5 text-sm font-black text-fg-on-brand">Limpar filtros</button></div>
           : <div className="overflow-x-auto"><table className="w-full min-w-[1080px] border-collapse text-left"><thead className="bg-bg-surface-2 text-[9px] font-black uppercase tracking-wider text-fg-3"><tr><th className="w-12 px-5 py-3"><input type="checkbox" checked={allVisibleSelected} onChange={() => setSelected(allVisibleSelected ? selected.filter((id) => !filtered.some((row) => row.id === id)) : Array.from(new Set([...selected, ...filtered.map((row) => row.id)])))} aria-label="Selecionar parcelas visíveis" /></th><th className="px-3 py-3">Corretora / segurado</th><th className="px-3 py-3">Origem</th><th className="px-3 py-3">Seguradora / ramo</th><th className="px-3 py-3">Vencimento</th><th className="px-3 py-3 text-right">Previsto</th><th className="px-3 py-3 text-right">Pago</th><th className="px-3 py-3">Status</th><th className="px-5 py-3 text-right">Ações</th></tr></thead><tbody className="divide-y divide-border-1">
             {filtered.map((row) => <tr key={row.id} className="group hover:bg-bg-surface-2/70"><td className="px-5 py-3"><input type="checkbox" checked={selected.includes(row.id)} onChange={() => setSelected((current) => current.includes(row.id) ? current.filter((id) => id !== row.id) : [...current, row.id])} aria-label={`Selecionar parcela ${row.numero ?? ''} de ${row.seguradoNome}`} /></td><td className="px-3 py-3"><p className="text-sm font-black text-fg-1">{row.seguradoNome}</p><p className="mt-0.5 text-[11px] text-fg-3">{row.filialNome}</p></td><td className="px-3 py-3"><Link to={`/apolices/${row.apoliceId}?documento=${row.proposta_id}`} className="inline-flex items-center gap-1 text-sm font-black text-accent-primary hover:underline">{row.documentoReferencia}<ChevronRight size={13} /></Link><p className="mt-0.5 font-mono text-[11px] text-fg-3">Apólice {row.apoliceNumero ?? 'em emissão'} · Parcela {row.numero ?? '—'}</p></td><td className="px-3 py-3"><p className="text-sm font-bold text-fg-1">{row.seguradoraNome}</p><p className="mt-0.5 text-[11px] text-fg-3">{row.ramoNome}</p></td><td className="px-3 py-3 font-mono text-sm font-bold text-fg-1">{date(row.vencimento)}</td><td className="px-3 py-3 text-right font-mono text-sm font-black text-fg-1">{money(row.valor)}</td><td className="px-3 py-3 text-right font-mono text-sm font-bold text-fg-2">{row.valor_pago === null ? '—' : money(row.valor_pago)}</td><td className="px-3 py-3"><StatusBadge row={row} /></td><td className="px-5 py-3"><div className="flex justify-end gap-1.5">{['em_aberto', 'vencida'].includes(row.statusEfetivo) && <button type="button" disabled={!canUpdate} onClick={() => setPaymentRows([row])} className="rounded-[6px] border border-border-1 px-2.5 py-1.5 text-[11px] font-black text-accent-primary hover:bg-accent-primary-soft disabled:opacity-40">Confirmar</button>}{row.statusEfetivo === 'paga' && <button type="button" disabled={!canUpdate} onClick={() => void handleReverse([row])} className="rounded-[6px] border border-border-1 px-2.5 py-1.5 text-[11px] font-black text-signal-warning hover:bg-signal-warning/10 disabled:opacity-40">Desfazer</button>}{row.statusEfetivo === 'vencida' && <button type="button" onClick={() => setSearchParams({ visao: 'cobrancas', parcela: row.id })} className="rounded-[6px] border border-border-1 px-2.5 py-1.5 text-[11px] font-black text-fg-2 hover:bg-bg-surface-3">Abrir cobrança</button>}</div></td></tr>)}
           </tbody></table></div>}

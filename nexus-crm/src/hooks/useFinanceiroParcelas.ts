@@ -18,7 +18,11 @@ export function useConfirmarPagamentoParcela() {
   const client = useQueryClient()
   return useMutation({
     mutationFn: async (command: PaymentCommand) => confirmParcelaPayments(command),
-    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.financeiroParcelas }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: queryKeys.financeiroParcelas })
+      client.invalidateQueries({ queryKey: queryKeys.financeiroCobrancas })
+      client.invalidateQueries({ queryKey: ['kanban_cards', 'financeiro'] })
+    },
   })
 }
 
@@ -26,6 +30,10 @@ export function useDesfazerPagamentoParcela() {
   const client = useQueryClient()
   return useMutation({
     mutationFn: async (ids: string[]) => reverseParcelaPayments(ids),
-    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.financeiroParcelas }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: queryKeys.financeiroParcelas })
+      client.invalidateQueries({ queryKey: queryKeys.financeiroCobrancas })
+      client.invalidateQueries({ queryKey: ['kanban_cards', 'financeiro'] })
+    },
   })
 }

@@ -1,359 +1,148 @@
-import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Search, X } from 'lucide-react';
-import DateField from './DateField';
-import { supabase } from '../lib/supabase';
-import { usePipelineStages } from '../hooks/usePipelineStages';
-import { useCreateCobranca } from '../hooks/useFinanceiroCobrancas';
-import type { CreateCardModalProps } from '../modules/types';
+import { useEffect, useMemo, useState } from 'react'
+import { AlertCircle, CalendarClock, X } from 'lucide-react'
+import DateField from './DateField'
+import { usePipelineStages } from '../hooks/usePipelineStages'
+import {
+  useCobrancaResponsaveis,
+  useCreateCobranca,
+  useParcelasElegiveisCobranca,
+} from '../hooks/useFinanceiroCobrancas'
+import type { CobrancaCanal, CobrancaPrioridade } from '../types/database'
 
-interface OportunidadeLite {
-  id: string;
-  nome: string;
-  segurado_nome: string | null;
+interface NovaCobrancaModalProps {
+  isOpen: boolean
+  onClose: () => void
+  pipelineId: string
+  branchIds: readonly string[] | null
+  initialParcelaId?: string | null
+  onCreated?: (id: string) => void
 }
 
-function useOportunidadesLookup(searchTerm: string) {
-  return useQuery({
-    queryKey: ['oportunidades_lookup_cobranca', searchTerm],
-    staleTime: 30_000,
-    queryFn: async (): Promise<OportunidadeLite[]> => {
-      let builder = supabase
-        .from('oportunidades')
-        .select('id, nome, segurados:segurado_id ( nome )')
-        .order('created_at', { ascending: false })
-        .limit(25);
+const money = (value: number | null) => new Intl.NumberFormat('pt-BR', {
+  style: 'currency', currency: 'BRL',
+}).format(value ?? 0)
 
-      const term = searchTerm.trim();
-      if (term) {
-        builder = builder.ilike('nome', `%${term}%`);
-      }
-
-      const { data, error } = await builder;
-      if (error) throw error;
-
-      return (data ?? []).map((row: unknown) => {
-        const r = row as unknown as { id: string; nome: string; segurados: { nome: string } | null };
-        return { id: r.id, nome: r.nome, segurado_nome: r.segurados?.nome ?? null };
-      });
-    },
-  });
-}
-
-/**
- * Modal de criacao de cobranca financeira.
- * Persiste em `public.financeiro_cobrancas`. A vinculacao com oportunidade/apolice
- * e OPCIONAL — permite registrar inadimplencia avulsa (requer migracao 007).
- */
-export default function NovaCobrancaModal({ isOpen, onClose, pipelineId, onCreated }: CreateCardModalProps) {
-  const stagesQuery = usePipelineStages(pipelineId);
-  const createCobranca = useCreateCobranca();
-
-  const [vinculaOportunidade, setVinculaOportunidade] = useState(true);
-  const [oportunidadeSearch, setOportunidadeSearch] = useState('');
-  const [selectedOportunidade, setSelectedOportunidade] = useState<OportunidadeLite | null>(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const oportunidadesQuery = useOportunidadesLookup(oportunidadeSearch);
-
-  const [proximoFollowup, setProximoFollowup] = useState('');
-  const [observacoes, setObservacoes] = useState('');
-
-  // metadata JSONB
-  const [valorParcelaStr, setValorParcelaStr] = useState('');
-  const [numeroParcelaStr, setNumeroParcelaStr] = useState('');
-  const [totalParcelasStr, setTotalParcelasStr] = useState('');
-  const [dataVencimento, setDataVencimento] = useState('');
-  const [diasAtrasoStr, setDiasAtrasoStr] = useState('');
-  const [formaPagamento, setFormaPagamento] = useState('');
-
-  const [submitError, setSubmitError] = useState<string | null>(null);
-
-  const searchRef = useRef<HTMLDivElement>(null);
+export default function NovaCobrancaModal({
+  isOpen, onClose, pipelineId, branchIds, initialParcelaId, onCreated,
+}: NovaCobrancaModalProps) {
+  const stages = usePipelineStages(pipelineId)
+  const eligible = useParcelasElegiveisCobranca(branchIds)
+  const responsaveis = useCobrancaResponsaveis()
+  const create = useCreateCobranca(branchIds)
+  const [parcelaId, setParcelaId] = useState(initialParcelaId ?? '')
+  const [responsavelId, setResponsavelId] = useState('')
+  const [prioridade, setPrioridade] = useState<CobrancaPrioridade>('MEDIA')
+  const [canal, setCanal] = useState<CobrancaCanal>('WHATSAPP')
+  const [followup, setFollowup] = useState('')
+  const [proxima, setProxima] = useState('')
+  const [observacoes, setObservacoes] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+    if (!isOpen) return undefined
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !create.isPending) onClose()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [create.isPending, isOpen, onClose])
 
-  const parseMoneyBr = (value: string): number | null => {
-    if (!value) return null;
-    const cleaned = value.replace(/[^0-9.,-]/g, '').replace(/\./g, '').replace(',', '.');
-    const n = Number(cleaned);
-    return Number.isFinite(n) ? n : null;
-  };
+  const rows = useMemo(() => eligible.data ?? [], [eligible.data])
+  const selected = rows.find((row) => row.id === parcelaId)
 
-  const parseInt10 = (value: string): number | null => {
-    if (!value) return null;
-    const n = Number(value.replace(/\D/g, ''));
-    return Number.isFinite(n) ? n : null;
-  };
-
-  const resetForm = () => {
-    setVinculaOportunidade(true);
-    setOportunidadeSearch('');
-    setSelectedOportunidade(null);
-    setProximoFollowup('');
-    setObservacoes('');
-    setValorParcelaStr('');
-    setNumeroParcelaStr('');
-    setTotalParcelasStr('');
-    setDataVencimento('');
-    setDiasAtrasoStr('');
-    setFormaPagamento('');
-    setSubmitError(null);
-  };
-
-  const canSubmit =
-    !!pipelineId &&
-    !!(stagesQuery.data && stagesQuery.data.length > 0) &&
-    (!vinculaOportunidade || !!selectedOportunidade) &&
-    !createCobranca.isPending;
+  if (!isOpen) return null
 
   const handleSubmit = async () => {
-    setSubmitError(null);
-    if (!pipelineId || !stagesQuery.data?.length) {
-      setSubmitError('Pipeline Financeiro nao configurado');
-      return;
-    }
-    if (vinculaOportunidade && !selectedOportunidade) {
-      setSubmitError('Selecione a apolice/oportunidade ou desmarque a vinculacao');
-      return;
-    }
-    const firstStage = stagesQuery.data[0];
-
-    const metadata: Record<string, unknown> = {};
-    const valorParcela = parseMoneyBr(valorParcelaStr);
-    const numeroParcela = parseInt10(numeroParcelaStr);
-    const totalParcelas = parseInt10(totalParcelasStr);
-    const diasAtraso = parseInt10(diasAtrasoStr);
-    if (valorParcela !== null) metadata.valor_parcela = valorParcela;
-    if (numeroParcela !== null) metadata.numero_parcela = numeroParcela;
-    if (totalParcelas !== null) metadata.total_parcelas = totalParcelas;
-    if (dataVencimento) metadata.data_vencimento = dataVencimento;
-    if (diasAtraso !== null) metadata.dias_atraso = diasAtraso;
-    if (formaPagamento) metadata.forma_pagamento = formaPagamento;
-
+    setError(null)
+    const firstStage = stages.data?.[0]
+    if (!firstStage) return setError('O pipeline de Cobranças não possui uma etapa inicial.')
+    if (!selected) return setError('Selecione uma parcela vencida elegível.')
     try {
-      const created = await createCobranca.mutateAsync({
-        oportunidadeId: vinculaOportunidade ? selectedOportunidade?.id ?? null : null,
-        pipelineId,
+      const row = await create.mutateAsync({
+        parcelaId: selected.id,
         stageId: firstStage.id,
-        proximoFollowup: proximoFollowup || null,
+        responsavelId: responsavelId || null,
+        prioridade,
+        vencimentoFollowup: followup || null,
+        proximaCobrancaEm: proxima ? new Date(proxima).toISOString() : null,
+        canalPreferencial: canal,
         observacoes: observacoes || null,
-        metadata,
-      });
-      onCreated?.(created.id);
-      resetForm();
-      onClose();
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Erro ao criar cobranca');
+      })
+      onClose()
+      onCreated?.(row.id)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Não foi possível abrir a cobrança.')
     }
-  };
-
-  if (!isOpen) return null;
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-10 px-4">
-      <div className="fixed inset-0 z-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 my-auto bg-bg-surface rounded-[8px] shadow-[var(--shadow-3)] w-full max-w-[720px] border border-border-1 animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-5 border-b border-border-1 sticky top-0 bg-bg-surface z-10">
+    <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto px-4 py-8">
+      <button type="button" aria-label="Fechar modal" className="fixed inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={() => !create.isPending && onClose()} />
+      <section role="dialog" aria-modal="true" aria-labelledby="nova-cobranca-title" className="relative my-auto w-full max-w-[680px] rounded-[8px] border border-border-1 bg-bg-surface shadow-[var(--shadow-3)]">
+        <header className="flex items-start justify-between border-b border-border-1 p-5">
           <div>
-            <h2 className="text-lg font-black text-fg-1 tracking-tight">Nova Cobranca</h2>
-            <p className="text-[10px] text-fg-4 font-bold uppercase tracking-widest mt-0.5">
-              Controle de inadimplencia e cobrancas avulsas
-            </p>
+            <h2 id="nova-cobranca-title" className="text-lg font-black text-fg-1">Abrir cobrança</h2>
+            <p className="mt-1 text-xs font-semibold text-fg-3">A origem e os valores vêm da parcela vencida e permanecem somente leitura.</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-bg-surface-2 rounded-[6px] transition-all text-fg-4 hover:text-fg-2">
-            <X size={20} />
-          </button>
+          <button type="button" disabled={create.isPending} onClick={onClose} className="rounded-[6px] p-2 text-fg-4 hover:bg-bg-surface-2 hover:text-fg-2 disabled:opacity-40"><X size={18} /></button>
+        </header>
+
+        <div className="space-y-5 p-5">
+          <label>
+            <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Parcela vencida *</span>
+            <select value={parcelaId} onChange={(event) => setParcelaId(event.target.value)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1 focus:border-accent-primary focus:outline-none">
+              <option value="">Selecione a origem</option>
+              {rows.map((row) => <option key={row.id} value={row.id}>{row.seguradoNome} · {row.documentoReferencia} · parcela {row.numero ?? '—'} · {money(row.valor)}</option>)}
+            </select>
+          </label>
+
+          {selected && <div className="grid gap-3 rounded-[8px] border border-signal-danger/25 bg-signal-danger/5 p-4 sm:grid-cols-3">
+            <div><p className="text-[9px] font-black uppercase tracking-wider text-fg-4">Segurado</p><p className="mt-1 text-sm font-black text-fg-1">{selected.seguradoNome}</p></div>
+            <div><p className="text-[9px] font-black uppercase tracking-wider text-fg-4">Vencimento</p><p className="mt-1 font-mono text-sm font-bold text-fg-1">{selected.vencimento ? new Date(`${selected.vencimento}T12:00:00`).toLocaleDateString('pt-BR') : '—'}</p></div>
+            <div><p className="text-[9px] font-black uppercase tracking-wider text-fg-4">Atraso</p><p className="mt-1 text-sm font-black text-signal-danger">{selected.diasVencidos} dias · {money(selected.valor)}</p></div>
+          </div>}
+
+          {!eligible.isLoading && rows.length === 0 && <div className="flex gap-3 rounded-[8px] border border-signal-warning/30 bg-signal-warning/10 p-4 text-sm text-fg-2"><AlertCircle className="shrink-0 text-signal-warning" size={18} /><div><p className="font-bold text-fg-1">Nenhuma parcela elegível</p><p className="mt-0.5 text-xs font-semibold text-fg-3">Parcelas não vencidas, encerradas ou que já possuem cobrança ativa ficam fora desta lista.</p></div></div>}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label>
+              <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Responsável</span>
+              <select value={responsavelId} onChange={(event) => setResponsavelId(event.target.value)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1">
+                <option value="">Usuário atual</option>
+                {(responsaveis.data ?? []).map((row) => <option key={row.id} value={row.id}>{row.full_name ?? row.email ?? row.id}</option>)}
+              </select>
+            </label>
+            <label>
+              <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Prioridade</span>
+              <select value={prioridade} onChange={(event) => setPrioridade(event.target.value as CobrancaPrioridade)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1">
+                <option value="BAIXA">Baixa</option><option value="MEDIA">Média</option><option value="ALTA">Alta</option><option value="URGENTE">Urgente</option>
+              </select>
+            </label>
+            <label>
+              <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Canal preferencial</span>
+              <select value={canal} onChange={(event) => setCanal(event.target.value as CobrancaCanal)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1">
+                <option value="WHATSAPP">WhatsApp</option><option value="TELEFONE">Telefone</option><option value="EMAIL">E-mail</option><option value="OUTRO">Outro</option>
+              </select>
+            </label>
+            <DateField label="Prazo do follow-up" value={followup} onChange={setFollowup} inputClassName="text-sm" />
+            <label className="sm:col-span-2">
+              <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Próximo contato</span>
+              <div className="relative"><CalendarClock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" /><input type="datetime-local" value={proxima} onChange={(event) => setProxima(event.target.value)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 py-2.5 pl-9 pr-3 text-sm font-semibold text-fg-1" /></div>
+            </label>
+            <label className="sm:col-span-2">
+              <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Observações</span>
+              <textarea rows={3} value={observacoes} onChange={(event) => setObservacoes(event.target.value)} placeholder="Contexto da primeira tratativa" className="w-full resize-none rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm text-fg-1" />
+            </label>
+          </div>
+
+          {error && <p className="rounded-[6px] border border-signal-danger/30 bg-signal-danger/10 px-3 py-2 text-xs font-bold text-signal-danger">{error}</p>}
         </div>
 
-        <div className="p-5 space-y-4">
-          <div className="flex p-1 bg-bg-surface-2 rounded-[6px] w-fit">
-            <button
-              type="button"
-              onClick={() => setVinculaOportunidade(true)}
-              className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${
-                vinculaOportunidade ? 'bg-bg-surface shadow-[var(--shadow-1)] text-accent-primary' : 'text-fg-3'
-              }`}
-            >
-              Vinculada a Apolice
-            </button>
-            <button
-              type="button"
-              onClick={() => { setVinculaOportunidade(false); setSelectedOportunidade(null); }}
-              className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${
-                !vinculaOportunidade ? 'bg-bg-surface shadow-[var(--shadow-1)] text-accent-primary' : 'text-fg-3'
-              }`}
-            >
-              Avulsa
-            </button>
-          </div>
-
-          {vinculaOportunidade && (
-            <div ref={searchRef} className="relative z-[60]">
-              <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">
-                Oportunidade / Apolice *
-              </label>
-              <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
-                <input
-                  type="text"
-                  placeholder="Buscar por titulo da oportunidade..."
-                  value={selectedOportunidade ? `${selectedOportunidade.nome}${selectedOportunidade.segurado_nome ? ` - ${selectedOportunidade.segurado_nome}` : ''}` : oportunidadeSearch}
-                  onChange={(e) => {
-                    if (selectedOportunidade) setSelectedOportunidade(null);
-                    setOportunidadeSearch(e.target.value);
-                    setShowSuggestions(true);
-                  }}
-                  onFocus={() => setShowSuggestions(true)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none transition-all"
-                />
-              </div>
-              {showSuggestions && !selectedOportunidade && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-bg-surface border border-border-1 rounded-[6px] shadow-[var(--shadow-3)] z-[80] overflow-hidden max-h-[220px] overflow-y-auto">
-                  {oportunidadesQuery.isError ? (
-                    <div className="p-3 text-center text-[10px] text-signal-danger font-bold">Erro ao carregar oportunidades</div>
-                  ) : oportunidadesQuery.isLoading ? (
-                    <div className="p-3 text-center text-[10px] text-fg-4 font-bold">Carregando...</div>
-                  ) : (oportunidadesQuery.data ?? []).length > 0 ? (
-                    (oportunidadesQuery.data ?? []).map((op) => (
-                      <button
-                        key={op.id}
-                        type="button"
-                        onClick={() => { setSelectedOportunidade(op); setShowSuggestions(false); }}
-                        className="w-full text-left px-3 py-2 hover:bg-accent-primary-soft transition-colors border-b border-border-1 last:border-0"
-                      >
-                        <p className="text-xs font-bold text-fg-1">{op.nome}</p>
-                        <p className="text-[9px] text-fg-4">{op.segurado_nome ?? '-'}</p>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="p-3 text-center text-[10px] text-fg-4 font-bold">Nenhuma oportunidade encontrada</div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {!vinculaOportunidade && (
-            <div className="bg-signal-warning/10 border border-signal-warning/30 rounded-[6px] p-3">
-              <p className="text-[10px] font-bold text-signal-warning uppercase tracking-wider">
-                Cobranca avulsa
-              </p>
-              <p className="text-[11px] text-fg-3 mt-1">
-                Requer migracao <code className="font-mono bg-signal-warning/15 px-1 rounded">007_fase2_5_cobranca_oportunidade_nullable.sql</code> aplicada no banco. Caso nao esteja, o insert falhara com erro de constraint.
-              </p>
-            </div>
-          )}
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">Valor da Parcela</label>
-              <input
-                type="text"
-                placeholder="R$ 0,00"
-                value={valorParcelaStr}
-                onChange={(e) => setValorParcelaStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">Num. Parcela</label>
-              <input
-                type="text"
-                placeholder="Ex: 3"
-                value={numeroParcelaStr}
-                onChange={(e) => setNumeroParcelaStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">Total Parcelas</label>
-              <input
-                type="text"
-                placeholder="Ex: 12"
-                value={totalParcelasStr}
-                onChange={(e) => setTotalParcelasStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <DateField
-                label="Data de Vencimento"
-                value={dataVencimento}
-                onChange={setDataVencimento}
-                inputClassName="text-xs"
-              />
-            </div>
-            <div>
-              <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">Dias em Atraso</label>
-              <input
-                type="text"
-                placeholder="Ex: 15"
-                value={diasAtrasoStr}
-                onChange={(e) => setDiasAtrasoStr(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">Forma de Pagamento</label>
-              <input
-                type="text"
-                placeholder="Boleto, PIX..."
-                value={formaPagamento}
-                onChange={(e) => setFormaPagamento(e.target.value)}
-                className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div>
-            <DateField
-              label="Proximo Followup"
-              value={proximoFollowup}
-              onChange={setProximoFollowup}
-              inputClassName="text-xs"
-            />
-          </div>
-
-          <div>
-            <label className="text-[9px] font-black text-fg-4 uppercase tracking-widest mb-1.5 block">Observacoes</label>
-            <textarea
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
-              rows={3}
-              placeholder="Tratativas, contatos, promessas de pagamento..."
-              className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-[6px] text-xs font-bold resize-none focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
-            />
-          </div>
-
-          {submitError && (
-            <div className="text-[11px] font-bold text-signal-danger bg-signal-danger/10 border border-signal-danger/30 rounded-[6px] px-3 py-2">
-              {submitError}
-            </div>
-          )}
-        </div>
-
-        <div className="p-5 pt-0 flex justify-center">
-          <button
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            title={vinculaOportunidade && !selectedOportunidade ? 'Selecione a oportunidade ou marque como avulsa' : undefined}
-            className="w-full max-w-[300px] py-3 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black uppercase tracking-widest hover:bg-accent-primary-hover transition-all shadow-[var(--shadow-brand)] disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {createCobranca.isPending ? 'Salvando...' : 'Registrar Cobranca'}
-          </button>
-        </div>
-      </div>
+        <footer className="flex justify-end gap-3 border-t border-border-1 p-5">
+          <button type="button" disabled={create.isPending} onClick={onClose} className="rounded-full border border-border-1 px-4 py-2.5 text-sm font-bold text-fg-3 hover:bg-bg-surface-2">Cancelar</button>
+          <button type="button" disabled={!selected || create.isPending} onClick={() => void handleSubmit()} className="rounded-full bg-accent-primary px-5 py-2.5 text-sm font-black text-fg-on-brand shadow-[var(--shadow-brand)] hover:bg-accent-primary-hover disabled:opacity-40">{create.isPending ? 'Abrindo...' : 'Abrir cobrança'}</button>
+        </footer>
+      </section>
     </div>
-  );
+  )
 }

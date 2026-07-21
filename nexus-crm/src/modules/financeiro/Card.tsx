@@ -1,5 +1,15 @@
-import { DollarSign } from 'lucide-react';
-import { makeKanbanCard } from '../KanbanCardShell';
+import { MessageSquareText } from 'lucide-react'
+import { KanbanCardShell } from '../KanbanCardShell'
+import type { KanbanCardProps } from '../types'
 
-/** Card do modulo Financeiro. Accent bar verde + icone de cifrao. */
-export const FinanceiroCard = makeKanbanCard({ accent: 'success', accentBar: true, LeftIcon: DollarSign });
+export function FinanceiroCard({ card, onOpen }: KanbanCardProps) {
+  return (
+    <KanbanCardShell
+      card={card}
+      onOpen={onOpen}
+      accent="warning"
+      accentBar
+      LeftIcon={MessageSquareText}
+    />
+  )
+}

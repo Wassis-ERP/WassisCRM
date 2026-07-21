@@ -236,6 +236,25 @@ export type ItemVidaRow = { apolice_item_id: string; pessoa_id: string | null; n
 export type ItemCoberturaRow = { id: string; apolice_item_id: string; cobertura_id: string | null; incluido_por_proposta_id: string | null; excluido_por_proposta_id: string | null; capital_lmi: number | null; franquia_valor: number | null; franquia_tipo: string | null; premio: number | null; premio_liquido: number | null; carencia_dias: number | null; participacao_obrigatoria_pct: number | null; vigencia_inicio: string | null; vigencia_fim: string | null; observacoes: string | null }
 export type ParcelaStatus = 'em_aberto' | 'paga' | 'vencida' | 'cancelada' | 'estornada'
 export type ParcelaRow = { id: string; proposta_id: string; numero: number | null; vencimento: string | null; valor: number | null; valor_liquido: number | null; iof: number | null; adicional_fracionamento: number | null; status: ParcelaStatus | null; forma_pagamento: string | null; nosso_numero: string | null; linha_digitavel: string | null; codigo_barras: string | null; data_pagamento: string | null; valor_pago: number | null; data_baixa: string | null; numero_fatura: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
+export type CobrancaStatus = 'ATIVA' | 'QUITADA' | 'CANCELADA'
+export type CobrancaPrioridade = 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE'
+export type CobrancaCanal = 'TELEFONE' | 'WHATSAPP' | 'EMAIL' | 'OUTRO'
+export type FinanceiroCobrancaRow = {
+  id: string
+  parcela_id: string
+  stage_id: string
+  responsavel_id: string | null
+  data_abertura: string | null
+  vencimento_followup: string | null
+  status: CobrancaStatus
+  prioridade: CobrancaPrioridade | null
+  ultima_cobranca_em: string | null
+  proxima_cobranca_em: string | null
+  canal_preferencial: CobrancaCanal | null
+  observacoes: string | null
+  encerrada_em: string | null
+  motivo_encerramento: string | null
+}
 export type ComissaoTipo = 'NORMAL' | 'AGENCIAMENTO' | 'VITALICIA' | 'ADICIONAL' | 'RESTITUICAO'
 export type ComissaoStatus = 'PREVISTA' | 'PARCIAL' | 'RECEBIDA' | 'DIVERGENTE' | 'CANCELADA'
 export type ComissaoRow = { id: string; proposta_id: string; parcela_id: string | null; numero: number | null; tipo_comissao: ComissaoTipo; percentual: number | null; base_calculo: number | null; valor_previsto: number | null; valor_recebido: number | null; valor_diferenca: number | null; status: ComissaoStatus | null; prevista_em: string | null; recebida_em: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
@@ -1124,64 +1143,15 @@ export type Database = {
         ]
       }
       financeiro_cobrancas: {
-        Row: {
-          concluded_at: string | null
-          created_at: string
-          id: string
-          metadata: Json
-          observacoes: string | null
-          oportunidade_id: string
-          pipeline_id: string | null
-          proximo_followup: string | null
-          responsavel_id: string
-          stage_id: string | null
-          status: Database["public"]["Enums"]["card_status"]
-          tenant_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          concluded_at?: string | null
-          created_at?: string
-          id?: string
-          metadata?: Json
-          observacoes?: string | null
-          oportunidade_id: string
-          pipeline_id?: string | null
-          proximo_followup?: string | null
-          responsavel_id: string
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          concluded_at?: string | null
-          created_at?: string
-          id?: string
-          metadata?: Json
-          observacoes?: string | null
-          oportunidade_id?: string
-          pipeline_id?: string | null
-          proximo_followup?: string | null
-          responsavel_id?: string
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          updated_at?: string
-        }
+        Row: FinanceiroCobrancaRow
+        Insert: Partial<FinanceiroCobrancaRow> & Pick<FinanceiroCobrancaRow, "parcela_id" | "stage_id">
+        Update: Partial<FinanceiroCobrancaRow>
         Relationships: [
           {
-            foreignKeyName: "financeiro_cobrancas_oportunidade_id_fkey"
-            columns: ["oportunidade_id"]
+            foreignKeyName: "financeiro_cobrancas_parcela_id_fkey"
+            columns: ["parcela_id"]
             isOneToOne: false
-            referencedRelation: "oportunidades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "financeiro_cobrancas_pipeline_id_fkey"
-            columns: ["pipeline_id"]
-            isOneToOne: false
-            referencedRelation: "pipelines"
+            referencedRelation: "parcelas"
             referencedColumns: ["id"]
           },
           {
@@ -1192,10 +1162,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "financeiro_cobrancas_tenant_id_fkey"
-            columns: ["tenant_id"]
+            foreignKeyName: "financeiro_cobrancas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
             isOneToOne: false
-            referencedRelation: "tenants"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

@@ -70,4 +70,6 @@ export const queryKeys = {
   financeiroComissoes: ['financeiro', 'comissoes'] as const,
   financeiroExtratos: ['financeiro', 'comissao-extratos'] as const,
   financeiroRepasses: ['financeiro', 'repasses'] as const,
+  financeiroCobrancas: ['financeiro', 'cobrancas'] as const,
+  financeiroCobranca: (id: string | null | undefined) => ['financeiro', 'cobrancas', id] as const,
 };

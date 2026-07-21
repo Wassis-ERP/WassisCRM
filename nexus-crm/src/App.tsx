@@ -13,6 +13,7 @@ import ModuleKanbanPage from './pages/ModuleKanbanPage'
 import SinistroDetalhePage from './pages/SinistroDetalhePage'
 import NovoSinistroPage from './pages/NovoSinistroPage'
 import FinanceiroPage from './pages/FinanceiroPage'
+import FinanceiroDetalhePage from './pages/FinanceiroDetalhePage'
 import ImportacaoDemonstrativoComissoesPage from './pages/ImportacaoDemonstrativoComissoesPage'
 import PosVendaDetalhePage from './pages/PosVendaDetalhePage'
 import NovoPosVendaPage from './pages/NovoPosVendaPage'
@@ -217,7 +218,7 @@ function AppLayout() {
               element={<FinanceiroPage />}
             />
             <Route path="/financeiro/importar-demonstrativo" element={<ImportacaoDemonstrativoComissoesPage />} />
-            <Route path="/financeiro/:id" element={<Navigate to="/financeiro?visao=cobrancas" replace />} />
+            <Route path="/financeiro/:id" element={<FinanceiroDetalhePage />} />
             <Route path="/produtores" element={<Navigate to="/configuracoes?tab=produtores" replace />} />
             <Route path="/propostas" element={<PropostasPage />} />
             <Route path="/propostas/novo" element={<NovaPropostaApolicePage />} />

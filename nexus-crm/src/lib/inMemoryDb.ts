@@ -399,7 +399,9 @@ export const RELATIONS: Record<
   'sinistros.profiles': { target: 'profiles', localFk: 'responsavel_id', kind: 'forward' },
   'sinistro_envolvidos.sinistros': { target: 'sinistros', localFk: 'sinistro_id', kind: 'forward' },
   'sinistro_envolvidos.apolice_itens': { target: 'apolice_itens', localFk: 'apolice_item_id', kind: 'forward' },
-  'financeiro_cobrancas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
+  'financeiro_cobrancas.parcelas': { target: 'parcelas', localFk: 'parcela_id', kind: 'forward' },
+  'financeiro_cobrancas.pipeline_stages': { target: 'pipeline_stages', localFk: 'stage_id', kind: 'forward' },
+  'financeiro_cobrancas.profiles': { target: 'profiles', localFk: 'responsavel_id', kind: 'forward' },
   'recebimento_grades.seguradoras': { target: 'seguradoras', localFk: 'seguradora_id', kind: 'forward' },
   'recebimento_grades.ramos': { target: 'ramos', localFk: 'ramo_id', kind: 'forward' },
   'recebimento_grade_parcelas.recebimento_grades': { target: 'recebimento_grades', localFk: 'grade_id', kind: 'forward' },
@@ -1317,12 +1319,13 @@ export function seed(): void {
     },
     {
       entidade_tipo: 'cobranca',
-      nome: 'Pipeline Financeiro',
+      nome: 'Cobranças securitárias',
       ordem: 40,
       stages: [
-        { nome: 'A vencer', cor: 'bg-slate-400' },
-        { nome: 'Vencida', cor: 'bg-amber-400' },
-        { nome: 'Paga', cor: 'bg-emerald-400', sucesso: true },
+        { nome: 'Nova', cor: 'bg-slate-400' },
+        { nome: 'Em contato', cor: 'bg-blue-400' },
+        { nome: 'Promessa de pagamento', cor: 'bg-amber-400' },
+        { nome: 'Acompanhamento final', cor: 'bg-emerald-400' },
       ],
     },
     {
@@ -2051,6 +2054,32 @@ export function seed(): void {
   const auroraReversed = db.parcelas.find((row) => row.proposta_id === 'mock-proposta-aurora-original' && row.numero === 12);
   if (auroraReversed) Object.assign(auroraReversed, { status: 'estornada' });
   db.parcelas.filter((row) => Number(row.valor) < 0).forEach((row) => Object.assign(row, { status: 'estornada' }));
+  const cobrancaPipeline = db.pipelines.find((row) => row.entidade_tipo === 'cobranca');
+  const cobrancaStages = cobrancaPipeline
+    ? db.pipeline_stages.filter((row) => row.pipeline_id === cobrancaPipeline.id).sort((a, b) => Number(a.ordem) - Number(b.ordem))
+    : [];
+  const parcelasVencidas = db.parcelas.filter((row) =>
+    row.vencimento && row.vencimento < '2026-07-20' && !['paga', 'cancelada', 'estornada'].includes(String(row.status)),
+  );
+  if (cobrancaStages[0] && parcelasVencidas[0]) {
+    db.financeiro_cobrancas.push({
+      id: 'mock-cobranca-ativa-01', parcela_id: parcelasVencidas[0].id, stage_id: cobrancaStages[1]?.id ?? cobrancaStages[0].id,
+      responsavel_id: MOCK_USER_ID, data_abertura: '2026-07-15', vencimento_followup: '2026-07-21',
+      status: 'ATIVA', prioridade: 'ALTA', ultima_cobranca_em: '2026-07-18T14:30:00.000Z',
+      proxima_cobranca_em: '2026-07-21T13:00:00.000Z', canal_preferencial: 'WHATSAPP',
+      observacoes: 'Cliente contatado; aguardando confirmação da programação de pagamento.',
+      encerrada_em: null, motivo_encerramento: null,
+    });
+  }
+  if (cobrancaStages[0] && parcelasVencidas[1]) {
+    db.financeiro_cobrancas.push({
+      id: 'mock-cobranca-ativa-02', parcela_id: parcelasVencidas[1].id, stage_id: cobrancaStages[0].id,
+      responsavel_id: 'mock-user-renato', data_abertura: '2026-07-19', vencimento_followup: '2026-07-22',
+      status: 'ATIVA', prioridade: 'MEDIA', ultima_cobranca_em: null,
+      proxima_cobranca_em: '2026-07-22T13:00:00.000Z', canal_preferencial: 'EMAIL',
+      observacoes: 'Primeira tratativa pendente.', encerrada_em: null, motivo_encerramento: null,
+    });
+  }
   // Caso deliberadamente divergente para validar a recuperação coletiva do 2.9b.
   db.parcelas.push({
     id: 'mock-parcela-rafael-manual-10', proposta_id: 'mock-proposta-rafael', numero: 10,
