@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   AlertCircle,
   ArrowLeft,
@@ -17,6 +18,7 @@ import {
 import { useConfirmarImportacaoComissao, useProcessarDemonstrativoComissao } from '../../hooks/useFinanceiroExtratos'
 import {
   refreshImportItem,
+  summarizeImportPreview,
   validateImportPreview,
   type CommissionImportItem,
   type CommissionImportPreview,
@@ -59,6 +61,7 @@ const ASSOCIATION_DESCRIPTIONS: Record<ImportAssociationKind, string> = {
 }
 
 const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+const date = (value: string) => new Intl.DateTimeFormat('pt-BR').format(new Date(`${value}T12:00:00`))
 const fileSize = (value: number) => value < 1024 * 1024 ? `${Math.max(1, Math.round(value / 1024))} KB` : `${(value / 1024 / 1024).toFixed(1)} MB`
 
 function uniqueContexts(rows: FinanceiroComissao[], id: 'filialId' | 'seguradoraId', label: 'filialNome' | 'seguradoraNome') {
@@ -102,6 +105,35 @@ function SummaryMetrics({ preview, totals }: { preview: CommissionImportPreview;
     ['Bruto', money(totals.gross)],
     ['Líquido', money(totals.net)],
   ].map(([label, value]) => <div key={label} className="rounded-[8px] border border-border-1 bg-bg-surface-2 px-4 py-3"><p className="text-[9px] font-black uppercase tracking-wider text-fg-3">{label}</p><p className="mt-1 font-mono text-sm font-black text-fg-1">{value}</p></div>)}</div>
+}
+
+function StatementHeader({ preview, onNoteChange }: { preview: CommissionImportPreview; onNoteChange?: (value: string) => void }) {
+  const totalization = summarizeImportPreview(preview)
+  const fields = [
+    ['Referência', preview.externalReference],
+    ['Competência', date(preview.competence)],
+    ['Período', `${date(preview.periodStart)} a ${date(preview.periodEnd)}`],
+    ['Emissão', date(preview.issueDate)],
+    ['Crédito informado', date(preview.creditDate)],
+    ['Bruto informado', money(preview.grossTotal)],
+    ['Descontos informados', money(preview.discountTotal)],
+    ['Líquido informado', money(preview.netTotal)],
+    ['Soma líquida dos itens', money(totalization.itemsNet)],
+    ['Diferença', money(totalization.difference)],
+    ['Moeda', preview.currency],
+  ]
+
+  return <section className="overflow-hidden rounded-[8px] border border-border-1">
+    <div className="grid gap-px bg-border-1 sm:grid-cols-2 lg:grid-cols-4">
+      {fields.map(([label, value]) => <div key={label} className="bg-bg-surface px-4 py-3"><p className="text-[9px] font-black uppercase tracking-wider text-fg-3">{label}</p><p className={`mt-1 text-xs font-black text-fg-1 ${label.includes('Referência') || label.includes('informado') || label === 'Diferença' ? 'font-mono' : ''}`}>{value}</p></div>)}
+    </div>
+    <div className={`flex flex-wrap items-center gap-3 border-t px-4 py-3 text-xs ${totalization.compatible ? 'border-signal-success/25 bg-signal-success/8 text-signal-success' : 'border-signal-warning/30 bg-signal-warning/8 text-signal-warning'}`}>
+      {totalization.compatible ? <CheckCircle2 size={16} /> : <TriangleAlert size={16} />}
+      <strong className="font-black">{totalization.compatible ? 'Total líquido compatível com os itens' : 'Diferença de totalização requer justificativa'}</strong>
+      {!totalization.compatible && onNoteChange && <textarea value={preview.totalizationNote} onChange={(event) => onNoteChange(event.target.value)} rows={2} placeholder="Justificativa da diferença do cabeçalho" aria-label="Justificativa da diferença de totalização" className="min-w-[280px] flex-1 resize-none rounded-[6px] border border-signal-warning/40 bg-bg-surface px-3 py-2 text-xs text-fg-1 focus:outline-none focus:ring-2 focus:ring-signal-warning/25" />}
+      {!totalization.compatible && !onNoteChange && preview.totalizationNote && <span className="text-fg-2">{preview.totalizationNote}</span>}
+    </div>
+  </section>
 }
 
 function AssociationLegend() {
@@ -259,6 +291,10 @@ export default function CommissionImportWizard({ rows, canUpdate, onCancel, onSt
     } : current)
   }
 
+  const updateTotalizationNote = (value: string) => setPreview((current) => current
+    ? { ...current, totalizationNote: value }
+    : current)
+
   const confirm = async () => {
     if (!preview || previewErrors.length > 0) return
     setLocalError('')
@@ -281,6 +317,7 @@ export default function CommissionImportWizard({ rows, canUpdate, onCancel, onSt
     <button type="button" onClick={() => setStep(1)} disabled={isBusy} className="inline-flex items-center gap-2 rounded-full border border-border-1 px-5 py-2.5 text-sm font-black text-fg-2 hover:bg-bg-surface-3 disabled:opacity-40"><ArrowLeft size={15} />Voltar e ajustar</button>
     <button type="button" onClick={() => void confirm()} disabled={isBusy || !canUpdate || previewErrors.length > 0} title={!canUpdate ? 'Seu perfil pode revisar, mas não confirmar conciliações.' : undefined} className="inline-flex items-center gap-2 rounded-full bg-accent-primary px-5 py-2.5 text-sm font-black text-fg-on-brand shadow-[var(--shadow-brand)] disabled:opacity-40">{confirmImport.isPending ? <Loader2 size={15} className="animate-spin" /> : <ShieldCheck size={15} />}{confirmImport.isPending ? 'Confirmando…' : 'Confirmar conciliação'}</button>
   </> : <>
+    {result && <Link to={`/financeiro/extratos/${result.extractId}`} className="inline-flex items-center gap-2 rounded-full border border-border-1 bg-bg-surface px-5 py-2.5 text-sm font-black text-fg-2 hover:bg-bg-surface-3"><ArrowUpRight size={15} />Abrir extrato</Link>}
     {result && result.commissionIds.length > 0 && <button type="button" onClick={() => onStartReceipt(result.commissionIds)} className="inline-flex items-center gap-2 rounded-full border border-accent-primary px-5 py-2.5 text-sm font-black text-accent-primary hover:bg-accent-primary-soft"><ArrowRight size={15} />Baixar elegíveis</button>}
     {fileIndex + 1 < files.length ? <button type="button" onClick={nextFile} className="inline-flex items-center gap-2 rounded-full bg-accent-primary px-5 py-2.5 text-sm font-black text-fg-on-brand shadow-[var(--shadow-brand)]">Próximo arquivo<ArrowRight size={15} /></button> : <button type="button" onClick={onCancel} className="rounded-full bg-accent-primary px-5 py-2.5 text-sm font-black text-fg-on-brand shadow-[var(--shadow-brand)]">Voltar para Comissões</button>}
   </>
@@ -316,6 +353,7 @@ export default function CommissionImportWizard({ rows, canUpdate, onCancel, onSt
 
       {step === 1 && preview && <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[8px] border border-border-1 bg-bg-surface-2 px-4 py-3"><div><p className="text-sm font-black text-fg-1">{preview.fileName}</p><p className="mt-0.5 text-[11px] text-fg-3">{preview.format} · referência {preview.externalReference} · versão {preview.parserVersion}</p></div>{preview.duplicateExtractId && <span className="rounded-full bg-signal-warning/12 px-3 py-1 text-[10px] font-black text-signal-warning">Arquivo já conhecido</span>}</div>
+        <StatementHeader preview={preview} onNoteChange={updateTotalizationNote} />
         <div className="overflow-x-auto rounded-[8px] border border-border-1"><table className="w-full min-w-[1040px] border-collapse text-left"><thead className="bg-bg-surface-2 text-[9px] font-black uppercase tracking-wider text-fg-3"><tr><th className="px-3 py-3">Linha / associação</th><th className="px-3 py-3">Segurado e documento</th><th className="px-3 py-3">Valores</th><th className="px-3 py-3">Vínculo</th><th className="px-3 py-3">Tratamento</th></tr></thead><tbody className="divide-y divide-border-1">{preview.items.map((item) => {
           const selected = rows.find((row) => row.id === item.selectedCommissionId)
           const requiresNote = item.ignored || (selected ? Math.abs(item.netValue - selected.saldo) > 0.01 : true)
@@ -325,6 +363,7 @@ export default function CommissionImportWizard({ rows, canUpdate, onCancel, onSt
       </div>}
 
       {step === 2 && preview && <div className="space-y-5">
+        <StatementHeader preview={preview} onNoteChange={updateTotalizationNote} />
         <SummaryMetrics preview={preview} totals={totals} />
         <AssociationLegend />
         <ImportSummaryTable preview={preview} rows={rows} />
@@ -335,6 +374,7 @@ export default function CommissionImportWizard({ rows, canUpdate, onCancel, onSt
       {step === 3 && result && preview && <div className="space-y-5">
         <div className="flex items-start gap-3 rounded-[8px] border border-signal-success/30 bg-signal-success/8 px-4 py-3"><CheckCircle2 className="mt-0.5 shrink-0 text-signal-success" size={20} /><div><h3 className="text-sm font-black text-fg-1">Conciliação concluída</h3><p className="mt-1 text-xs leading-5 text-fg-3">O demonstrativo e as linhas abaixo foram registrados. Nenhuma baixa foi realizada automaticamente.</p></div></div>
         <SummaryMetrics preview={preview} totals={totals} />
+        <StatementHeader preview={preview} />
         <ImportSummaryTable preview={preview} rows={rows} completedCommissionIds={preview.items.filter((item) => !item.ignored && item.selectedCommissionId).map((item) => item.selectedCommissionId!)} />
         {result.idempotent && <p className="rounded-[8px] bg-signal-warning/10 px-4 py-3 text-xs font-bold text-signal-warning">Este arquivo já havia sido confirmado; o resultado anterior foi reutilizado sem duplicação.</p>}
         <div className="rounded-[8px] border border-signal-info/25 bg-signal-info/8 px-4 py-3 text-xs leading-5 text-signal-info"><strong className="font-black">Próxima ação:</strong> {result.commissionIds.length} comissão(ões) está(ão) elegível(is) para baixa. Use “Baixar elegíveis” para iniciar o fluxo separado do 3.3.</div>

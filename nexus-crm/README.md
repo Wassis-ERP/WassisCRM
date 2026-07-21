@@ -1,6 +1,7 @@
 # WassisCRM
 
-Frontend CRM/Kanban do ecossistema W.Assis, focado em funis operacionais por modulo: comercial, emissao, pos-venda, financeiro e sinistro.
+Frontend CRM do ecossistema W.Assis, focado nos fluxos de comercial,
+propostas/apolices, financeiro, sinistros e pos-venda.
 
 > **Modo atual:** frontend puro. Toda a camada de dados roda em memória dentro do browser (`src/lib/inMemoryDb.ts`). Não há backend conectado: criar, editar e excluir registros funciona normalmente, mas **um full reload da página zera os dados de domínio**. Lookups, pipelines e o usuário admin são reseedados na carga.
 
@@ -11,7 +12,6 @@ Frontend CRM/Kanban do ecossistema W.Assis, focado em funis operacionais por mod
 - TypeScript strict
 - React Router
 - TanStack Query
-- Zustand
 - Tailwind CSS 4
 
 ## Estrutura
@@ -20,8 +20,8 @@ Frontend CRM/Kanban do ecossistema W.Assis, focado em funis operacionais por mod
 WassisCRM/
   package.json          # scripts roteados para nexus-crm
   nexus-crm/            # aplicacao Vite/React
-  planos/               # planejamento tecnico e migracoes auxiliares
-  stitch_screens/       # referencias visuais
+  .codex/plans/         # planejamento tecnico e micro-planos
+  .codex/artefatos/     # contrato e referencias vigentes do projeto
 ```
 
 ## Configuracao local

@@ -87,10 +87,19 @@ describe('extratoImportDomain', () => {
     const first = result.items[0]
     const withoutLink = refreshImportItem({ ...first, selectedCommissionId: null }, listFinanceiroComissoes(null))
     const invalid = { ...result, items: [withoutLink] }
-    expect(validateImportPreview(invalid, listFinanceiroComissoes(null))[0]).toMatch(/escolha uma comissão/i)
+    expect(validateImportPreview(invalid, listFinanceiroComissoes(null)))
+      .toContainEqual(expect.stringMatching(/escolha uma comissão/i))
 
     const ignored = { ...withoutLink, ignored: true, resolutionNote: 'Item fora do período conferido.' }
-    expect(validateImportPreview({ ...result, items: [ignored] }, listFinanceiroComissoes(null))).toEqual([])
+    expect(validateImportPreview({ ...result, items: [ignored], totalizationNote: 'Item descartado após conferência do cabeçalho.' }, listFinanceiroComissoes(null))).toEqual([])
+  })
+
+  it('exige justificativa quando o total informado diverge da soma dos itens', async () => {
+    const result = await preview()
+    const divergent = { ...result, netTotal: result.netTotal + 10 }
+    expect(validateImportPreview(divergent, listFinanceiroComissoes(null))[0]).toMatch(/cabeçalho/i)
+    expect(validateImportPreview({ ...divergent, totalizationNote: 'Diferença confirmada no demonstrativo.' }, listFinanceiroComissoes(null)))
+      .not.toContainEqual(expect.stringMatching(/cabeçalho/i))
   })
 
   it('confirma extrato, itens, conciliações e ocorrências sem criar baixa', async () => {

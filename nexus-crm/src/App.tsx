@@ -15,6 +15,8 @@ import NovoSinistroPage from './pages/NovoSinistroPage'
 import FinanceiroPage from './pages/FinanceiroPage'
 import FinanceiroDetalhePage from './pages/FinanceiroDetalhePage'
 import ImportacaoDemonstrativoComissoesPage from './pages/ImportacaoDemonstrativoComissoesPage'
+import FinanceiroExtratosPage from './pages/FinanceiroExtratosPage'
+import FinanceiroExtratoDetalhePage from './pages/FinanceiroExtratoDetalhePage'
 import PosVendaDetalhePage from './pages/PosVendaDetalhePage'
 import NovoPosVendaPage from './pages/NovoPosVendaPage'
 import PropostasPage from './pages/PropostasPage'
@@ -218,6 +220,8 @@ function AppLayout() {
               element={<FinanceiroPage />}
             />
             <Route path="/financeiro/importar-demonstrativo" element={<ImportacaoDemonstrativoComissoesPage />} />
+            <Route path="/financeiro/extratos" element={<FinanceiroExtratosPage />} />
+            <Route path="/financeiro/extratos/:id" element={<FinanceiroExtratoDetalhePage />} />
             <Route path="/financeiro/:id" element={<FinanceiroDetalhePage />} />
             <Route path="/produtores" element={<Navigate to="/configuracoes?tab=produtores" replace />} />
             <Route path="/propostas" element={<PropostasPage />} />

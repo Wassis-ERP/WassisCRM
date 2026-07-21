@@ -45,7 +45,16 @@ export interface CommissionImportPreview {
   branchId: string
   insurerId: string
   competence: string
+  periodStart: string
+  periodEnd: string
+  issueDate: string
+  creditDate: string
   externalReference: string
+  grossTotal: number
+  netTotal: number
+  discountTotal: number
+  currency: string
+  totalizationNote: string
   parserIdentifier: string
   parserVersion: string
   duplicateExtractId: string | null
@@ -147,6 +156,14 @@ function simulatedItem(row: FinanceiroComissao, sequence: number, kind: ImportAs
   }
 }
 
+export function summarizeImportPreview(preview: CommissionImportPreview) {
+  const itemsGross = money(preview.items.reduce((total, item) => total + item.grossValue, 0))
+  const itemsNet = money(preview.items.reduce((total, item) => total + item.netValue, 0))
+  const itemsDiscounts = money(preview.items.reduce((total, item) => total + item.discountValue, 0))
+  const difference = money(preview.netTotal - itemsNet)
+  return { itemsGross, itemsNet, itemsDiscounts, difference, compatible: Math.abs(difference) <= 0.01 }
+}
+
 export function refreshImportItem(item: CommissionImportItem, rows: readonly FinanceiroComissao[]): CommissionImportItem {
   if (item.ignored) return { ...item, associationKind: item.selectedCommissionId ? item.associationKind : 'NAO_ENCONTRADA' }
   const selected = rows.find((row) => row.id === item.selectedCommissionId)
@@ -169,7 +186,11 @@ export function refreshImportItem(item: CommissionImportItem, rows: readonly Fin
 }
 
 export function validateImportPreview(preview: CommissionImportPreview, rows: readonly FinanceiroComissao[]): string[] {
-  return preview.items.flatMap((item) => {
+  const totalization = summarizeImportPreview(preview)
+  const headerErrors = Math.abs(totalization.difference) > 0.01 && preview.totalizationNote.trim().length < 5
+    ? ['Cabeçalho: justifique a diferença entre o total líquido informado e a soma dos itens.']
+    : []
+  return [...headerErrors, ...preview.items.flatMap((item) => {
     const current = refreshImportItem(item, rows)
     if (current.ignored) return current.resolutionNote.trim().length >= 5 ? [] : [`Linha ${current.sequence}: informe o motivo do descarte.`]
     if (!current.selectedCommissionId) return [`Linha ${current.sequence}: escolha uma comissão ou descarte o item.`]
@@ -183,7 +204,7 @@ export function validateImportPreview(preview: CommissionImportPreview, rows: re
     }
     if (current.discountValue < 0) return [`Linha ${current.sequence}: descontos não podem ser negativos.`]
     return []
-  })
+  })]
 }
 
 export async function processCommissionStatementFile(command: ProcessCommissionStatementCommand): Promise<CommissionImportPreview> {
@@ -210,6 +231,13 @@ export async function processCommissionStatementFile(command: ProcessCommissionS
     index + 1,
     index === 0 ? 'EXATA' : index === 2 ? 'PARCIAL' : 'SUGERIDA',
   ))
+  const grossTotal = money(items.reduce((total, item) => total + item.grossValue, 0))
+  const discountTotal = money(items.reduce((total, item) => total + item.discountValue, 0))
+  const netTotal = money(items.reduce((total, item) => total + item.netValue, 0))
+  const competenceMonth = command.competence.slice(0, 7)
+  const periodEnd = new Date(Number(competenceMonth.slice(0, 4)), Number(competenceMonth.slice(5, 7)), 0)
+    .toISOString().slice(0, 10)
+  const today = new Date().toISOString().slice(0, 10)
   return {
     fileName: command.file.name,
     fileSize: command.file.size,
@@ -219,7 +247,16 @@ export async function processCommissionStatementFile(command: ProcessCommissionS
     branchId: command.branchId,
     insurerId: command.insurerId,
     competence: command.competence,
+    periodStart: `${competenceMonth}-01`,
+    periodEnd,
+    issueDate: today,
+    creditDate: today,
     externalReference: `DEMO-${new Date().toISOString().slice(0, 10)}-${hash.slice(0, 8).toUpperCase()}`,
+    grossTotal,
+    netTotal,
+    discountTotal,
+    currency: 'BRL',
+    totalizationNote: '',
     parserIdentifier: 'backend-mock-demonstrativo-comissao',
     parserVersion: '1.0.0',
     duplicateExtractId: duplicate?.id ?? null,
@@ -278,9 +315,7 @@ export function confirmCommissionImport(preview: CommissionImportPreview): Confi
     let occurrenceCount = 0
     let ignoredCount = 0
     const normalizedItems = preview.items.map((item) => refreshImportItem(item, rows))
-    const grossTotal = money(normalizedItems.reduce((total, item) => total + item.grossValue, 0))
-    const discountTotal = money(normalizedItems.reduce((total, item) => total + item.discountValue, 0))
-    const netTotal = money(normalizedItems.reduce((total, item) => total + item.netValue, 0))
+    const totalization = summarizeImportPreview({ ...preview, items: normalizedItems })
 
   const extract: ComissaoExtratoRow = {
     id: extractId,
@@ -289,10 +324,10 @@ export function confirmCommissionImport(preview: CommissionImportPreview): Confi
     seguradora_id: preview.insurerId,
     identificacao_externa: preview.externalReference,
     competencia: preview.competence,
-    periodo_inicio: preview.competence,
-    periodo_fim: preview.competence,
-    data_emissao: null,
-    data_recebimento: new Date().toISOString().slice(0, 10),
+    periodo_inicio: preview.periodStart,
+    periodo_fim: preview.periodEnd,
+    data_emissao: preview.issueDate,
+    data_recebimento: preview.creditDate,
     arquivo_nome: preview.fileName,
     arquivo_referencia: `mock://comissao-extratos/${extractId}/${encodeURIComponent(preview.fileName)}`,
     origem_tipo: 'ARQUIVO',
@@ -306,10 +341,10 @@ export function confirmCommissionImport(preview: CommissionImportPreview): Confi
     status_processamento: 'NORMALIZADO',
     status_conciliacao: 'EM_ANALISE',
     quantidade_itens: normalizedItems.length,
-    valor_bruto_total: grossTotal,
-    valor_liquido_total: netTotal,
-    valor_descontos_total: discountTotal,
-    moeda: 'BRL',
+    valor_bruto_total: preview.grossTotal,
+    valor_liquido_total: preview.netTotal,
+    valor_descontos_total: preview.discountTotal,
+    moeda: preview.currency,
     erro_codigo: null,
     erro_mensagem_segura: null,
     recebido_por_id: MOCK_USER_ID,
@@ -319,7 +354,10 @@ export function confirmCommissionImport(preview: CommissionImportPreview): Confi
     processamento_concluido_em: createdAt,
     criado_em: createdAt,
     atualizado_em: createdAt,
-    observacoes: 'Processamento demonstrativo do frontend; extração autoritativa será fornecida pelo backend.',
+    observacoes: [
+      'Processamento demonstrativo do frontend; extração autoritativa será fornecida pelo backend.',
+      totalization.compatible ? null : `Diferença de totalização justificada: ${preview.totalizationNote.trim()}`,
+    ].filter(Boolean).join(' '),
   }
   typedRows<ComissaoExtratoRow>('comissao_extratos').push(extract)
 
