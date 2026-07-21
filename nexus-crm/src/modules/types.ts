@@ -193,6 +193,11 @@ export interface ModuleAdapter {
    */
   createModalComponent?: ComponentType<CreateCardModalProps>;
   /**
+   * Rota dedicada de criação. Quando presente, substitui o modal no botão
+   * "+ Novo" e recebe o funil ativo apenas como contexto de navegação.
+   */
+  createRoute?: (pipelineId: string) => string;
+  /**
    * Rota de detalhe do card. Opcional: se ausente, clicar no card e no-op.
    */
   detailRoute?: (id: string) => string;

@@ -11,8 +11,14 @@ import OportunidadesPage from './pages/OportunidadesPage'
 import OportunidadeDetalhePage from './pages/OportunidadeDetalhePage'
 import ModuleKanbanPage from './pages/ModuleKanbanPage'
 import SinistroDetalhePage from './pages/SinistroDetalhePage'
+import NovoSinistroPage from './pages/NovoSinistroPage'
+import FinanceiroPage from './pages/FinanceiroPage'
 import FinanceiroDetalhePage from './pages/FinanceiroDetalhePage'
+import ImportacaoDemonstrativoComissoesPage from './pages/ImportacaoDemonstrativoComissoesPage'
+import FinanceiroExtratosPage from './pages/FinanceiroExtratosPage'
+import FinanceiroExtratoDetalhePage from './pages/FinanceiroExtratoDetalhePage'
 import PosVendaDetalhePage from './pages/PosVendaDetalhePage'
+import NovoPosVendaPage from './pages/NovoPosVendaPage'
 import PropostasPage from './pages/PropostasPage'
 import NovaPropostaApolicePage from './pages/NovaPropostaApolicePage'
 import ImportacaoDocumentosPage from './pages/ImportacaoDocumentosPage'
@@ -199,6 +205,7 @@ function AppLayout() {
               path="/sinistros"
               element={<ModuleKanbanPage module="sinistro" title="Sinistros" description="Funil de atendimento e regulacao" />}
             />
+            <Route path="/sinistros/novo" element={<NovoSinistroPage />} />
             <Route path="/sinistros/:id" element={<SinistroDetalhePage />} />
             <Route path="/emissoes" element={<Navigate to="/propostas?visao=kanban&origem=emissoes" replace />} />
             <Route path="/emissoes/:id" element={<Navigate to="/propostas?visao=kanban&origem=emissoes" replace />} />
@@ -207,10 +214,14 @@ function AppLayout() {
               element={<ModuleKanbanPage module="pos_venda" title="Pos-Venda" description="Relacionamento e renovacoes" />}
             />
             <Route path="/pos-venda/:id" element={<PosVendaDetalhePage />} />
+            <Route path="/pos-venda/novo" element={<NovoPosVendaPage />} />
             <Route
               path="/financeiro"
-              element={<ModuleKanbanPage module="financeiro" title="Financeiro" description="Cobrancas e conciliacao" />}
+              element={<FinanceiroPage />}
             />
+            <Route path="/financeiro/importar-demonstrativo" element={<ImportacaoDemonstrativoComissoesPage />} />
+            <Route path="/financeiro/extratos" element={<FinanceiroExtratosPage />} />
+            <Route path="/financeiro/extratos/:id" element={<FinanceiroExtratoDetalhePage />} />
             <Route path="/financeiro/:id" element={<FinanceiroDetalhePage />} />
             <Route path="/produtores" element={<Navigate to="/configuracoes?tab=produtores" replace />} />
             <Route path="/propostas" element={<PropostasPage />} />

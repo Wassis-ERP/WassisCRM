@@ -66,4 +66,11 @@ export const queryKeys = {
   profileFiliais: (profileId: string) => ['profile_filiais', profileId] as const,
   team: ['team_members'] as const,
   permissions: ['role_permissions'] as const,
+  financeiroParcelas: ['financeiro', 'parcelas'] as const,
+  financeiroComissoes: ['financeiro', 'comissoes'] as const,
+  financeiroExtratos: ['financeiro', 'comissao-extratos'] as const,
+  financeiroExtrato: (id: string | null | undefined) => ['financeiro', 'comissao-extratos', id] as const,
+  financeiroRepasses: ['financeiro', 'repasses'] as const,
+  financeiroCobrancas: ['financeiro', 'cobrancas'] as const,
+  financeiroCobranca: (id: string | null | undefined) => ['financeiro', 'cobrancas', id] as const,
 };

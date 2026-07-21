@@ -11,6 +11,8 @@ import {
   Users,
   FileText,
   Plus,
+  Pencil,
+  Trash2,
   ShieldCheck,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -36,26 +38,53 @@ const PRIO_CLASS: Record<TarefaPrioridade, string> = {
 const inputCls =
   'w-full px-3 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30'
 
-function TaskRow({ t, onToggle }: { t: Tarefa; onToggle: (id: string) => void }) {
+function TaskRow({
+  t,
+  onToggle,
+  onEdit,
+  onRemove,
+  readOnly = false,
+}: {
+  t: Tarefa
+  onToggle: (id: string) => void
+  onEdit?: (task: Tarefa) => void
+  onRemove?: (id: string) => void
+  readOnly?: boolean
+}) {
   const TipoIcon = TIPO_ICON[t.tipo] ?? Clock
   const concluida = t.status === 'Concluída'
   const atrasada = t.status === 'Atrasada'
   return (
     <div className="flex items-center gap-3 px-4 py-3 bg-bg-surface-2 rounded-xl">
-      <button
-        type="button"
-        onClick={() => onToggle(t.id)}
-        aria-label={concluida ? 'Reabrir tarefa' : 'Concluir tarefa'}
-        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
-          concluida
-            ? 'bg-signal-success border-signal-success text-fg-on-brand'
-            : atrasada
-              ? 'border-signal-danger'
-              : 'border-border-2 hover:border-accent-primary'
-        }`}
-      >
-        {concluida && <Check size={13} strokeWidth={3} />}
-      </button>
+      {readOnly ? (
+        <span
+          aria-hidden="true"
+          className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${
+            concluida
+              ? 'bg-signal-success border-signal-success text-fg-on-brand'
+              : atrasada
+                ? 'border-signal-danger'
+                : 'border-border-2'
+          }`}
+        >
+          {concluida && <Check size={13} strokeWidth={3} />}
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onToggle(t.id)}
+          aria-label={concluida ? 'Reabrir tarefa' : 'Concluir tarefa'}
+          className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
+            concluida
+              ? 'bg-signal-success border-signal-success text-fg-on-brand'
+              : atrasada
+                ? 'border-signal-danger'
+                : 'border-border-2 hover:border-accent-primary'
+          }`}
+        >
+          {concluida && <Check size={13} strokeWidth={3} />}
+        </button>
+      )}
       <div className="min-w-0 flex-1">
         <p className={`text-sm font-medium ${concluida ? 'line-through text-fg-4' : 'text-fg-1'}`}>
           {t.titulo}
@@ -83,27 +112,50 @@ function TaskRow({ t, onToggle }: { t: Tarefa; onToggle: (id: string) => void })
       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${PRIO_CLASS[t.prioridade]}`}>
         {t.prioridade}
       </span>
+      {!readOnly && (onEdit || onRemove) && (
+        <div className="flex shrink-0 items-center gap-1">
+          {onEdit && (
+            <button type="button" onClick={() => onEdit(t)} className="rounded-[6px] p-1.5 text-fg-4 hover:bg-bg-surface-3 hover:text-accent-primary" aria-label={`Editar tarefa ${t.titulo}`}>
+              <Pencil size={14} />
+            </button>
+          )}
+          {onRemove && (
+            <button type="button" onClick={() => onRemove(t.id)} className="rounded-[6px] p-1.5 text-fg-4 hover:bg-signal-danger/10 hover:text-signal-danger" aria-label={`Remover tarefa ${t.titulo}`}>
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
-function NovaTarefaForm({
+function TarefaForm({
   onSubmit,
   onCancel,
+  initial,
 }: {
   onSubmit: (t: Omit<Tarefa, 'id'>) => void
   onCancel: () => void
+  initial?: Tarefa
 }) {
-  const [titulo, setTitulo] = useState('')
-  const [tipo, setTipo] = useState<TarefaTipo>('Follow-up')
-  const [prazo, setPrazo] = useState('')
-  const [prioridade, setPrioridade] = useState<TarefaPrioridade>('Média')
+  const [titulo, setTitulo] = useState(initial?.titulo ?? '')
+  const [tipo, setTipo] = useState<TarefaTipo>(initial?.tipo ?? 'Follow-up')
+  const [prazo, setPrazo] = useState(initial?.prazo ?? '')
+  const [prioridade, setPrioridade] = useState<TarefaPrioridade>(initial?.prioridade ?? 'Média')
 
   const submit = () => {
     if (!titulo.trim()) return
     const status: Tarefa['status'] =
       prazo && (relativeDays(prazo) ?? 0) < 0 ? 'Atrasada' : 'Pendente'
-    onSubmit({ titulo: titulo.trim(), tipo, prazo: prazo || undefined, prioridade, status })
+    onSubmit({
+      titulo: titulo.trim(),
+      tipo,
+      prazo: prazo || undefined,
+      prioridade,
+      status: initial?.status === 'Concluída' ? 'Concluída' : status,
+      responsavel: initial?.responsavel,
+    })
     onCancel()
   }
 
@@ -145,7 +197,7 @@ function NovaTarefaForm({
           disabled={!titulo.trim()}
           className="px-4 py-1.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-semibold hover:bg-accent-primary-hover disabled:opacity-50"
         >
-          Adicionar
+          {initial ? 'Salvar tarefa' : 'Adicionar'}
         </button>
       </div>
     </div>
@@ -155,13 +207,20 @@ function NovaTarefaForm({
 export default function TarefasTab({
   tarefas,
   onAdd,
+  onEdit,
   onToggle,
+  onRemove,
+  readOnly = false,
 }: {
   tarefas: Tarefa[]
   onAdd: (t: Omit<Tarefa, 'id'>) => void
+  onEdit?: (id: string, t: Omit<Tarefa, 'id'>) => void
   onToggle: (id: string) => void
+  onRemove?: (id: string) => void
+  readOnly?: boolean
 }) {
   const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<Tarefa | null>(null)
 
   const { abertas, concluidas, atrasadas } = useMemo(() => {
     const ab = tarefas
@@ -186,18 +245,26 @@ export default function TarefasTab({
         title="Em aberto"
         icon={Clock}
         action={
-          !adding && (
+          !readOnly && !adding && !editing && (
             <GhostButton icon={Plus} onClick={() => setAdding(true)}>
               Nova tarefa
             </GhostButton>
           )
         }
       >
-        {adding && <NovaTarefaForm onSubmit={onAdd} onCancel={() => setAdding(false)} />}
+        {adding && <TarefaForm onSubmit={onAdd} onCancel={() => setAdding(false)} />}
+        {editing && (
+          <TarefaForm
+            key={editing.id}
+            initial={editing}
+            onSubmit={(task) => onEdit?.(editing.id, task)}
+            onCancel={() => setEditing(null)}
+          />
+        )}
         {abertas.length ? (
           <div className="space-y-2">
             {abertas.map((t) => (
-              <TaskRow key={t.id} t={t} onToggle={onToggle} />
+              <TaskRow key={t.id} t={t} onToggle={onToggle} onEdit={onEdit ? setEditing : undefined} onRemove={onRemove} readOnly={readOnly} />
             ))}
           </div>
         ) : (
@@ -215,7 +282,7 @@ export default function TarefasTab({
         <DetailCard title="Concluídas" icon={Check}>
           <div className="space-y-2">
             {concluidas.map((t) => (
-              <TaskRow key={t.id} t={t} onToggle={onToggle} />
+              <TaskRow key={t.id} t={t} onToggle={onToggle} onEdit={onEdit ? setEditing : undefined} onRemove={onRemove} readOnly={readOnly} />
             ))}
           </div>
         </DetailCard>

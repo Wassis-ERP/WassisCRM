@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-type ApoliceRow = {
+export type ApoliceRow = {
   id: string
   segurado_id: string
   seguradora_id: string | null
@@ -148,15 +148,228 @@ export type ApoliceItemRow = {
   observacoes: string | null
 }
 
+export type SinistroTipo = 'administrativo' | 'judicial'
+export type SinistroStatus =
+  | 'aberto'
+  | 'encerrado_sem_indenizacao'
+  | 'encerrado_com_indenizacao'
+  | 'reaberto'
+  | 'cancelado'
+
+export type SinistroRow = {
+  id: string
+  apolice_id: string
+  stage_id: string
+  responsavel_id: string | null
+  numero_sinistro: string | null
+  numero_aviso: string | null
+  protocolo_seguradora: string | null
+  cobertura_codigo: string | null
+  cobertura_nome: string | null
+  data_ocorrencia: string | null
+  data_aviso: string | null
+  data_registro_aviso: string | null
+  data_documentacao_completa: string | null
+  data_liquidacao_financeira: string | null
+  data_conclusao: string | null
+  tipo_sinistro: SinistroTipo | null
+  causa: string | null
+  descricao: string | null
+  local_ocorrencia: string | null
+  status: SinistroStatus | null
+  valor_estimado: number | null
+  valor_indenizado: number | null
+  valor_pendente: number | null
+  valor_despesas_regulacao: number | null
+  valor_salvado: number | null
+  data_salvado: string | null
+  valor_ressarcimento: number | null
+  data_ressarcimento: string | null
+  negativa_motivo: string | null
+  regulador_nome: string | null
+  oficina_nome: string | null
+  observacoes: string | null
+}
+
+export type SinistroEnvolvidoTipo = 'SEGURADO' | 'TERCEIRO'
+export type SinistroEnvolvidoRow = {
+  id: string
+  sinistro_id: string
+  apolice_item_id: string | null
+  tipo: SinistroEnvolvidoTipo | null
+  nome: string | null
+  cpf_cnpj: string | null
+  email: string | null
+  telefone: string | null
+  placa: string | null
+  seguradora_terceiro: string | null
+  apolice_terceiro: string | null
+  tipo_dano: string | null
+  valor_reclamado: number | null
+  valor_indenizado: number | null
+  responsavel_pelo_evento: boolean | null
+  observacoes: string | null
+}
+
+export type PosVendaRow = {
+  id: string
+  apolice_id: string
+  stage_id: string
+  responsavel_id: string | null
+  tipo_processo: string | null
+  status: string | null
+  prioridade: string | null
+  assunto: string | null
+  descricao: string | null
+  data_abertura: string | null
+  data_conclusao_prevista: string | null
+  data_conclusao: string | null
+  motivo_pendencia: string | null
+  resultado: string | null
+  observacoes: string | null
+}
+
 export type ItemVeiculoRow = { apolice_item_id: string; codigo_fipe: string | null; marca: string | null; modelo: string | null; versao: string | null; ano_fabricacao: number | null; ano_modelo: number | null; placa: string | null; chassi: string | null; renavam: string | null; zero_km: boolean | null; combustivel: string | null; cambio: string | null; categoria: string | null; uso: string | null; cep_pernoite: string | null; classe_bonus: number | null; blindado: boolean | null; alienado: boolean | null; rastreador: boolean | null; antifurto: boolean | null; kit_gas: boolean | null; condutor_principal_nome: string | null; condutor_principal_cpf: string | null; condutor_principal_data_nascimento: string | null }
 export type ItemImovelRow = { apolice_item_id: string; cep: string | null; endereco: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; tipo_imovel: string | null; tipo_ocupacao: string | null; tipo_construcao: string | null; area_m2: number | null; valor_imovel: number | null; condominio_fechado: boolean | null; desocupado: boolean | null }
 export type ItemEmpresaRow = { apolice_item_id: string; cnpj_risco: string | null; razao_social_risco: string | null; atividade: string | null; cnae: string | null; faturamento_anual: number | null; cep: string | null; endereco: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; tipo_construcao: string | null; area_m2: number | null; qtd_funcionarios: number | null; valor_estoque: number | null; valor_equipamentos: number | null; protecao_incendio: string | null }
 export type ItemVidaRow = { apolice_item_id: string; pessoa_id: string | null; nome_grupo: string | null; n_vidas: number | null; certificado_individual: string | null; parentesco: string | null; data_nascimento: string | null; sexo: string | null; profissao: string | null; salario: number | null; capital_individual: number | null; data_inclusao: string | null; data_exclusao: string | null; beneficiarios_texto: string | null }
 export type ItemCoberturaRow = { id: string; apolice_item_id: string; cobertura_id: string | null; incluido_por_proposta_id: string | null; excluido_por_proposta_id: string | null; capital_lmi: number | null; franquia_valor: number | null; franquia_tipo: string | null; premio: number | null; premio_liquido: number | null; carencia_dias: number | null; participacao_obrigatoria_pct: number | null; vigencia_inicio: string | null; vigencia_fim: string | null; observacoes: string | null }
-export type ParcelaRow = { id: string; proposta_id: string; numero: number | null; vencimento: string | null; valor: number | null; valor_liquido: number | null; iof: number | null; adicional_fracionamento: number | null; status: string | null; forma_pagamento: string | null; nosso_numero: string | null; linha_digitavel: string | null; codigo_barras: string | null; data_pagamento: string | null; valor_pago: number | null; data_baixa: string | null; numero_fatura: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
+export type ParcelaStatus = 'em_aberto' | 'paga' | 'vencida' | 'cancelada' | 'estornada'
+export type ParcelaRow = { id: string; proposta_id: string; numero: number | null; vencimento: string | null; valor: number | null; valor_liquido: number | null; iof: number | null; adicional_fracionamento: number | null; status: ParcelaStatus | null; forma_pagamento: string | null; nosso_numero: string | null; linha_digitavel: string | null; codigo_barras: string | null; data_pagamento: string | null; valor_pago: number | null; data_baixa: string | null; numero_fatura: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
+export type CobrancaStatus = 'ATIVA' | 'QUITADA' | 'CANCELADA'
+export type CobrancaPrioridade = 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE'
+export type CobrancaCanal = 'TELEFONE' | 'WHATSAPP' | 'EMAIL' | 'OUTRO'
+export type FinanceiroCobrancaRow = {
+  id: string
+  parcela_id: string
+  stage_id: string
+  responsavel_id: string | null
+  data_abertura: string | null
+  vencimento_followup: string | null
+  status: CobrancaStatus
+  prioridade: CobrancaPrioridade | null
+  ultima_cobranca_em: string | null
+  proxima_cobranca_em: string | null
+  canal_preferencial: CobrancaCanal | null
+  observacoes: string | null
+  encerrada_em: string | null
+  motivo_encerramento: string | null
+}
 export type ComissaoTipo = 'NORMAL' | 'AGENCIAMENTO' | 'VITALICIA' | 'ADICIONAL' | 'RESTITUICAO'
-export type ComissaoRow = { id: string; proposta_id: string; parcela_id: string | null; numero: number | null; tipo_comissao: ComissaoTipo; percentual: number | null; base_calculo: number | null; valor_previsto: number | null; valor_recebido: number | null; valor_diferenca: number | null; status: string | null; prevista_em: string | null; recebida_em: string | null; extrato_numero: string | null; seguradora_lote: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
-export type RepasseRow = { id: string; proposta_id: string; comissao_id: string | null; beneficiario_id: string; regra_id: string | null; numero: number | null; papel_beneficiario: string | null; base: string | null; percentual: number | null; valor_previsto: number | null; valor_pago: number | null; valor_diferenca: number | null; status: string | null; previsto_em: string | null; liberado_em: string | null; pago_em: string | null; forma_pagamento: string | null; comprovante_referencia: string | null; observacoes: string | null }
+export type ComissaoStatus = 'PREVISTA' | 'PARCIAL' | 'RECEBIDA' | 'DIVERGENTE' | 'CANCELADA'
+export type ComissaoRow = { id: string; proposta_id: string; parcela_id: string | null; numero: number | null; tipo_comissao: ComissaoTipo; percentual: number | null; base_calculo: number | null; valor_previsto: number | null; valor_recebido: number | null; valor_diferenca: number | null; status: ComissaoStatus | null; prevista_em: string | null; recebida_em: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
+export type ComissaoExtratoOrigemTipo = 'MANUAL' | 'ARQUIVO' | 'INTEGRACAO'
+export type ComissaoExtratoFormato = 'PDF' | 'XLS' | 'XLSX' | 'CSV' | 'TXT' | 'XML' | 'OUTRO'
+export type ComissaoExtratoProcessamentoStatus = 'RECEBIDO' | 'NORMALIZANDO' | 'NORMALIZADO' | 'ERRO' | 'CANCELADO'
+export type ComissaoExtratoConciliacaoStatus = 'NAO_INICIADA' | 'EM_ANALISE' | 'PARCIAL' | 'CONCILIADO' | 'COM_OCORRENCIAS'
+export type ComissaoExtratoErroCodigo = 'LAYOUT_NAO_SUPORTADO' | 'ERRO_DE_LEITURA' | 'ARQUIVO_CORROMPIDO' | 'ARQUIVO_PROTEGIDO' | 'FORMATO_NAO_SUPORTADO'
+export type ComissaoExtratoItemStatus = 'PENDENTE' | 'SUGERIDO' | 'CONCILIADO' | 'PRONTO_PARA_BAIXAR' | 'PARCIAL' | 'AMBIGUO' | 'NAO_ENCONTRADO' | 'DIVERGENTE' | 'IGNORADO'
+export type ComissaoConciliacaoTipo = 'EXATA' | 'PARCIAL' | 'SUGERIDA' | 'MANUAL'
+export type ComissaoConciliacaoStatus = 'SUGERIDA' | 'CONFIRMADA' | 'REJEITADA' | 'CANCELADA'
+export type ComissaoConciliacaoOcorrenciaTipo =
+  | 'COMISSAO_NAO_ENCONTRADA' | 'DOCUMENTO_NAO_ENCONTRADO' | 'MULTIPLAS_COMISSOES'
+  | 'VALOR_DIVERGENTE' | 'PERCENTUAL_DIVERGENTE' | 'COMPETENCIA_DIVERGENTE'
+  | 'PARCELA_DIVERGENTE' | 'PROPOSTA_DIVERGENTE' | 'APOLICE_DIVERGENTE'
+  | 'SEGURADO_DIVERGENTE' | 'ITEM_DUPLICADO' | 'COMISSAO_JA_CONCILIADA' | 'COMISSAO_JA_RECEBIDA'
+  | 'IDENTIFICACAO_INSUFICIENTE'
+export type ComissaoConciliacaoOcorrenciaStatus = 'ABERTA' | 'EM_ANALISE' | 'RESOLVIDA' | 'IGNORADA'
+export type ComissaoConciliacaoResolucaoTipo = 'VINCULO_CORRIGIDO' | 'DADO_CORRIGIDO' | 'DIVERGENCIA_ACEITA' | 'ITEM_DESCARTADO' | 'REPROCESSADO'
+export type ComissaoBaixaTipo = 'BAIXA' | 'ESTORNO'
+export type ComissaoBaixaMotivoTipo = 'EXATA' | 'PARCIAL' | 'DIVERGENCIA_ACEITA' | 'CORRECAO' | 'ESTORNO' | 'OUTRO'
+
+export type ComissaoExtratoRow = {
+  id: string; tenant_id: string; filial_id: string; seguradora_id: string
+  identificacao_externa: string | null; competencia: string | null
+  periodo_inicio: string | null; periodo_fim: string | null; data_emissao: string | null
+  data_recebimento: string | null; arquivo_nome: string | null; arquivo_referencia: string | null
+  origem_tipo: ComissaoExtratoOrigemTipo; origem_formato: ComissaoExtratoFormato | null
+  arquivo_mime_type: string | null; arquivo_hash_sha256: string | null; chave_idempotencia: string
+  parser_identificador: string | null; parser_versao: string | null; tentativa_processamento: number
+  status_processamento: ComissaoExtratoProcessamentoStatus
+  status_conciliacao: ComissaoExtratoConciliacaoStatus
+  quantidade_itens: number | null; valor_bruto_total: number | null
+  valor_liquido_total: number | null; valor_descontos_total: number | null; moeda: string | null
+  erro_codigo: ComissaoExtratoErroCodigo | null; erro_mensagem_segura: string | null
+  recebido_por_id: string | null; processado_por_id: string | null
+  recebido_em: string | null; processamento_iniciado_em: string | null
+  processamento_concluido_em: string | null; criado_em: string
+  atualizado_em: string; observacoes: string | null
+}
+
+export type ComissaoExtratoItemRow = {
+  id: string; extrato_id: string; identificacao_externa: string | null
+  sequencia_externa: string | null; chave_idempotencia: string
+  produtor_id: string | null; ramo_id: string | null; produtor_beneficiario_informado: string | null
+  proposta_numero_informado: string | null; apolice_numero_informado: string | null
+  endosso_numero_informado: string | null; documento_numero_informado: string | null
+  parcela_numero_informado: string | null; segurado_nome_informado: string | null
+  competencia: string | null; data_credito: string | null; data_recebimento_informada: string | null
+  valor_bruto_informado: number | null; valor_liquido_informado: number | null
+  valor_descontos_informado: number | null; percentual_informado: number | null
+  tipo_comissao: ComissaoTipo | null; seguradora_lote_informado: string | null
+  seguradora_referencia_informada: string | null; descricao_original: string | null
+  status_conciliacao: ComissaoExtratoItemStatus; normalizado_em: string | null
+  criado_em: string; atualizado_em: string
+}
+
+export type ComissaoConciliacaoRow = {
+  id: string; item_id: string; comissao_id: string; chave_idempotencia: string
+  tipo_associacao: ComissaoConciliacaoTipo; status: ComissaoConciliacaoStatus
+  confianca_pct: number | null; valor_previsto_snapshot: number | null
+  valor_informado_alocado: number | null; valor_conciliado: number | null
+  valor_diferenca: number | null; percentual_previsto_snapshot: number | null
+  percentual_informado_snapshot: number | null; percentual_diferenca: number | null
+  competencia_prevista_inicio: string | null; competencia_prevista_fim: string | null
+  competencia_informada: string | null; motivo: string | null
+  associado_por_id: string | null; confirmado_por_id: string | null
+  criado_em: string; confirmado_em: string | null; atualizado_em: string
+}
+
+export type ComissaoConciliacaoOcorrenciaRow = {
+  id: string; item_id: string; conciliacao_id: string | null
+  tipo: ComissaoConciliacaoOcorrenciaTipo
+  status: ComissaoConciliacaoOcorrenciaStatus; motivo: string | null
+  valor_esperado: number | null; valor_encontrado: number | null
+  percentual_esperado: number | null; percentual_encontrado: number | null
+  competencia_esperada_inicio: string | null; competencia_esperada_fim: string | null
+  competencia_encontrada: string | null; resolucao_tipo: ComissaoConciliacaoResolucaoTipo | null
+  resolucao_observacao: string | null; identificada_por_id: string | null
+  resolvida_por_id: string | null; identificada_em: string
+  resolvida_em: string | null; atualizado_em: string
+}
+export type ComissaoBaixaRow = {
+  id: string; comissao_id: string; tipo: ComissaoBaixaTipo
+  baixa_origem_id: string | null; origem_tipo: ComissaoExtratoOrigemTipo
+  data_efetiva: string; valor_efetivo: number; motivo_tipo: ComissaoBaixaMotivoTipo
+  justificativa: string | null; chave_idempotencia: string
+  saldo_apos: number; status_resultante: Exclude<ComissaoStatus, 'CANCELADA'>
+  criado_por_id: string; criado_em: string
+}
+export type ComissaoBaixaConciliacaoRow = {
+  id: string; baixa_id: string; conciliacao_id: string
+  valor_aplicado: number; criado_em: string
+}
+export type RepasseStatus = 'PREVISTO' | 'LIBERADO' | 'PAGO' | 'CANCELADO'
+export type RepasseReciboSentido = 'CREDITO' | 'DEBITO'
+export type RepasseReciboStatus = 'EMITIDO' | 'CANCELADO'
+export type RepasseFormaPagamento = 'TRANSFERENCIA_BANCARIA' | 'DINHEIRO' | 'CHEQUE' | 'OUTRO'
+export type RepasseRow = { id: string; proposta_id: string; comissao_id: string | null; beneficiario_id: string; regra_id: string | null; numero: number | null; papel_beneficiario: string | null; base: string | null; percentual: number | null; valor_previsto: number | null; valor_pago: number | null; valor_diferenca: number | null; status: RepasseStatus | null; previsto_em: string | null; liberado_em: string | null; pago_em: string | null; forma_pagamento: string | null; comprovante_referencia: string | null; observacoes: string | null }
+export type RepasseReciboRow = {
+  id: string; filial_id: string; beneficiario_id: string; numero: string
+  sentido: RepasseReciboSentido; status: RepasseReciboStatus; data_pagamento: string
+  forma_pagamento: RepasseFormaPagamento; comprovante_referencia: string | null
+  observacoes: string | null; chave_idempotencia: string; chave_cancelamento: string | null
+  filial_nome_snapshot: string; beneficiario_nome_snapshot: string
+  emitido_por_id: string; emitido_em: string; cancelado_por_id: string | null
+  cancelado_em: string | null; motivo_cancelamento: string | null; atualizado_em: string
+}
+export type RepasseReciboItemRow = {
+  id: string; recibo_id: string; repasse_id: string; numero_repasse_snapshot: number | null
+  documento_referencia_snapshot: string; segurado_nome_snapshot: string
+  seguradora_nome_snapshot: string; ramo_nome_snapshot: string
+  papel_beneficiario_snapshot: string | null; valor_previsto_snapshot: number
+  valor_pago_snapshot: number; criado_em: string
+}
 
 type ApoliceTable = {
   Row: ApoliceRow
@@ -196,6 +409,9 @@ export type Database = {
     Tables: {
       apolices: ApoliceTable
       apolice_itens: DbTable<ApoliceItemRow, "apolice_id">
+      pos_vendas: DbTable<PosVendaRow, "apolice_id" | "stage_id">
+      sinistros: DbTable<SinistroRow, "apolice_id" | "stage_id">
+      sinistro_envolvidos: DbTable<SinistroEnvolvidoRow, "sinistro_id">
       item_veiculo: DbTable<ItemVeiculoRow, "apolice_item_id">
       item_imovel: DbTable<ItemImovelRow, "apolice_item_id">
       item_empresa: DbTable<ItemEmpresaRow, "apolice_item_id">
@@ -203,7 +419,15 @@ export type Database = {
       item_coberturas: DbTable<ItemCoberturaRow, "apolice_item_id">
       parcelas: DbTable<ParcelaRow, "proposta_id">
       comissoes: DbTable<ComissaoRow, "proposta_id">
+      comissao_extratos: DbTable<ComissaoExtratoRow, "tenant_id" | "filial_id" | "seguradora_id" | "chave_idempotencia">
+      comissao_extrato_itens: DbTable<ComissaoExtratoItemRow, "extrato_id" | "chave_idempotencia">
+      comissao_conciliacoes: DbTable<ComissaoConciliacaoRow, "item_id" | "comissao_id" | "chave_idempotencia">
+      comissao_conciliacao_ocorrencias: DbTable<ComissaoConciliacaoOcorrenciaRow, "item_id">
+      comissao_baixas: DbTable<ComissaoBaixaRow, "comissao_id" | "tipo" | "origem_tipo" | "data_efetiva" | "valor_efetivo" | "motivo_tipo" | "chave_idempotencia" | "saldo_apos" | "status_resultante" | "criado_por_id" | "criado_em">
+      comissao_baixa_conciliacoes: DbTable<ComissaoBaixaConciliacaoRow, "baixa_id" | "conciliacao_id" | "valor_aplicado" | "criado_em">
       repasses: DbTable<RepasseRow, "proposta_id" | "beneficiario_id">
+      repasse_recibos: DbTable<RepasseReciboRow, "filial_id" | "beneficiario_id" | "numero" | "sentido" | "status" | "data_pagamento" | "forma_pagamento" | "chave_idempotencia" | "filial_nome_snapshot" | "beneficiario_nome_snapshot" | "emitido_por_id" | "emitido_em" | "atualizado_em">
+      repasse_recibo_itens: DbTable<RepasseReciboItemRow, "recibo_id" | "repasse_id" | "documento_referencia_snapshot" | "segurado_nome_snapshot" | "seguradora_nome_snapshot" | "ramo_nome_snapshot" | "valor_previsto_snapshot" | "valor_pago_snapshot" | "criado_em">
       endosso_subtipos: DbTable<EndossoSubtipoRow, "tenant_id" | "nome" | "natureza_canonica" | "ativo">
       cancelamento_motivos: DbTable<CancelamentoMotivoRow, "tenant_id" | "nome" | "ativo">
       anexos: {
@@ -919,64 +1143,15 @@ export type Database = {
         ]
       }
       financeiro_cobrancas: {
-        Row: {
-          concluded_at: string | null
-          created_at: string
-          id: string
-          metadata: Json
-          observacoes: string | null
-          oportunidade_id: string
-          pipeline_id: string | null
-          proximo_followup: string | null
-          responsavel_id: string
-          stage_id: string | null
-          status: Database["public"]["Enums"]["card_status"]
-          tenant_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          concluded_at?: string | null
-          created_at?: string
-          id?: string
-          metadata?: Json
-          observacoes?: string | null
-          oportunidade_id: string
-          pipeline_id?: string | null
-          proximo_followup?: string | null
-          responsavel_id: string
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          concluded_at?: string | null
-          created_at?: string
-          id?: string
-          metadata?: Json
-          observacoes?: string | null
-          oportunidade_id?: string
-          pipeline_id?: string | null
-          proximo_followup?: string | null
-          responsavel_id?: string
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          updated_at?: string
-        }
+        Row: FinanceiroCobrancaRow
+        Insert: Partial<FinanceiroCobrancaRow> & Pick<FinanceiroCobrancaRow, "parcela_id" | "stage_id">
+        Update: Partial<FinanceiroCobrancaRow>
         Relationships: [
           {
-            foreignKeyName: "financeiro_cobrancas_oportunidade_id_fkey"
-            columns: ["oportunidade_id"]
+            foreignKeyName: "financeiro_cobrancas_parcela_id_fkey"
+            columns: ["parcela_id"]
             isOneToOne: false
-            referencedRelation: "oportunidades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "financeiro_cobrancas_pipeline_id_fkey"
-            columns: ["pipeline_id"]
-            isOneToOne: false
-            referencedRelation: "pipelines"
+            referencedRelation: "parcelas"
             referencedColumns: ["id"]
           },
           {
@@ -987,10 +1162,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "financeiro_cobrancas_tenant_id_fkey"
-            columns: ["tenant_id"]
+            foreignKeyName: "financeiro_cobrancas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
             isOneToOne: false
-            referencedRelation: "tenants"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1325,83 +1500,6 @@ export type Database = {
           },
           {
             foreignKeyName: "pipelines_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pos_vendas: {
-        Row: {
-          concluded_at: string | null
-          created_at: string
-          id: string
-          metadata: Json
-          observacoes: string | null
-          oportunidade_id: string
-          pipeline_id: string | null
-          proximo_followup: string | null
-          responsavel_id: string
-          stage_id: string | null
-          status: Database["public"]["Enums"]["card_status"]
-          tenant_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          concluded_at?: string | null
-          created_at?: string
-          id?: string
-          metadata?: Json
-          observacoes?: string | null
-          oportunidade_id: string
-          pipeline_id?: string | null
-          proximo_followup?: string | null
-          responsavel_id: string
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          concluded_at?: string | null
-          created_at?: string
-          id?: string
-          metadata?: Json
-          observacoes?: string | null
-          oportunidade_id?: string
-          pipeline_id?: string | null
-          proximo_followup?: string | null
-          responsavel_id?: string
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pos_vendas_oportunidade_id_fkey"
-            columns: ["oportunidade_id"]
-            isOneToOne: false
-            referencedRelation: "oportunidades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pos_vendas_pipeline_id_fkey"
-            columns: ["pipeline_id"]
-            isOneToOne: false
-            referencedRelation: "pipelines"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pos_vendas_stage_id_fkey"
-            columns: ["stage_id"]
-            isOneToOne: false
-            referencedRelation: "pipeline_stages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pos_vendas_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1789,98 +1887,6 @@ export type Database = {
           },
         ]
       }
-      sinistros: {
-        Row: {
-          concluded_at: string | null
-          created_at: string
-          data_aviso: string | null
-          data_sinistro: string | null
-          id: string
-          metadata: Json
-          numero_sinistro: string | null
-          observacoes: string | null
-          oportunidade_id: string
-          pipeline_id: string | null
-          responsavel_id: string
-          stage_id: string | null
-          status: Database["public"]["Enums"]["card_status"]
-          tenant_id: string | null
-          tipo_sinistro: Database["public"]["Enums"]["tipo_sinistro"] | null
-          updated_at: string
-          valor_indenizacao: number | null
-          valor_prejuizo: number | null
-        }
-        Insert: {
-          concluded_at?: string | null
-          created_at?: string
-          data_aviso?: string | null
-          data_sinistro?: string | null
-          id?: string
-          metadata?: Json
-          numero_sinistro?: string | null
-          observacoes?: string | null
-          oportunidade_id: string
-          pipeline_id?: string | null
-          responsavel_id: string
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          tipo_sinistro?: Database["public"]["Enums"]["tipo_sinistro"] | null
-          updated_at?: string
-          valor_indenizacao?: number | null
-          valor_prejuizo?: number | null
-        }
-        Update: {
-          concluded_at?: string | null
-          created_at?: string
-          data_aviso?: string | null
-          data_sinistro?: string | null
-          id?: string
-          metadata?: Json
-          numero_sinistro?: string | null
-          observacoes?: string | null
-          oportunidade_id?: string
-          pipeline_id?: string | null
-          responsavel_id?: string
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          tipo_sinistro?: Database["public"]["Enums"]["tipo_sinistro"] | null
-          updated_at?: string
-          valor_indenizacao?: number | null
-          valor_prejuizo?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sinistros_oportunidade_id_fkey"
-            columns: ["oportunidade_id"]
-            isOneToOne: false
-            referencedRelation: "oportunidades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sinistros_pipeline_id_fkey"
-            columns: ["pipeline_id"]
-            isOneToOne: false
-            referencedRelation: "pipelines"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sinistros_stage_id_fkey"
-            columns: ["stage_id"]
-            isOneToOne: false
-            referencedRelation: "pipeline_stages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sinistros_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       tenants: {
         Row: {
           created_at: string
@@ -1951,12 +1957,6 @@ export type Database = {
       status_pessoa: "Ativo" | "Inativo" | "Prospecto"
       tipo_negocio: "novo" | "renovacao" | "endosso"
       tipo_pessoa: "PF" | "PJ"
-      tipo_sinistro:
-        | "colisao"
-        | "roubo_furto"
-        | "incendio"
-        | "alagamento"
-        | "outros"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2110,13 +2110,6 @@ export const Constants = {
       status_pessoa: ["Ativo", "Inativo", "Prospecto"],
       tipo_negocio: ["novo", "renovacao", "endosso"],
       tipo_pessoa: ["PF", "PJ"],
-      tipo_sinistro: [
-        "colisao",
-        "roubo_furto",
-        "incendio",
-        "alagamento",
-        "outros",
-      ],
     },
   },
 } as const

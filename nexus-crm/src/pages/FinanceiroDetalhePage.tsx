@@ -1,458 +1,140 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react'
 import {
-  ArrowLeft,
-  Check,
-  DollarSign,
-  ExternalLink,
-  FileText,
-  Mail,
-  Phone,
-  X,
-} from 'lucide-react';
-import DateField from '../components/DateField';
-import ConcludeCardModal from '../components/kanban/ConcludeCardModal';
-import { useCobranca, useUpdateCobranca } from '../hooks/useFinanceiroCobrancas';
-import { usePipelineStages } from '../hooks/usePipelineStages';
-import type { CardStatus, KanbanCard } from '../modules/types';
+  ArrowLeft, CalendarClock, CheckCircle2, ChevronRight, ClipboardList,
+  ExternalLink, FileCheck2, MessageSquareText, Pencil, ReceiptText,
+  RotateCcw, ShieldAlert, ShieldCheck, UserRound, X,
+} from 'lucide-react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import DateField from '../components/DateField'
+import { EntityTabsBar, type EntityTab } from '../components/detail/EntityTabsBar'
+import { DetailCard, DetailField, EmptyState, StatusBadge } from '../components/detail/primitives'
+import AnexosLogsTab from '../components/detail/tabs/AnexosLogsTab'
+import CamposPersonalizadosTab from '../components/detail/tabs/CamposPersonalizadosTab'
+import ObservacoesTab from '../components/detail/tabs/ObservacoesTab'
+import TarefasTab from '../components/detail/tabs/TarefasTab'
+import { useEntityTabsState } from '../components/detail/useEntityTabsState'
+import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
+import { useAuth } from '../hooks/useAuth'
+import {
+  useCloseCobranca,
+  useCobranca,
+  useCobrancaResponsaveis,
+  useMaintainCobranca,
+  useReopenCobranca,
+} from '../hooks/useFinanceiroCobrancas'
+import { usePermission } from '../hooks/usePermission'
+import type { CobrancaCanal, CobrancaPrioridade } from '../types/database'
 
-interface JoinSegurado {
-  id: string;
-  nome: string;
-  cpf_cnpj: string | null;
-  telefone: string | null;
-  email: string | null;
-}
+type TabId = 'visao' | 'tarefas' | 'personalizados' | 'anexos' | 'observacoes'
+const VALID_TABS: TabId[] = ['visao', 'tarefas', 'personalizados', 'anexos', 'observacoes']
 
-interface JoinOportunidade {
-  id: string;
-  nome: string;
-  segurados: JoinSegurado | null;
-  ramos: { id: string; nome: string } | null;
-  seguradoras: { id: string; nome: string } | null;
-}
+const money = (value: number | null) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value ?? 0)
+const date = (value: string | null) => value ? new Date(value.length === 10 ? `${value}T12:00:00` : value).toLocaleDateString('pt-BR') : '—'
+const dateTime = (value: string | null) => value ? new Date(value).toLocaleString('pt-BR') : '—'
+const toInputDateTime = (value: string | null) => value ? new Date(value).toISOString().slice(0, 16) : ''
 
-interface JoinProfile {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-}
+function EditForm({ cobranca, responsaveis, saving, onCancel, onSave }: {
+  cobranca: NonNullable<ReturnType<typeof useCobranca>['data']>
+  responsaveis: ReturnType<typeof useCobrancaResponsaveis>['data']
+  saving: boolean
+  onCancel: () => void
+  onSave: (patch: Parameters<ReturnType<typeof useMaintainCobranca>['mutateAsync']>[0]['patch']) => void
+}) {
+  const [responsavelId, setResponsavelId] = useState(cobranca.responsavel_id ?? '')
+  const [prioridade, setPrioridade] = useState<CobrancaPrioridade>(cobranca.prioridade ?? 'MEDIA')
+  const [canal, setCanal] = useState<CobrancaCanal>(cobranca.canal_preferencial ?? 'WHATSAPP')
+  const [followup, setFollowup] = useState(cobranca.vencimento_followup ?? '')
+  const [ultima, setUltima] = useState(toInputDateTime(cobranca.ultima_cobranca_em))
+  const [proxima, setProxima] = useState(toInputDateTime(cobranca.proxima_cobranca_em))
+  const [observacoes, setObservacoes] = useState(cobranca.observacoes ?? '')
 
-/**
- * Pagina de detalhe de uma Cobranca financeira (controle de inadimplencia).
- * Le de `public.financeiro_cobrancas`. Quando vinculada a oportunidade, mostra
- * dados do segurado. Permite edicao dos campos de parcela (JSONB), mover stage
- * e concluir (Quitado/Inadimplente).
- */
-export default function FinanceiroDetalhePage() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const cobrancaId = String(id ?? '');
-
-  const detail = useCobranca(cobrancaId);
-  const update = useUpdateCobranca();
-
-  const rawRow = (detail.data as Record<string, unknown> | undefined) ?? undefined;
-  const pipelineId = (rawRow?.pipeline_id as string | null | undefined) ?? undefined;
-  const stagesQuery = usePipelineStages(pipelineId);
-
-  const oportunidade = (rawRow?.oportunidades ?? null) as JoinOportunidade | null;
-  const segurado = oportunidade?.segurados ?? null;
-  const responsavel = (rawRow?.profiles ?? null) as JoinProfile | null;
-
-  const [formData, setFormData] = useState({
-    proximoFollowup: '',
-    stageId: '',
-    observacoes: '',
-  });
-  const [metaFields, setMetaFields] = useState<{
-    valor_parcela: string;
-    numero_parcela: string;
-    total_parcelas: string;
-    data_vencimento: string;
-    dias_atraso: string;
-    forma_pagamento: string;
-  }>({
-    valor_parcela: '',
-    numero_parcela: '',
-    total_parcelas: '',
-    data_vencimento: '',
-    dias_atraso: '',
-    forma_pagamento: '',
-  });
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [concludeMode, setConcludeMode] = useState<Exclude<CardStatus, 'pending'> | null>(null);
-
-  useEffect(() => {
-    if (!rawRow) return;
-    setFormData({
-      proximoFollowup: (rawRow.proximo_followup as string | null) ?? '',
-      stageId: (rawRow.stage_id as string | null) ?? '',
-      observacoes: (rawRow.observacoes as string | null) ?? '',
-    });
-    const meta = (rawRow.metadata as Record<string, unknown> | null) ?? {};
-    setMetaFields({
-      valor_parcela: meta.valor_parcela !== undefined && meta.valor_parcela !== null ? String(meta.valor_parcela) : '',
-      numero_parcela: meta.numero_parcela !== undefined && meta.numero_parcela !== null ? String(meta.numero_parcela) : '',
-      total_parcelas: meta.total_parcelas !== undefined && meta.total_parcelas !== null ? String(meta.total_parcelas) : '',
-      data_vencimento: (meta.data_vencimento as string | undefined) ?? '',
-      dias_atraso: meta.dias_atraso !== undefined && meta.dias_atraso !== null ? String(meta.dias_atraso) : '',
-      forma_pagamento: (meta.forma_pagamento as string | undefined) ?? '',
-    });
-  }, [rawRow]);
-
-  const funnelSteps = stagesQuery.data ?? [];
-  const currentIdx = useMemo(
-    () => funnelSteps.findIndex((s) => s.id === formData.stageId),
-    [funnelSteps, formData.stageId],
-  );
-  const safeCurrentIdx = currentIdx === -1 ? 0 : currentIdx;
-  const currentStage = funnelSteps.find((s) => s.id === formData.stageId);
-  const canWin = !!currentStage?.is_win_eligible;
-  const isConcluded = (rawRow?.status as CardStatus | undefined) !== 'pending' && !!rawRow?.status;
-
-  const cardForConclude: KanbanCard | null = rawRow
-    ? {
-        id: cobrancaId,
-        pipelineId: (rawRow.pipeline_id as string | null) ?? null,
-        stageId: (rawRow.stage_id as string | null) ?? null,
-        status: (rawRow.status as CardStatus) ?? 'pending',
-        title: oportunidade?.nome ?? 'Cobranca avulsa',
-        responsavelId: (rawRow.responsavel_id as string | null) ?? null,
-        raw: rawRow,
-      }
-    : null;
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-
-  const handleDiscard = () => {
-    if (!rawRow) return;
-    setFormData({
-      proximoFollowup: (rawRow.proximo_followup as string | null) ?? '',
-      stageId: (rawRow.stage_id as string | null) ?? '',
-      observacoes: (rawRow.observacoes as string | null) ?? '',
-    });
-    const meta = (rawRow.metadata as Record<string, unknown> | null) ?? {};
-    setMetaFields({
-      valor_parcela: meta.valor_parcela !== undefined && meta.valor_parcela !== null ? String(meta.valor_parcela) : '',
-      numero_parcela: meta.numero_parcela !== undefined && meta.numero_parcela !== null ? String(meta.numero_parcela) : '',
-      total_parcelas: meta.total_parcelas !== undefined && meta.total_parcelas !== null ? String(meta.total_parcelas) : '',
-      data_vencimento: (meta.data_vencimento as string | undefined) ?? '',
-      dias_atraso: meta.dias_atraso !== undefined && meta.dias_atraso !== null ? String(meta.dias_atraso) : '',
-      forma_pagamento: (meta.forma_pagamento as string | undefined) ?? '',
-    });
-    setSaveStatus('idle');
-    setSaveError(null);
-  };
-
-  const handleSave = async () => {
-    setSaveStatus('saving');
-    setSaveError(null);
-
-    const metadata: Record<string, unknown> = {};
-    if (metaFields.valor_parcela) metadata.valor_parcela = Number(metaFields.valor_parcela.replace(',', '.'));
-    if (metaFields.numero_parcela) metadata.numero_parcela = Number(metaFields.numero_parcela);
-    if (metaFields.total_parcelas) metadata.total_parcelas = Number(metaFields.total_parcelas);
-    if (metaFields.data_vencimento) metadata.data_vencimento = metaFields.data_vencimento;
-    if (metaFields.dias_atraso) metadata.dias_atraso = Number(metaFields.dias_atraso);
-    if (metaFields.forma_pagamento) metadata.forma_pagamento = metaFields.forma_pagamento;
-
-    try {
-      await update.mutateAsync({
-        id: cobrancaId,
-        patch: {
-          proximo_followup: formData.proximoFollowup || null,
-          stage_id: formData.stageId || null,
-          observacoes: formData.observacoes || null,
-          metadata: metadata as never,
-        },
-      });
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 1800);
-    } catch (err) {
-      setSaveStatus('error');
-      setSaveError(err instanceof Error ? err.message : 'Erro ao salvar');
-    }
-  };
-
-  if (detail.isLoading) {
-    return (
-      <div className="animate-fade-in flex items-center justify-center py-24">
-        <p className="text-fg-4 font-bold uppercase tracking-widest text-xs">Carregando cobranca...</p>
-      </div>
-    );
-  }
-
-  if (detail.isError || !rawRow) {
-    return (
-      <div className="animate-fade-in flex flex-col items-center justify-center py-24 gap-4">
-        <p className="text-signal-danger font-bold uppercase tracking-widest text-xs">Cobranca nao encontrada</p>
-        <button
-          onClick={() => navigate(-1)}
-          className="px-5 py-2 bg-bg-surface-2 text-fg-1 rounded-[6px] text-sm font-bold"
-        >
-          Voltar
-        </button>
-      </div>
-    );
-  }
-
-  const clienteNome = segurado?.nome ?? oportunidade?.nome ?? 'Cobranca avulsa';
-  const email = segurado?.email ?? '';
-  const telefone = segurado?.telefone ?? '';
-  const criadoPor = responsavel?.full_name ?? '-';
-  const shortId = cobrancaId.slice(0, 8).toUpperCase();
-
-  const valorParcelaNumeric = Number(metaFields.valor_parcela.replace(',', '.') || 0);
-  const diasAtrasoNumeric = Number(metaFields.dias_atraso || 0);
-
-  return (
-    <div className="animate-fade-in max-w-7xl mx-auto pb-12">
-      <div className="relative z-0 bg-bg-surface backdrop-blur-md border-b border-border-1 -mx-4 px-4 md:-mx-8 md:px-8 mb-8 shadow-[var(--shadow-1)]">
-        <div className="max-w-[1440px] mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2.5 hover:bg-bg-surface-2 rounded-[6px] text-fg-3 transition-colors border border-transparent hover:border-border-1"
-              >
-                <ArrowLeft size={18} />
-              </button>
-              <div>
-                <h1 className="text-xl font-black tracking-tight text-fg-1 flex items-center gap-2">
-                  <DollarSign size={18} className="text-signal-success" /> #{shortId}
-                  <span className="text-fg-3 text-base font-medium">| {clienteNome}</span>
-                </h1>
-                <p className="text-[10px] text-fg-4 font-bold uppercase tracking-wider">
-                  Registrado por {criadoPor}
-                  {metaFields.numero_parcela && metaFields.total_parcelas
-                    ? ` - Parcela ${metaFields.numero_parcela}/${metaFields.total_parcelas}`
-                    : ''}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {!isConcluded && (
-                <>
-                  {canWin && (
-                    <button
-                      onClick={() => setConcludeMode('won')}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-signal-success/10 hover:bg-signal-success/20 border border-signal-success/20 text-signal-success rounded-full text-xs font-black uppercase tracking-widest transition-all"
-                    >
-                      <Check size={14} /> Quitado
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setConcludeMode('lost')}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-signal-danger/10 hover:bg-signal-danger/20 border border-signal-danger/20 text-signal-danger rounded-full text-xs font-black uppercase tracking-widest transition-all"
-                  >
-                    <X size={14} /> Inadimplente
-                  </button>
-                </>
-              )}
-
-              {isConcluded && (
-                <span className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest ${
-                  (rawRow.status as CardStatus) === 'won'
-                    ? 'bg-signal-success/10 text-signal-success border border-signal-success/20'
-                    : 'bg-signal-danger/10 text-signal-danger border border-signal-danger/20'
-                }`}>
-                  {(rawRow.status as CardStatus) === 'won' ? 'Quitada' : 'Inadimplente'}
-                </span>
-              )}
-
-              <button
-                onClick={handleDiscard}
-                className="px-5 py-2.5 text-sm font-bold text-fg-3 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[6px] transition-all"
-              >
-                Descartar
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saveStatus === 'saving'}
-                className="bg-accent-primary hover:bg-accent-primary-hover active:scale-95 text-fg-on-brand px-8 py-2.5 rounded-full text-sm font-black shadow-[var(--shadow-brand)] transition-all flex items-center gap-2 disabled:opacity-60"
-              >
-                {saveStatus === 'saving' ? 'Salvando...' : saveStatus === 'saved' ? 'Salvo!' : 'Salvar Alteracoes'}
-              </button>
-            </div>
-          </div>
-
-          <div className="py-3 border-t border-border-1 flex items-center gap-1 overflow-x-auto no-scrollbar">
-            {funnelSteps.map((step, idx) => {
-              const isActive = step.id === formData.stageId;
-              const isPast = idx < safeCurrentIdx;
-              return (
-                <div key={step.id} className="flex items-center gap-1">
-                  <button
-                    onClick={() => setFormData({ ...formData, stageId: step.id })}
-                    className={`relative h-8 px-4 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap ${
-                      isActive ? 'bg-accent-primary text-fg-on-brand border-accent-primary shadow-[var(--shadow-brand)]'
-                      : isPast ? 'bg-signal-success/10 text-signal-success border-signal-success/20 hover:bg-signal-success/20'
-                      : 'bg-bg-surface-2 text-fg-4 border-border-1 hover:border-border-2'
-                    }`}
-                  >
-                    {isPast && <div className="w-1.5 h-1.5 rounded-full bg-signal-success" />}
-                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-fg-on-brand" />}
-                    {step.name}
-                  </button>
-                  {idx < funnelSteps.length - 1 && (
-                    <div className={`h-[2px] w-4 ${isPast ? 'bg-signal-success/40' : 'bg-border-1'}`} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {saveError && <div className="pb-3 text-[11px] font-bold text-signal-danger">{saveError}</div>}
-        </div>
-      </div>
-
-      {oportunidade && (
-        <div className="bg-accent-primary-soft border border-accent-primary/10 rounded-[8px] p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[var(--shadow-1)]">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-[8px] bg-gradient-to-br from-signal-success to-ramo-saude flex items-center justify-center text-fg-on-brand text-2xl font-bold shadow-[var(--shadow-2)]">
-              {clienteNome.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-fg-1 uppercase tracking-tight">{clienteNome}</h2>
-              <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-fg-3 font-bold">
-                <span className="flex items-center gap-1.5 bg-bg-surface px-3 py-1 rounded-full shadow-[var(--shadow-1)]">
-                  <Mail size={14} className="text-accent-primary" /> {email || '-'}
-                </span>
-                <span className="flex items-center gap-1.5 bg-bg-surface px-3 py-1 rounded-full shadow-[var(--shadow-1)]">
-                  <Phone size={14} className="text-accent-primary" /> {telefone || '-'}
-                </span>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => oportunidade.id && navigate(`/oportunidades/${oportunidade.id}`)}
-            className="px-6 py-2.5 bg-bg-surface text-accent-primary border border-accent-primary/20 rounded-full text-sm font-black shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] hover:-translate-y-0.5 transition-all flex items-center gap-2"
-          >
-            <ExternalLink size={16} /> Oportunidade Vinculada
-          </button>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12 animate-fade-in">
-        <div className="lg:col-span-7 space-y-6">
-          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-            <div className="flex items-center gap-2 mb-6 text-fg-4">
-              <FileText size={18} className="text-accent-primary" />
-              <h3 className="text-xs font-bold uppercase tracking-widest">Dados da Parcela</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-fg-3 uppercase">Numero da Parcela</label>
-                <input
-                  type="text"
-                  value={metaFields.numero_parcela}
-                  onChange={(e) => setMetaFields({ ...metaFields, numero_parcela: e.target.value })}
-                  className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-fg-3 uppercase">Total de Parcelas</label>
-                <input
-                  type="text"
-                  value={metaFields.total_parcelas}
-                  onChange={(e) => setMetaFields({ ...metaFields, total_parcelas: e.target.value })}
-                  className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-fg-3 uppercase">Data de Vencimento</label>
-                <DateField
-                  value={metaFields.data_vencimento}
-                  onChange={(v) => setMetaFields({ ...metaFields, data_vencimento: v })}
-                  inputClassName="bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-fg-3 uppercase">Forma de Pagamento</label>
-                <input
-                  type="text"
-                  value={metaFields.forma_pagamento}
-                  onChange={(e) => setMetaFields({ ...metaFields, forma_pagamento: e.target.value })}
-                  placeholder="Boleto, PIX, Cartao..."
-                  className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-4">Tratativas</h3>
-            <textarea
-              value={formData.observacoes}
-              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-              className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl p-4 text-sm h-32 resize-none focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-              placeholder="Contatos feitos, promessas de pagamento, acordos..."
-            />
-          </div>
-        </div>
-
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-            <div className="flex items-center gap-2 mb-6 text-fg-4">
-              <DollarSign size={18} className="text-signal-success" />
-              <h3 className="text-xs font-bold uppercase tracking-widest">Valores</h3>
-            </div>
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-fg-3 uppercase">Valor da Parcela (R$)</label>
-                <input
-                  type="text"
-                  value={metaFields.valor_parcela}
-                  onChange={(e) => setMetaFields({ ...metaFields, valor_parcela: e.target.value })}
-                  placeholder="0,00"
-                  className="w-full bg-bg-surface-2 border-border-1 rounded-[8px] py-3 px-4 text-xl font-black text-fg-1 focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                />
-                <p className="text-[10px] text-fg-4">{formatCurrency(valorParcelaNumeric)}</p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-fg-3 uppercase">Dias em Atraso</label>
-                <input
-                  type="number"
-                  value={metaFields.dias_atraso}
-                  onChange={(e) => setMetaFields({ ...metaFields, dias_atraso: e.target.value })}
-                  className={`w-full border-border-1 rounded-[8px] py-3 px-4 text-xl font-black focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none ${
-                    diasAtrasoNumeric > 0
-                      ? 'bg-signal-danger/10 text-signal-danger'
-                      : 'bg-bg-surface-2 text-fg-1'
-                  }`}
-                />
-                {diasAtrasoNumeric > 0 && (
-                  <p className="text-[10px] font-bold text-signal-danger uppercase tracking-widest">Em atraso</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-fg-3 uppercase">Proximo Followup</label>
-                <DateField
-                  value={formData.proximoFollowup}
-                  onChange={(v) => setFormData({ ...formData, proximoFollowup: v })}
-                  inputClassName="bg-accent-primary-soft text-accent-primary border border-accent-primary/20"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <ConcludeCardModal
-        isOpen={!!concludeMode}
-        card={cardForConclude}
-        mode={concludeMode ?? 'won'}
-        module="financeiro"
-        pipelineId={(rawRow.pipeline_id as string | null) ?? ''}
-        onClose={() => setConcludeMode(null)}
-        onDone={() => detail.refetch()}
-      />
+  return <DetailCard title="Editar acompanhamento" icon={Pencil}>
+    <div className="grid gap-5 sm:grid-cols-2">
+      <label><span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-fg-3">Responsável</span><select value={responsavelId} onChange={(event) => setResponsavelId(event.target.value)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1"><option value="">Sem responsável</option>{(responsaveis ?? []).map((row) => <option key={row.id} value={row.id}>{row.full_name ?? row.email ?? row.id}</option>)}</select></label>
+      <label><span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-fg-3">Prioridade</span><select value={prioridade} onChange={(event) => setPrioridade(event.target.value as CobrancaPrioridade)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1"><option value="BAIXA">Baixa</option><option value="MEDIA">Média</option><option value="ALTA">Alta</option><option value="URGENTE">Urgente</option></select></label>
+      <label><span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-fg-3">Canal preferencial</span><select value={canal} onChange={(event) => setCanal(event.target.value as CobrancaCanal)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1"><option value="WHATSAPP">WhatsApp</option><option value="TELEFONE">Telefone</option><option value="EMAIL">E-mail</option><option value="OUTRO">Outro</option></select></label>
+      <DateField label="Prazo do follow-up" value={followup} onChange={setFollowup} inputClassName="text-sm" />
+      <label><span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-fg-3">Última cobrança</span><input type="datetime-local" value={ultima} onChange={(event) => setUltima(event.target.value)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1" /></label>
+      <label><span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-fg-3">Próxima cobrança</span><input type="datetime-local" value={proxima} onChange={(event) => setProxima(event.target.value)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1" /></label>
+      <label className="sm:col-span-2"><span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-fg-3">Observações operacionais</span><textarea rows={4} value={observacoes} onChange={(event) => setObservacoes(event.target.value)} className="w-full resize-none rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm text-fg-1" /></label>
     </div>
-  );
+    <div className="mt-6 flex justify-end gap-3 border-t border-border-1 pt-5"><button type="button" onClick={onCancel} className="rounded-full border border-border-1 px-4 py-2.5 text-sm font-bold text-fg-3">Cancelar</button><button type="button" disabled={saving} onClick={() => onSave({ responsavel_id: responsavelId || null, prioridade, canal_preferencial: canal, vencimento_followup: followup || null, ultima_cobranca_em: ultima ? new Date(ultima).toISOString() : null, proxima_cobranca_em: proxima ? new Date(proxima).toISOString() : null, observacoes: observacoes || null })} className="rounded-full bg-accent-primary px-5 py-2.5 text-sm font-black text-fg-on-brand shadow-[var(--shadow-brand)] disabled:opacity-40">{saving ? 'Salvando...' : 'Salvar alterações'}</button></div>
+  </DetailCard>
+}
+
+function CancelModal({ saving, onClose, onConfirm }: { saving: boolean; onClose: () => void; onConfirm: (reason: string) => void }) {
+  const [reason, setReason] = useState('')
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => { if (event.key === 'Escape' && !saving) onClose() }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [onClose, saving])
+  return <div className="fixed inset-0 z-[90] flex items-center justify-center p-4"><button type="button" aria-label="Fechar modal" onClick={() => !saving && onClose()} className="fixed inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm" /><section role="dialog" aria-modal="true" className="relative w-full max-w-md rounded-[8px] border border-border-1 bg-bg-surface shadow-[var(--shadow-3)]"><header className="flex items-center justify-between border-b border-border-1 p-5"><div><h2 className="font-black text-fg-1">Cancelar cobrança</h2><p className="mt-1 text-xs font-semibold text-fg-3">O histórico será preservado e poderá ser reaberto quando elegível.</p></div><button type="button" onClick={onClose} disabled={saving} className="rounded-[6px] p-2 text-fg-4 hover:bg-bg-surface-2"><X size={18} /></button></header><div className="p-5"><label><span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Motivo *</span><textarea autoFocus rows={4} value={reason} onChange={(event) => setReason(event.target.value)} className="w-full resize-none rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm text-fg-1" /></label></div><footer className="flex justify-end gap-3 border-t border-border-1 p-5"><button type="button" onClick={onClose} disabled={saving} className="rounded-full border border-border-1 px-4 py-2 text-sm font-bold text-fg-3">Voltar</button><button type="button" onClick={() => onConfirm(reason)} disabled={saving || !reason.trim()} className="rounded-full bg-signal-danger px-5 py-2 text-sm font-black text-white disabled:opacity-40">{saving ? 'Cancelando...' : 'Cancelar cobrança'}</button></footer></section></div>
+}
+
+export default function FinanceiroDetalhePage() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { user, activeBranchId } = useAuth()
+  const branchIds = activeBranchId ? [activeBranchId] : user?.branchIds ?? null
+  const { can } = usePermission('financeiro')
+  const detail = useCobranca(id, branchIds)
+  const responsaveis = useCobrancaResponsaveis()
+  const maintain = useMaintainCobranca()
+  const close = useCloseCobranca()
+  const reopen = useReopenCobranca()
+  const confirm = useConfirm()
+  const { notify } = useSystemFeedback()
+  const [editing, setEditing] = useState(false)
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const cobranca = detail.data
+  const tabsState = useEntityTabsState('cobranca', id, { filialId: cobranca?.parcela.filialId })
+  const requestedTab = searchParams.get('tab')
+  const activeTab: TabId = VALID_TABS.includes(requestedTab as TabId) ? requestedTab as TabId : 'visao'
+
+  if (!can('read')) return <div className="flex min-h-[45vh] flex-col items-center justify-center text-center"><ShieldAlert size={28} className="mb-3 text-signal-warning" /><p className="font-semibold text-fg-2">Sem permissão para acessar o Financeiro nesta corretora.</p><button type="button" onClick={() => navigate('/financeiro')} className="mt-4 text-sm font-bold text-accent-primary hover:underline">Voltar para o Financeiro</button></div>
+  if (!id || detail.isError || (!detail.isLoading && !cobranca)) return <div className="flex min-h-[45vh] flex-col items-center justify-center text-center"><ShieldAlert size={28} className="mb-3 text-signal-warning" /><p className="font-semibold text-fg-2">Cobrança não encontrada ou sem acesso nesta corretora.</p><button type="button" onClick={() => navigate('/financeiro?visao=cobrancas')} className="mt-4 text-sm font-bold text-accent-primary hover:underline">Voltar para Cobranças</button></div>
+  if (detail.isLoading || !cobranca) return <div className="animate-pulse py-24 text-center text-sm font-semibold text-fg-4">Carregando cobrança...</div>
+
+  const canUpdate = can('update')
+  const canDelete = can('delete')
+  const pendentes = tabsState.tarefas.filter((row) => row.status !== 'Concluída').length
+  const tabs: EntityTab<TabId>[] = [
+    { id: 'visao', label: 'Visão geral' },
+    { id: 'tarefas', label: 'Tarefas', badge: pendentes || undefined },
+    { id: 'personalizados', label: 'Campos personalizados' },
+    { id: 'anexos', label: 'Anexos e logs', badge: tabsState.anexos.length || undefined },
+    { id: 'observacoes', label: 'Observações', badge: tabsState.observacoes.length || undefined },
+  ]
+  const statusLabel = cobranca.status === 'ATIVA' ? 'Ativa' : cobranca.status === 'QUITADA' ? 'Quitada' : 'Cancelada'
+  const statusTone = cobranca.status === 'ATIVA' ? 'warning' : cobranca.status === 'QUITADA' ? 'success' : 'danger'
+
+  const setTab = (tab: TabId) => {
+    if (editing) return notify({ title: 'Conclua ou cancele a edição', description: 'As alterações permanecem no bloco atual.', tone: 'warning' })
+    const next = new URLSearchParams(searchParams)
+    if (tab === 'visao') next.delete('tab'); else next.set('tab', tab)
+    setSearchParams(next, { replace: true })
+  }
+  const runTabAction = async (action: () => Promise<void>, title?: string) => { try { await action(); if (title) notify({ title, tone: 'success' }) } catch (error) { notify({ title: 'Não foi possível concluir a ação', description: error instanceof Error ? error.message : 'Tente novamente.', tone: 'danger' }) } }
+  const confirmRemove = (title: string, description: string) => confirm({ title, description, confirmLabel: 'Remover', tone: 'danger' })
+
+  const save = async (patch: Parameters<typeof maintain.mutateAsync>[0]['patch']) => { try { const result = await maintain.mutateAsync({ id: cobranca.id, patch }); setEditing(false); notify({ title: 'Cobrança atualizada', description: `${result.changedFields} campo(s) alterado(s) com auditoria.`, tone: 'success' }) } catch (error) { notify({ title: 'Não foi possível salvar', description: error instanceof Error ? error.message : 'A operação foi revertida.', tone: 'danger' }) } }
+  const closeAs = async (status: 'QUITADA' | 'CANCELADA', reason?: string) => { try { await close.mutateAsync({ id: cobranca.id, status, reason }); setCancelOpen(false); notify({ title: status === 'QUITADA' ? 'Cobrança quitada' : 'Cobrança cancelada', description: 'A transição foi registrada no histórico.', tone: 'success' }) } catch (error) { notify({ title: 'Não foi possível encerrar', description: error instanceof Error ? error.message : 'A operação foi revertida.', tone: 'danger' }) } }
+  const handleReopen = async () => { if (!await confirm({ title: 'Reabrir cobrança?', description: 'A parcela precisa estar vencida e não pode possuir outra cobrança ativa.', confirmLabel: 'Reabrir', tone: 'warning' })) return; try { await reopen.mutateAsync(cobranca.id); notify({ title: 'Cobrança reaberta', tone: 'success' }) } catch (error) { notify({ title: 'Não foi possível reabrir', description: error instanceof Error ? error.message : 'A operação foi revertida.', tone: 'danger' }) } }
+
+  return <div className="animate-fade-in pb-10">
+    <div className="mb-5 flex items-center gap-2 text-sm text-fg-3"><button type="button" onClick={() => navigate('/financeiro?visao=cobrancas')} className="inline-flex items-center gap-1.5 font-semibold hover:text-accent-primary"><ArrowLeft size={15} /> Cobranças</button><ChevronRight size={14} className="text-fg-4" /><span className="truncate font-medium text-fg-1">{cobranca.parcela.seguradoNome}</span></div>
+    <section className="mb-5 rounded-[8px] border border-border-1 bg-bg-surface p-6 shadow-[var(--shadow-1)]"><div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"><div className="flex min-w-0 items-start gap-4"><span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[8px] bg-signal-warning/12 text-signal-warning"><MessageSquareText size={25} /></span><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h1 className="text-2xl font-bold tracking-[-0.02em] text-fg-1">{cobranca.parcela.seguradoNome}</h1><StatusBadge status={statusLabel} tone={statusTone} /></div><p className="mt-1 text-sm font-semibold text-fg-3">{cobranca.parcela.documentoReferencia} · Parcela {cobranca.parcela.numero ?? '—'} · {money(cobranca.parcela.valor)}</p><div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-fg-3"><span className="inline-flex items-center gap-1.5"><CalendarClock size={13} /> {dateTime(cobranca.proxima_cobranca_em)}</span><span className="inline-flex items-center gap-1.5"><ClipboardList size={13} /> {cobranca.etapaNome}</span><span className="inline-flex items-center gap-1.5"><UserRound size={13} /> {cobranca.responsavelNome ?? 'Sem responsável'}</span></div></div></div><div className="flex flex-wrap gap-2">{canUpdate && activeTab === 'visao' && cobranca.status === 'ATIVA' && !editing && <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-2 rounded-full border border-accent-primary px-4 py-2.5 text-sm font-bold text-accent-primary hover:bg-accent-primary-soft"><Pencil size={15} />Editar</button>}{canUpdate && cobranca.status === 'ATIVA' && <><button type="button" onClick={() => void closeAs('QUITADA')} className="inline-flex items-center gap-2 rounded-full border border-signal-success/40 px-4 py-2.5 text-sm font-bold text-signal-success hover:bg-signal-success/10"><CheckCircle2 size={15} />Quitar</button><button type="button" onClick={() => setCancelOpen(true)} className="inline-flex items-center gap-2 rounded-full border border-signal-danger/40 px-4 py-2.5 text-sm font-bold text-signal-danger hover:bg-signal-danger/10"><X size={15} />Cancelar</button></>}{canUpdate && cobranca.status !== 'ATIVA' && <button type="button" onClick={() => void handleReopen()} className="inline-flex items-center gap-2 rounded-full border border-signal-warning/40 px-4 py-2.5 text-sm font-bold text-signal-warning"><RotateCcw size={15} />Reabrir</button>}</div></div></section>
+    <div className="mb-6 flex items-start gap-3 rounded-[6px] border border-accent-primary/20 bg-accent-primary-soft px-4 py-3 text-sm text-fg-2"><FileCheck2 size={18} className="mt-0.5 shrink-0 text-accent-primary" /><div><p className="font-bold text-fg-1">Origem protegida</p><p className="mt-0.5 text-xs font-semibold text-fg-3">A parcela e seus valores são somente leitura. A baixa acontece em Parcelas; a etapa muda exclusivamente pelo Kanban.</p></div></div>
+    <EntityTabsBar tabs={tabs} active={activeTab} onChange={setTab} />
+    <div role="tabpanel">
+      {activeTab === 'visao' && (editing ? <EditForm cobranca={cobranca} responsaveis={responsaveis.data} saving={maintain.isPending} onCancel={() => setEditing(false)} onSave={(patch) => void save(patch)} /> : <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]"><div className="space-y-6"><DetailCard title="Acompanhamento" icon={MessageSquareText}><div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3"><DetailField label="Etapa">{cobranca.etapaNome}</DetailField><DetailField label="Status">{statusLabel}</DetailField><DetailField label="Prioridade">{cobranca.prioridade}</DetailField><DetailField label="Responsável">{cobranca.responsavelNome}</DetailField><DetailField label="Abertura" mono>{date(cobranca.data_abertura)}</DetailField><DetailField label="Prazo do follow-up" mono>{date(cobranca.vencimento_followup)}</DetailField><DetailField label="Última cobrança" mono>{dateTime(cobranca.ultima_cobranca_em)}</DetailField><DetailField label="Próxima cobrança" mono>{dateTime(cobranca.proxima_cobranca_em)}</DetailField><DetailField label="Canal">{cobranca.canal_preferencial}</DetailField><DetailField label="Observações" full>{cobranca.observacoes}</DetailField>{cobranca.encerrada_em && <><DetailField label="Encerramento" mono>{dateTime(cobranca.encerrada_em)}</DetailField><DetailField label="Motivo" full>{cobranca.motivo_encerramento}</DetailField></>}</div></DetailCard></div><DetailCard title="Parcela de origem" icon={ReceiptText}><div className="space-y-4"><DetailField label="Documento">{cobranca.parcela.documentoReferencia}</DetailField><DetailField label="Apólice" mono>{cobranca.parcela.apoliceNumero}</DetailField><DetailField label="Parcela">{cobranca.parcela.numero}</DetailField><DetailField label="Vencimento" mono>{date(cobranca.parcela.vencimento)}</DetailField><DetailField label="Valor" mono>{money(cobranca.parcela.valor)}</DetailField><DetailField label="Situação efetiva">{cobranca.parcela.statusEfetivo}</DetailField><DetailField label="Atraso">{cobranca.parcela.diasVencidos} dias</DetailField><DetailField label="Seguradora">{cobranca.parcela.seguradoraNome}</DetailField><DetailField label="Ramo">{cobranca.parcela.ramoNome}</DetailField><div className="flex flex-wrap gap-2 border-t border-border-1 pt-4"><button type="button" onClick={() => navigate(`/financeiro?parcela=${cobranca.parcela.id}`)} className="rounded-full border border-border-1 px-3 py-2 text-xs font-bold text-fg-2">Abrir parcela <ExternalLink size={12} className="ml-1 inline" /></button><button type="button" onClick={() => navigate(`/apolices/${cobranca.parcela.apoliceId}?documento=${cobranca.parcela.proposta_id}`)} className="rounded-full border border-border-1 px-3 py-2 text-xs font-bold text-fg-2"><ShieldCheck size={12} className="mr-1 inline" />Documento</button><button type="button" onClick={() => navigate(`/segurados/${cobranca.parcela.seguradoId}`)} className="rounded-full border border-border-1 px-3 py-2 text-xs font-bold text-fg-2"><UserRound size={12} className="mr-1 inline" />Segurado</button></div></div></DetailCard></div>)}
+      {activeTab === 'tarefas' && (tabsState.tarefas.length > 0 || canUpdate ? <TarefasTab tarefas={tabsState.tarefas} onAdd={(task) => void runTabAction(() => tabsState.addTarefa(task), 'Tarefa criada')} onEdit={canUpdate ? (taskId, task) => void runTabAction(() => tabsState.updateTarefa(taskId, task), 'Tarefa atualizada') : undefined} onToggle={(taskId) => void runTabAction(() => tabsState.toggleTarefa(taskId))} onRemove={canDelete ? (taskId) => void (async () => { if (await confirmRemove('Remover tarefa?', 'A tarefa será removida desta cobrança.')) await runTabAction(() => tabsState.removeTarefa(taskId), 'Tarefa removida') })() : undefined} readOnly={!canUpdate} /> : <EmptyState icon={ClipboardList} title="Nenhuma tarefa registrada" hint="Crie atividades para organizar o próximo contato." />)}
+      {activeTab === 'personalizados' && <CamposPersonalizadosTab entidadeTipo="cobranca" entidadeId={cobranca.id} readOnly={!canUpdate} />}
+      {activeTab === 'anexos' && <AnexosLogsTab anexos={tabsState.anexos} logs={tabsState.logs} onAddAnexo={tabsState.addAnexo} onEditAnexo={canUpdate ? (anexoId, anexo) => void runTabAction(() => tabsState.updateAnexo(anexoId, anexo), 'Metadados atualizados') : undefined} onRemoveAnexo={canDelete ? (anexoId) => void (async () => { if (await confirmRemove('Remover anexo?', 'Somente os metadados do mock serão removidos.')) await runTabAction(() => tabsState.removeAnexo(anexoId), 'Metadado removido') })() : undefined} autorPadrao="Usuário da sessão" showAuditLogs={tabsState.showAuditLogs} onToggleAuditLogs={tabsState.setShowAuditLogs} metadataOnly readOnly={!canUpdate} />}
+      {activeTab === 'observacoes' && <ObservacoesTab observacoes={tabsState.observacoes} onAdd={tabsState.addObservacao} onTogglePin={tabsState.togglePin} mentionCandidates={tabsState.mentionCandidates} readOnly={!canUpdate} />}
+    </div>
+    {cancelOpen && <CancelModal saving={close.isPending} onClose={() => setCancelOpen(false)} onConfirm={(reason) => void closeAs('CANCELADA', reason)} />}
+  </div>
 }

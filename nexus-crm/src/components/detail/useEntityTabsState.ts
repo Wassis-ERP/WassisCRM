@@ -177,6 +177,11 @@ export function mapAnexoToView(row: AnexoRow): Anexo {
     tamanho: humanSize(row.tamanho_bytes),
     data: row.anexado_em ?? row.created_at,
     autor: row.origem === 'usuario' ? 'Usuário da sessão' : undefined,
+    descricao: row.descricao ?? undefined,
+    categoria: row.categoria ?? undefined,
+    status: row.status ?? undefined,
+    mimeType: row.mime_type ?? undefined,
+    disponivelParaDownload: Boolean(row.url_armazenamento),
   }
 }
 
@@ -255,7 +260,7 @@ export function buildAnexoInsertPayload(context: EntidadeContexto, anexo: Omit<A
     mime_type: EXT_TO_MIME[ext] ?? null,
     tamanho_bytes: Number(anexo.tamanhoBytes ?? 0),
     url_armazenamento: null,
-    categoria: 'documento',
+    categoria: anexo.categoria ?? 'documento',
     descricao: anexo.descricao ?? null,
     origem: 'usuario',
     status: 'ativo',
@@ -404,8 +409,12 @@ export interface EntityTabsApi extends EntityTabsData {
   showAuditLogs: boolean
   setShowAuditLogs: (show: boolean) => void
   addTarefa: (t: Omit<Tarefa, 'id'>) => Promise<void>
+  updateTarefa: (id: string, t: Omit<Tarefa, 'id'>) => Promise<void>
   toggleTarefa: (id: string) => Promise<void>
+  removeTarefa: (id: string) => Promise<void>
   addAnexo: (a: Omit<Anexo, 'id'>) => Promise<void>
+  updateAnexo: (id: string, a: Pick<Anexo, 'nome' | 'categoria' | 'descricao' | 'status'>) => Promise<void>
+  removeAnexo: (id: string) => Promise<void>
   addLog: (l: Omit<LogEntry, 'id'>) => Promise<void>
   addObservacao: (o: Omit<Observacao, 'id'>, resolvedMentions?: ResolvedMention[]) => Promise<void>
   togglePin: (id: string) => Promise<void>
@@ -516,10 +525,63 @@ export function useEntityTabsState(
     onSuccess: invalidate,
   })
 
+  const updateTarefaMutation = useMutation({
+    mutationFn: async ({ id, tarefa }: { id: string; tarefa: Omit<Tarefa, 'id'> }) => {
+      if (!context) throw new Error('Entidade não encontrada.')
+      const payload = buildTarefaInsertPayload(context, tarefa, responsavelId)
+      const { error } = await supabase
+        .from('atividades')
+        .update({
+          tipo: payload.tipo,
+          titulo: payload.titulo,
+          status: payload.status,
+          prioridade: payload.prioridade,
+          vencimento: payload.vencimento,
+          concluida_em: payload.concluida_em,
+          canal: payload.canal,
+        })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: invalidate,
+  })
+
+  const removeTarefaMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('atividades').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: invalidate,
+  })
+
   const addAnexoMutation = useMutation({
     mutationFn: async (anexo: Omit<Anexo, 'id'>) => {
       if (!context) throw new Error('Entidade não encontrada.')
       const { error } = await supabase.from('anexos').insert(buildAnexoInsertPayload(context, anexo))
+      if (error) throw error
+    },
+    onSuccess: invalidate,
+  })
+
+  const updateAnexoMutation = useMutation({
+    mutationFn: async ({ id, anexo }: { id: string; anexo: Pick<Anexo, 'nome' | 'categoria' | 'descricao' | 'status'> }) => {
+      const { error } = await supabase
+        .from('anexos')
+        .update({
+          nome_arquivo: anexo.nome.trim(),
+          categoria: anexo.categoria?.trim() || 'documento',
+          descricao: anexo.descricao?.trim() || null,
+          status: anexo.status?.trim() || 'ativo',
+        })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: invalidate,
+  })
+
+  const removeAnexoMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('anexos').delete().eq('id', id)
       if (error) throw error
     },
     onSuccess: invalidate,
@@ -570,8 +632,12 @@ export function useEntityTabsState(
     isLoading: query.isLoading,
     isSaving:
       addTarefaMutation.isPending ||
+      updateTarefaMutation.isPending ||
       toggleTarefaMutation.isPending ||
+      removeTarefaMutation.isPending ||
       addAnexoMutation.isPending ||
+      updateAnexoMutation.isPending ||
+      removeAnexoMutation.isPending ||
       addObservacaoMutation.isPending ||
       togglePinMutation.isPending,
     mentionCandidates: query.data?.mentionCandidates ?? [],
@@ -580,11 +646,23 @@ export function useEntityTabsState(
     addTarefa: async (tarefa) => {
       await addTarefaMutation.mutateAsync(tarefa)
     },
+    updateTarefa: async (id, tarefa) => {
+      await updateTarefaMutation.mutateAsync({ id, tarefa })
+    },
     toggleTarefa: async (id) => {
       await toggleTarefaMutation.mutateAsync(id)
     },
+    removeTarefa: async (id) => {
+      await removeTarefaMutation.mutateAsync(id)
+    },
     addAnexo: async (anexo) => {
       await addAnexoMutation.mutateAsync(anexo)
+    },
+    updateAnexo: async (id, anexo) => {
+      await updateAnexoMutation.mutateAsync({ id, anexo })
+    },
+    removeAnexo: async (id) => {
+      await removeAnexoMutation.mutateAsync(id)
     },
     addLog: async (log) => {
       await addObservacaoMutation.mutateAsync({

@@ -25,10 +25,19 @@ const TABLES = [
   'item_coberturas',
   'parcelas',
   'comissoes',
+  'comissao_extratos',
+  'comissao_extrato_itens',
+  'comissao_conciliacoes',
+  'comissao_conciliacao_ocorrencias',
+  'comissao_baixas',
+  'comissao_baixa_conciliacoes',
   'repasses',
+  'repasse_recibos',
+  'repasse_recibo_itens',
   'pos_vendas',
   'financeiro_cobrancas',
   'sinistros',
+  'sinistro_envolvidos',
   'segurados',
   'pessoa_contato',
   'pipelines',
@@ -88,6 +97,157 @@ export interface AgendaMaterializationResult {
   parcelas: number;
   comissoes: number;
   repasses: number;
+}
+
+import {
+  createSinistroAtomic,
+  type SinistroAberturaInput,
+  type SinistroCreationResult,
+  type SinistroCreationStore,
+} from '../modules/sinistro/opening'
+import {
+  maintainSinistroAtomic,
+  type SinistroMaintenanceInput,
+  type SinistroMaintenanceResult,
+  type SinistroMaintenanceStore,
+} from '../modules/sinistro/maintenance'
+import {
+  executeSinistroOperationalCommandAtomic,
+  type SinistroOperationalInput,
+  type SinistroOperationalResult,
+  type SinistroOperationalStore,
+} from '../modules/sinistro/closure'
+import {
+  createPosVendaAtomic,
+  maintainPosVendaAtomic,
+  movePosVendaStageAtomic,
+  type PosVendaCreateInput,
+  type PosVendaCreationResult,
+  type PosVendaMaintenanceInput,
+  type PosVendaMaintenanceResult,
+  type PosVendaStore,
+} from '../modules/pos_venda/domain'
+
+export type SinistroInMemoryContext = {
+  tenantId: string
+  filialId?: string | null
+  sessionUserId: string | null
+  pipelineId?: string | null
+}
+
+export type PosVendaInMemoryContext = {
+  tenantId: string
+  filialId?: string | null
+  sessionUserId: string | null
+  pipelineId: string
+}
+
+function posVendaStore(): PosVendaStore {
+  return {
+    apolices: db.apolices as unknown as PosVendaStore['apolices'],
+    segurados: db.segurados as unknown as PosVendaStore['segurados'],
+    ramos: db.ramos as unknown as PosVendaStore['ramos'],
+    pipelines: db.pipelines as unknown as PosVendaStore['pipelines'],
+    stages: db.pipeline_stages as unknown as PosVendaStore['stages'],
+    profiles: db.profiles as unknown as PosVendaStore['profiles'],
+    posVendas: db.pos_vendas as unknown as PosVendaStore['posVendas'],
+    atividades: db.atividades as unknown as PosVendaStore['atividades'],
+    auditLogs: db.audit_logs as unknown as PosVendaStore['auditLogs'],
+  }
+}
+
+export function createPosVendaInMemory(
+  input: PosVendaCreateInput,
+  context: PosVendaInMemoryContext,
+): PosVendaCreationResult {
+  return createPosVendaAtomic(posVendaStore(), input, { ...context, now: nowIso, newId })
+}
+
+export function maintainPosVendaInMemory(
+  input: PosVendaMaintenanceInput,
+  context: Pick<PosVendaInMemoryContext, 'tenantId' | 'sessionUserId'>,
+): PosVendaMaintenanceResult {
+  return maintainPosVendaAtomic(posVendaStore(), input, { ...context, now: nowIso, newId })
+}
+
+export function movePosVendaStageInMemory(
+  input: { id: string; toStageId: string },
+  context: Pick<PosVendaInMemoryContext, 'tenantId' | 'sessionUserId'>,
+): PosVendaMaintenanceResult {
+  return movePosVendaStageAtomic(posVendaStore(), input, { ...context, now: nowIso, newId })
+}
+
+/**
+ * Único ponto de escrita da abertura de Sinistro no mock. O domínio restaura
+ * Sinistro, envolvidos e auditoria se qualquer etapa da operação falhar.
+ */
+export function createSinistroInMemory(
+  input: SinistroAberturaInput,
+  context: SinistroInMemoryContext,
+): SinistroCreationResult {
+  const store: SinistroCreationStore = {
+    apolices: db.apolices as unknown as SinistroCreationStore['apolices'],
+    apoliceItens: db.apolice_itens as unknown as SinistroCreationStore['apoliceItens'],
+    propostas: db.propostas as unknown as SinistroCreationStore['propostas'],
+    segurados: db.segurados as unknown as SinistroCreationStore['segurados'],
+    pipelines: db.pipelines as unknown as SinistroCreationStore['pipelines'],
+    stages: db.pipeline_stages as unknown as SinistroCreationStore['stages'],
+    profiles: db.profiles as unknown as SinistroCreationStore['profiles'],
+    sinistros: db.sinistros as unknown as SinistroCreationStore['sinistros'],
+    envolvidos: db.sinistro_envolvidos as unknown as SinistroCreationStore['envolvidos'],
+    auditLogs: db.audit_logs as unknown as SinistroCreationStore['auditLogs'],
+  }
+
+  return createSinistroAtomic(store, input, {
+    ...context,
+    now: nowIso,
+    newId,
+  })
+}
+
+/**
+ * Manutenção atômica do Sinistro já persistido. Apólice, status e etapa não
+ * fazem parte do comando; envolvidos e auditorias compartilham o mesmo rollback.
+ */
+export function maintainSinistroInMemory(
+  input: SinistroMaintenanceInput,
+  context: Pick<SinistroInMemoryContext, 'tenantId' | 'sessionUserId'>,
+): SinistroMaintenanceResult {
+  const store: SinistroMaintenanceStore = {
+    apolices: db.apolices as unknown as SinistroMaintenanceStore['apolices'],
+    apoliceItens: db.apolice_itens as unknown as SinistroMaintenanceStore['apoliceItens'],
+    profiles: db.profiles as unknown as SinistroMaintenanceStore['profiles'],
+    sinistros: db.sinistros as unknown as SinistroMaintenanceStore['sinistros'],
+    envolvidos: db.sinistro_envolvidos as unknown as SinistroMaintenanceStore['envolvidos'],
+    auditLogs: db.audit_logs as unknown as SinistroMaintenanceStore['auditLogs'],
+  }
+
+  return maintainSinistroAtomic(store, input, {
+    ...context,
+    now: nowIso,
+    newId,
+  })
+}
+
+/**
+ * Comandos finais atomicos de Sinistro. A operacao preserva apolice, etapa e
+ * envolvidos e restaura o estado completo se a atualizacao ou auditoria falhar.
+ */
+export function executeSinistroOperationalInMemory(
+  input: SinistroOperationalInput,
+  context: Pick<SinistroInMemoryContext, 'tenantId' | 'sessionUserId'>,
+): SinistroOperationalResult {
+  const store: SinistroOperationalStore = {
+    sinistros: db.sinistros as unknown as SinistroOperationalStore['sinistros'],
+    envolvidos: db.sinistro_envolvidos as unknown as SinistroOperationalStore['envolvidos'],
+    auditLogs: db.audit_logs as unknown as SinistroOperationalStore['auditLogs'],
+  }
+
+  return executeSinistroOperationalCommandAtomic(store, input, {
+    ...context,
+    now: nowIso,
+    newId,
+  })
 }
 
 function contractAgendaTables(): ContractAgendaTables {
@@ -216,9 +376,32 @@ export const RELATIONS: Record<
   'propostas.recebimento_grades': { target: 'recebimento_grades', localFk: 'recebimento_grade_id', kind: 'forward' },
   'propostas.endosso_subtipos': { target: 'endosso_subtipos', localFk: 'endosso_subtipo_id', kind: 'forward' },
   'propostas.cancelamento_motivos': { target: 'cancelamento_motivos', localFk: 'cancelamento_motivo_id', kind: 'forward' },
-  'pos_vendas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
-  'sinistros.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
-  'financeiro_cobrancas.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
+  'comissao_extratos.tenants': { target: 'tenants', localFk: 'tenant_id', kind: 'forward' },
+  'comissao_extratos.filiais': { target: 'filiais', localFk: 'filial_id', kind: 'forward' },
+  'comissao_extratos.seguradoras': { target: 'seguradoras', localFk: 'seguradora_id', kind: 'forward' },
+  'comissao_extrato_itens.comissao_extratos': { target: 'comissao_extratos', localFk: 'extrato_id', kind: 'forward' },
+  'comissao_extrato_itens.produtores': { target: 'produtores', localFk: 'produtor_id', kind: 'forward' },
+  'comissao_extrato_itens.ramos': { target: 'ramos', localFk: 'ramo_id', kind: 'forward' },
+  'comissao_conciliacoes.comissao_extrato_itens': { target: 'comissao_extrato_itens', localFk: 'item_id', kind: 'forward' },
+  'comissao_conciliacoes.comissoes': { target: 'comissoes', localFk: 'comissao_id', kind: 'forward' },
+  'comissao_conciliacao_ocorrencias.comissao_extrato_itens': { target: 'comissao_extrato_itens', localFk: 'item_id', kind: 'forward' },
+  'comissao_conciliacao_ocorrencias.comissao_conciliacoes': { target: 'comissao_conciliacoes', localFk: 'conciliacao_id', kind: 'forward' },
+  'comissao_baixas.comissoes': { target: 'comissoes', localFk: 'comissao_id', kind: 'forward' },
+  'comissao_baixas.comissao_baixas': { target: 'comissao_baixas', localFk: 'baixa_origem_id', kind: 'forward' },
+  'comissao_baixas.profiles': { target: 'profiles', localFk: 'criado_por_id', kind: 'forward' },
+  'comissao_baixa_conciliacoes.comissao_baixas': { target: 'comissao_baixas', localFk: 'baixa_id', kind: 'forward' },
+  'comissao_baixa_conciliacoes.comissao_conciliacoes': { target: 'comissao_conciliacoes', localFk: 'conciliacao_id', kind: 'forward' },
+  'pos_vendas.apolices': { target: 'apolices', localFk: 'apolice_id', kind: 'forward' },
+  'pos_vendas.pipeline_stages': { target: 'pipeline_stages', localFk: 'stage_id', kind: 'forward' },
+  'pos_vendas.profiles': { target: 'profiles', localFk: 'responsavel_id', kind: 'forward' },
+  'sinistros.apolices': { target: 'apolices', localFk: 'apolice_id', kind: 'forward' },
+  'sinistros.pipeline_stages': { target: 'pipeline_stages', localFk: 'stage_id', kind: 'forward' },
+  'sinistros.profiles': { target: 'profiles', localFk: 'responsavel_id', kind: 'forward' },
+  'sinistro_envolvidos.sinistros': { target: 'sinistros', localFk: 'sinistro_id', kind: 'forward' },
+  'sinistro_envolvidos.apolice_itens': { target: 'apolice_itens', localFk: 'apolice_item_id', kind: 'forward' },
+  'financeiro_cobrancas.parcelas': { target: 'parcelas', localFk: 'parcela_id', kind: 'forward' },
+  'financeiro_cobrancas.pipeline_stages': { target: 'pipeline_stages', localFk: 'stage_id', kind: 'forward' },
+  'financeiro_cobrancas.profiles': { target: 'profiles', localFk: 'responsavel_id', kind: 'forward' },
   'recebimento_grades.seguradoras': { target: 'seguradoras', localFk: 'seguradora_id', kind: 'forward' },
   'recebimento_grades.ramos': { target: 'ramos', localFk: 'ramo_id', kind: 'forward' },
   'recebimento_grade_parcelas.recebimento_grades': { target: 'recebimento_grades', localFk: 'grade_id', kind: 'forward' },
@@ -249,6 +432,7 @@ export const RELATIONS: Record<
   'pipelines.pipeline_stages': { target: 'pipeline_stages', childFk: 'pipeline_id', kind: 'reverse' },
   'apolices.propostas': { target: 'propostas', childFk: 'apolice_id', kind: 'reverse' },
   'apolices.apolice_itens': { target: 'apolice_itens', childFk: 'apolice_id', kind: 'reverse' },
+  'sinistros.sinistro_envolvidos': { target: 'sinistro_envolvidos', childFk: 'sinistro_id', kind: 'reverse' },
   'apolice_itens.apolices': { target: 'apolices', localFk: 'apolice_id', kind: 'forward' },
   'apolice_itens.proposta_inclusao': { target: 'propostas', localFk: 'incluido_por_proposta_id', kind: 'forward' },
   'apolice_itens.proposta_exclusao': { target: 'propostas', localFk: 'excluido_por_proposta_id', kind: 'forward' },
@@ -265,6 +449,12 @@ export const RELATIONS: Record<
   'repasses.comissoes': { target: 'comissoes', localFk: 'comissao_id', kind: 'forward' },
   'repasses.produtores': { target: 'produtores', localFk: 'beneficiario_id', kind: 'forward' },
   'repasses.repasse_regras': { target: 'repasse_regras', localFk: 'regra_id', kind: 'forward' },
+  'repasse_recibos.filiais': { target: 'filiais', localFk: 'filial_id', kind: 'forward' },
+  'repasse_recibos.produtores': { target: 'produtores', localFk: 'beneficiario_id', kind: 'forward' },
+  'repasse_recibos.emitido_por': { target: 'profiles', localFk: 'emitido_por_id', kind: 'forward' },
+  'repasse_recibos.cancelado_por': { target: 'profiles', localFk: 'cancelado_por_id', kind: 'forward' },
+  'repasse_recibo_itens.repasse_recibos': { target: 'repasse_recibos', localFk: 'recibo_id', kind: 'forward' },
+  'repasse_recibo_itens.repasses': { target: 'repasses', localFk: 'repasse_id', kind: 'forward' },
 };
 
 let seeded = false;
@@ -1109,22 +1299,33 @@ export function seed(): void {
     },
     {
       entidade_tipo: 'pos_venda',
-      nome: 'Pipeline Pós-Venda',
+      nome: 'Pós-venda · Onboarding',
       ordem: 30,
       stages: [
-        { nome: 'Onboarding', cor: 'bg-slate-400' },
-        { nome: 'Acompanhamento', cor: 'bg-blue-400' },
-        { nome: 'Renovação', cor: 'bg-emerald-400', sucesso: true },
+        { nome: 'A iniciar', cor: 'bg-slate-400' },
+        { nome: 'Em andamento', cor: 'bg-blue-400' },
+        { nome: 'Orientação concluída', cor: 'bg-emerald-400', sucesso: true },
+      ],
+    },
+    {
+      entidade_tipo: 'pos_venda',
+      nome: 'Pós-venda · Acompanhamento mensal',
+      ordem: 35,
+      stages: [
+        { nome: 'Planejado', cor: 'bg-slate-400' },
+        { nome: 'Em contato', cor: 'bg-blue-400' },
+        { nome: 'Acompanhado', cor: 'bg-emerald-400', sucesso: true },
       ],
     },
     {
       entidade_tipo: 'cobranca',
-      nome: 'Pipeline Financeiro',
+      nome: 'Cobranças securitárias',
       ordem: 40,
       stages: [
-        { nome: 'A vencer', cor: 'bg-slate-400' },
-        { nome: 'Vencida', cor: 'bg-amber-400' },
-        { nome: 'Paga', cor: 'bg-emerald-400', sucesso: true },
+        { nome: 'Nova', cor: 'bg-slate-400' },
+        { nome: 'Em contato', cor: 'bg-blue-400' },
+        { nome: 'Promessa de pagamento', cor: 'bg-amber-400' },
+        { nome: 'Acompanhamento final', cor: 'bg-emerald-400' },
       ],
     },
     {
@@ -1178,8 +1379,19 @@ export function seed(): void {
   const aguardandoStageId = propostaStageId('Aguardando proposta');
   const analiseStageId = propostaStageId('Em análise');
   const recusadaStageId = propostaStageId('Recusada');
+  const sinistroAvisoStageId = db.pipeline_stages.find((stage) => stage.nome === 'Aviso' &&
+    db.pipelines.some((pipeline) => pipeline.id === stage.pipeline_id && pipeline.entidade_tipo === 'sinistro'))?.id;
+  const onboardingPipeline = db.pipelines.find((pipeline) =>
+    pipeline.entidade_tipo === 'pos_venda' && pipeline.nome === 'Pós-venda · Onboarding');
+  const monthlyPipeline = db.pipelines.find((pipeline) =>
+    pipeline.entidade_tipo === 'pos_venda' && pipeline.nome === 'Pós-venda · Acompanhamento mensal');
+  const onboardingStageId = db.pipeline_stages.find((stage) =>
+    stage.pipeline_id === onboardingPipeline?.id && stage.nome === 'A iniciar')?.id;
+  const monthlyStageId = db.pipeline_stages.find((stage) =>
+    stage.pipeline_id === monthlyPipeline?.id && stage.nome === 'Planejado')?.id;
 
-  if (!emitidaStageId || !aguardandoStageId || !analiseStageId || !recusadaStageId) return;
+  if (!emitidaStageId || !aguardandoStageId || !analiseStageId || !recusadaStageId ||
+      !sinistroAvisoStageId || !onboardingStageId || !monthlyStageId) return;
 
   const demoSegurados = [
     { id: 'mock-segurado-viaforte', nome: 'Viaforte Logística Ltda', tipo: 'PJ', cpf_cnpj: '12345678000110', cidade: 'São Paulo', estado: 'SP', email: 'seguros@viaforte.com.br', telefone: '1130550198' },
@@ -1262,6 +1474,144 @@ export function seed(): void {
     observacoes: null,
     ...policy,
   }));
+
+  db.pos_vendas.push(
+    {
+      id: 'mock-pos-venda-onboarding-rafael',
+      apolice_id: 'mock-apolice-rafael',
+      stage_id: onboardingStageId,
+      responsavel_id: MOCK_USER_ID,
+      tipo_processo: null,
+      status: null,
+      prioridade: 'alta',
+      assunto: 'Onboarding da Apólice Auto',
+      descricao: 'Orientação inicial após a emissão e entrega do contexto contratual.',
+      data_abertura: '2026-07-16',
+      data_conclusao_prevista: '2026-07-18',
+      data_conclusao: null,
+      motivo_pendencia: null,
+      resultado: null,
+      observacoes: 'Apólice e dados mestres permanecem consultados por vínculo.',
+    },
+    {
+      id: 'mock-pos-venda-mensal-aurora',
+      apolice_id: 'mock-apolice-aurora',
+      stage_id: monthlyStageId,
+      responsavel_id: 'mock-user-renato',
+      tipo_processo: null,
+      status: null,
+      prioridade: 'media',
+      assunto: 'Acompanhamento mensal de Saúde',
+      descricao: 'Contato operacional recorrente do contrato faturável.',
+      data_abertura: '2026-07-01',
+      data_conclusao_prevista: '2026-08-01',
+      data_conclusao: null,
+      motivo_pendencia: null,
+      resultado: null,
+      observacoes: null,
+    },
+  );
+  db.atividades.push(
+    {
+      id: 'mock-tarefa-pos-venda-onboarding',
+      tenant_id: MOCK_TENANT_ID,
+      filial_id: MATRIZ_ID,
+      responsavel_id: MOCK_USER_ID,
+      entidade_tipo: 'pos_venda',
+      entidade_id: 'mock-pos-venda-onboarding-rafael',
+      tipo: 'tarefa',
+      titulo: 'Onboarding do segurado',
+      descricao: 'Orientar Rafael Mendes após a emissão da Apólice.',
+      status: 'pendente',
+      prioridade: 'alta',
+      vencimento: '2026-07-18',
+      concluida_em: null,
+      fixada_em: null,
+      canal: null,
+      origem: 'pos_venda',
+      lembrete_em: null,
+      recorrente: false,
+      observacoes: null,
+    },
+    {
+      id: 'mock-tarefa-pos-venda-mensal',
+      tenant_id: MOCK_TENANT_ID,
+      filial_id: MATRIZ_ID,
+      responsavel_id: 'mock-user-renato',
+      entidade_tipo: 'pos_venda',
+      entidade_id: 'mock-pos-venda-mensal-aurora',
+      tipo: 'followup',
+      titulo: 'Acompanhamento mensal do contrato',
+      descricao: 'Realizar acompanhamento mensal do contrato de Aurora Tecnologia Ltda.',
+      status: 'pendente',
+      prioridade: 'media',
+      vencimento: '2026-08-01',
+      concluida_em: null,
+      fixada_em: null,
+      canal: null,
+      origem: 'pos_venda',
+      lembrete_em: null,
+      recorrente: true,
+      observacoes: null,
+    },
+  );
+  db.audit_logs.push(
+    {
+      id: 'mock-audit-pos-venda-onboarding',
+      tenant_id: MOCK_TENANT_ID,
+      user_id: MOCK_USER_ID,
+      entidade_tipo: 'pos_venda',
+      entidade_id: 'mock-pos-venda-onboarding-rafael',
+      campo: 'apolice_id',
+      valor_antigo: null,
+      valor_novo: 'mock-apolice-rafael',
+      acao: 'INSERT',
+      ocorrido_em: nowIso(),
+      origem: 'MOCK_SEED',
+      ip: null,
+      user_agent: 'mock',
+    },
+    {
+      id: 'mock-audit-pos-venda-mensal',
+      tenant_id: MOCK_TENANT_ID,
+      user_id: 'mock-user-renato',
+      entidade_tipo: 'pos_venda',
+      entidade_id: 'mock-pos-venda-mensal-aurora',
+      campo: 'apolice_id',
+      valor_antigo: null,
+      valor_novo: 'mock-apolice-aurora',
+      acao: 'INSERT',
+      ocorrido_em: nowIso(),
+      origem: 'MOCK_SEED',
+      ip: null,
+      user_agent: 'mock',
+    },
+  );
+  db.campo_definicoes.push({
+    id: 'mock-campo-pos-venda-canal-preferencial',
+    tenant_id: MOCK_TENANT_ID,
+    filial_id: null,
+    entidade_tipo: 'pos_venda',
+    chave: 'canal_preferencial_contato',
+    nome: 'Canal preferencial de contato',
+    tipo_dado: 'LISTA_UNICA',
+    formato: null,
+    obrigatorio: false,
+    ordem: 10,
+    ajuda: 'Canal definido pela corretora para o acompanhamento operacional.',
+    min_valor: null,
+    max_valor: null,
+    tamanho_max: null,
+    mascara: null,
+    placeholder: null,
+    agrupamento: 'Relacionamento',
+    visivel_em_listagem: false,
+    ativo: true,
+  });
+  db.campo_opcoes.push(
+    { id: 'mock-opcao-pos-venda-whatsapp', campo_definicao_id: 'mock-campo-pos-venda-canal-preferencial', rotulo: 'WhatsApp', valor: 'WHATSAPP', ordem: 10, ativo: true },
+    { id: 'mock-opcao-pos-venda-email', campo_definicao_id: 'mock-campo-pos-venda-canal-preferencial', rotulo: 'E-mail', valor: 'EMAIL', ordem: 20, ativo: true },
+  );
 
   db.endosso_subtipos.push(
     { id: 'mock-endosso-alteracao-dados', tenant_id: MOCK_TENANT_ID, filial_id: null, ramo_id: null, nome: 'Alteração de dados', natureza_canonica: 'ALTERACAO_DADOS', ordem: 5, ativo: true, observacoes: null },
@@ -1424,6 +1774,172 @@ export function seed(): void {
   addCobertura('mock-cob-aurora-internacoes', 'mock-item-aurora-grupo', saudeCoberturaIds[1], 1200000, 3600, 'mock-proposta-aurora-original');
   addCobertura('mock-cob-camila-incendio', 'mock-item-camila-imovel', residencialCoberturaIds[0], 650000, 620, 'mock-proposta-camila');
 
+  const SINISTRO_DEMO_ID = 'mock-sinistro-viaforte';
+  db.sinistros.push({
+    id: SINISTRO_DEMO_ID,
+    apolice_id: 'mock-apolice-viaforte',
+    stage_id: sinistroAvisoStageId,
+    responsavel_id: MOCK_USER_ID,
+    numero_sinistro: '531-2026-004981',
+    numero_aviso: 'AVI-2026-00042',
+    protocolo_seguradora: 'PORTO-2026-883104',
+    cobertura_codigo: 'casco',
+    cobertura_nome: 'Casco',
+    data_ocorrencia: '2026-07-12',
+    data_aviso: '2026-07-13',
+    data_registro_aviso: '2026-07-13',
+    data_documentacao_completa: null,
+    data_liquidacao_financeira: null,
+    data_conclusao: null,
+    tipo_sinistro: 'administrativo',
+    causa: 'Colisão traseira em via urbana',
+    descricao: 'Veículo segurado atingiu um automóvel parado durante manobra de baixa velocidade.',
+    local_ocorrencia: 'Avenida Paulista, São Paulo/SP',
+    status: 'aberto',
+    valor_estimado: 18400,
+    valor_indenizado: null,
+    valor_pendente: 18400,
+    valor_despesas_regulacao: null,
+    valor_salvado: null,
+    data_salvado: null,
+    valor_ressarcimento: null,
+    data_ressarcimento: null,
+    negativa_motivo: null,
+    regulador_nome: 'Marcos Vieira',
+    oficina_nome: 'Oficina Central Paulista',
+    observacoes: 'Aguardando vistoria e documentação complementar do terceiro.',
+  });
+  db.sinistro_envolvidos.push(
+    {
+      id: 'mock-sinistro-envolvido-segurado',
+      sinistro_id: SINISTRO_DEMO_ID,
+      apolice_item_id: 'mock-item-viaforte-2',
+      tipo: 'SEGURADO',
+      nome: 'Viaforte Logística Ltda',
+      cpf_cnpj: '12345678000110',
+      email: 'seguros@viaforte.com.br',
+      telefone: '1130550198',
+      placa: 'BRA2E19',
+      seguradora_terceiro: null,
+      apolice_terceiro: null,
+      tipo_dano: 'Danos materiais no veículo segurado',
+      valor_reclamado: 12400,
+      valor_indenizado: null,
+      responsavel_pelo_evento: true,
+      observacoes: 'Item 2 da apólice, vigente na data da ocorrência.',
+    },
+    {
+      id: 'mock-sinistro-envolvido-terceiro',
+      sinistro_id: SINISTRO_DEMO_ID,
+      apolice_item_id: null,
+      tipo: 'TERCEIRO',
+      nome: 'Carlos Eduardo Lima',
+      cpf_cnpj: '98765432100',
+      email: 'carlos.lima@example.com',
+      telefone: '11995554433',
+      placa: 'DEF7G89',
+      seguradora_terceiro: 'Azul Seguros',
+      apolice_terceiro: 'AZ-442190-7',
+      tipo_dano: 'Danos materiais na traseira do veículo',
+      valor_reclamado: 6000,
+      valor_indenizado: null,
+      responsavel_pelo_evento: false,
+      observacoes: 'Terceiro descritivo; não integra o cadastro de segurados.',
+    },
+  );
+  db.atividades.push({
+    id: 'mock-tarefa-vistoria-sinistro',
+    tenant_id: MOCK_TENANT_ID,
+    filial_id: MATRIZ_ID,
+    responsavel_id: MOCK_USER_ID,
+    entidade_tipo: 'sinistro',
+    entidade_id: SINISTRO_DEMO_ID,
+    tipo: 'tarefa',
+    titulo: 'Acompanhar vistoria do veículo segurado',
+    descricao: 'Confirmar data, oficina e laudo da vistoria.',
+    status: 'pendente',
+    prioridade: 'alta',
+    vencimento: '2026-07-17',
+    concluida_em: null,
+    fixada_em: null,
+    canal: null,
+    origem: 'mock',
+    lembrete_em: null,
+    recorrente: false,
+    observacoes: null,
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  });
+  db.anexos.push({
+    id: 'mock-anexo-aviso-sinistro',
+    tenant_id: MOCK_TENANT_ID,
+    filial_id: MATRIZ_ID,
+    entidade_tipo: 'sinistro',
+    entidade_id: SINISTRO_DEMO_ID,
+    nome_arquivo: 'aviso-sinistro-avi-2026-00042.pdf',
+    mime_type: 'application/pdf',
+    tamanho_bytes: 186_240,
+    url_armazenamento: null,
+    categoria: 'aviso',
+    descricao: 'Metadado demo do aviso enviado à seguradora.',
+    origem: 'mock',
+    status: 'ativo',
+    hash_sha256: null,
+    anexado_em: nowIso(),
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  });
+  db.audit_logs.push({
+    id: 'mock-audit-abertura-sinistro',
+    tenant_id: MOCK_TENANT_ID,
+    user_id: MOCK_USER_ID,
+    entidade_tipo: 'sinistro',
+    entidade_id: SINISTRO_DEMO_ID,
+    campo: null,
+    valor_antigo: null,
+    valor_novo: 'aberto',
+    acao: 'INSERT',
+    ocorrido_em: nowIso(),
+    origem: 'MOCK_SEED',
+    ip: null,
+    user_agent: 'mock',
+  });
+  db.campo_definicoes.push({
+    id: 'mock-campo-sinistro-bo',
+    tenant_id: MOCK_TENANT_ID,
+    filial_id: null,
+    entidade_tipo: 'sinistro',
+    chave: 'numero_boletim_ocorrencia',
+    nome: 'Número do boletim de ocorrência',
+    tipo_dado: 'TEXTO_CURTO',
+    formato: null,
+    obrigatorio: false,
+    ordem: 10,
+    ajuda: 'Referência operacional quando houver boletim de ocorrência.',
+    min_valor: null,
+    max_valor: null,
+    tamanho_max: 40,
+    mascara: null,
+    placeholder: 'Ex.: 2026-004219',
+    agrupamento: 'Ocorrência',
+    visivel_em_listagem: false,
+    ativo: true,
+  });
+  db.campo_valores.push({
+    id: 'mock-campo-valor-sinistro-bo',
+    campo_definicao_id: 'mock-campo-sinistro-bo',
+    entidade_id: SINISTRO_DEMO_ID,
+    valor_texto: '2026-004219',
+    valor_numero: null,
+    valor_data: null,
+    valor_datahora: null,
+    valor_booleano: null,
+    valor_opcao_id: null,
+    preenchido_em: nowIso(),
+    validado_em: null,
+    origem: 'mock',
+  });
+
   materializeDocumentAgendas('mock-proposta-viaforte-original', '2026-07-10');
   materializeDocumentAgendas('mock-proposta-viaforte-endosso-3', '2026-07-15');
   materializeDocumentAgendas('mock-proposta-viaforte-cancelamento', '2026-08-10');
@@ -1432,6 +1948,138 @@ export function seed(): void {
   materializeDocumentAgendas('mock-proposta-aurora-fatura-junho', '2026-06-10', 'FAT-2026-06');
   // Reprocessamento deliberado: o guard por proposta preserva idempotencia.
   materializeDocumentAgendas('mock-proposta-aurora-fatura-junho', '2026-06-10', 'FAT-2026-06');
+  // Massa operacional do 3.5: a baixa de comissão é o gatilho contratual que
+  // torna repasses elegíveis; o pagamento continua dependendo de recibo.
+  db.repasses.slice(0, 5).forEach((row, index) => Object.assign(row, {
+    status: 'LIBERADO',
+    liberado_em: index < 3 ? '2026-07-15' : '2026-07-16',
+  }));
+  // Prova estrutural do contrato 3.2: conciliar não altera nem baixa a comissão.
+  const commissionForStatement = db.comissoes.find((row) => row.proposta_id === 'mock-proposta-viaforte-original');
+  const policyForStatement = db.apolices.find((row) => row.id === 'mock-apolice-viaforte');
+  const insuredForStatement = db.segurados.find((row) => row.id === policyForStatement?.segurado_id);
+  if (commissionForStatement && policyForStatement?.seguradora_id && insuredForStatement?.filial_id) {
+    const expectedValue = Number(commissionForStatement.valor_previsto ?? 0);
+    db.comissao_extratos.push({
+      id: 'mock-extrato-comissao-porto-jul-2026', tenant_id: MOCK_TENANT_ID,
+      filial_id: insuredForStatement.filial_id, seguradora_id: policyForStatement.seguradora_id,
+      identificacao_externa: 'EXT-PORTO-2026-07', competencia: '2026-07-01',
+      periodo_inicio: '2026-07-01', periodo_fim: '2026-07-31', data_emissao: '2026-07-11',
+      data_recebimento: '2026-07-12', arquivo_nome: 'extrato-porto-julho-2026.pdf',
+      arquivo_referencia: 'mock://extratos/extrato-porto-julho-2026.pdf', origem_tipo: 'ARQUIVO',
+      origem_formato: 'PDF', arquivo_mime_type: 'application/pdf',
+      arquivo_hash_sha256: 'mock-sha256-extrato-porto-julho-2026',
+      chave_idempotencia: `${insuredForStatement.filial_id}|${policyForStatement.seguradora_id}|mock-sha256-extrato-porto-julho-2026`,
+      parser_identificador: null, parser_versao: null, tentativa_processamento: 1,
+      status_processamento: 'NORMALIZADO', status_conciliacao: 'COM_OCORRENCIAS',
+      quantidade_itens: 2, valor_bruto_total: expectedValue + 37.5,
+      valor_liquido_total: expectedValue + 37.5, valor_descontos_total: 0, moeda: 'BRL',
+      erro_codigo: null, erro_mensagem_segura: null, recebido_por_id: MOCK_USER_ID,
+      processado_por_id: MOCK_USER_ID, recebido_em: '2026-07-12T12:00:00.000Z',
+      processamento_iniciado_em: '2026-07-12T12:01:00.000Z',
+      processamento_concluido_em: '2026-07-12T12:01:02.000Z',
+      criado_em: '2026-07-12T12:00:00.000Z', atualizado_em: '2026-07-12T12:01:02.000Z',
+      observacoes: 'Massa minima do contrato 3.2; sem leitura ou baixa funcional.',
+    });
+    db.comissao_extrato_itens.push(
+      {
+        id: 'mock-extrato-item-conciliado', extrato_id: 'mock-extrato-comissao-porto-jul-2026',
+        identificacao_externa: 'PORTO-LINHA-001', sequencia_externa: '1',
+        chave_idempotencia: 'mock-extrato-comissao-porto-jul-2026|PORTO-LINHA-001',
+        produtor_id: null, ramo_id: policyForStatement.ramo_id ?? null,
+        produtor_beneficiario_informado: null, proposta_numero_informado: 'FROTA-2026-00991',
+        apolice_numero_informado: policyForStatement.numero_apolice ?? null,
+        endosso_numero_informado: null, documento_numero_informado: 'FROTA-2026-00991',
+        parcela_numero_informado: String(commissionForStatement.numero ?? 1),
+        segurado_nome_informado: insuredForStatement.nome ?? null, competencia: '2026-07-01',
+        data_credito: '2026-07-11', data_recebimento_informada: '2026-07-11',
+        valor_bruto_informado: expectedValue, valor_liquido_informado: expectedValue,
+        valor_descontos_informado: 0, percentual_informado: commissionForStatement.percentual ?? null,
+        tipo_comissao: commissionForStatement.tipo_comissao ?? null, seguradora_lote_informado: 'LOTE-0711',
+        seguradora_referencia_informada: 'PORTO-REF-001', descricao_original: 'Comissao apolice frota',
+        status_conciliacao: 'CONCILIADO', normalizado_em: '2026-07-12T12:01:01.000Z',
+        criado_em: '2026-07-12T12:01:01.000Z', atualizado_em: '2026-07-12T12:01:02.000Z',
+      },
+      {
+        id: 'mock-extrato-item-nao-encontrado', extrato_id: 'mock-extrato-comissao-porto-jul-2026',
+        identificacao_externa: 'PORTO-LINHA-002', sequencia_externa: '2',
+        chave_idempotencia: 'mock-extrato-comissao-porto-jul-2026|PORTO-LINHA-002',
+        produtor_id: null, ramo_id: null, produtor_beneficiario_informado: null,
+        proposta_numero_informado: null, apolice_numero_informado: 'NAO-CADASTRADA-999',
+        endosso_numero_informado: null, documento_numero_informado: 'NAO-CADASTRADA-999',
+        parcela_numero_informado: '1', segurado_nome_informado: 'Segurado não localizado',
+        competencia: '2026-07-01', data_credito: '2026-07-11',
+        data_recebimento_informada: '2026-07-11', valor_bruto_informado: 37.5,
+        valor_liquido_informado: 37.5, valor_descontos_informado: 0,
+        percentual_informado: null, tipo_comissao: 'NORMAL', seguradora_lote_informado: 'LOTE-0711',
+        seguradora_referencia_informada: 'PORTO-REF-002', descricao_original: 'Documento não localizado',
+        status_conciliacao: 'NAO_ENCONTRADO', normalizado_em: '2026-07-12T12:01:01.000Z',
+        criado_em: '2026-07-12T12:01:01.000Z', atualizado_em: '2026-07-12T12:01:02.000Z',
+      },
+    );
+    db.comissao_conciliacoes.push({
+      id: 'mock-conciliacao-exata', item_id: 'mock-extrato-item-conciliado',
+      comissao_id: commissionForStatement.id,
+      chave_idempotencia: `mock-extrato-item-conciliado|${commissionForStatement.id}`,
+      tipo_associacao: 'EXATA', status: 'CONFIRMADA', confianca_pct: 100,
+      valor_previsto_snapshot: expectedValue, valor_informado_alocado: expectedValue,
+      valor_conciliado: expectedValue, valor_diferenca: 0,
+      percentual_previsto_snapshot: commissionForStatement.percentual ?? null,
+      percentual_informado_snapshot: commissionForStatement.percentual ?? null,
+      percentual_diferenca: 0, competencia_prevista_inicio: commissionForStatement.competencia_inicio ?? null,
+      competencia_prevista_fim: commissionForStatement.competencia_fim ?? null,
+      competencia_informada: '2026-07-01', motivo: null, associado_por_id: MOCK_USER_ID,
+      confirmado_por_id: MOCK_USER_ID, criado_em: '2026-07-12T12:01:02.000Z',
+      confirmado_em: '2026-07-12T12:01:02.000Z', atualizado_em: '2026-07-12T12:01:02.000Z',
+    });
+    db.comissao_conciliacao_ocorrencias.push({
+      id: 'mock-ocorrencia-documento-nao-encontrado', item_id: 'mock-extrato-item-nao-encontrado',
+      conciliacao_id: null, tipo: 'DOCUMENTO_NAO_ENCONTRADO', status: 'ABERTA',
+      motivo: 'Nenhuma comissao elegivel foi encontrada para o documento informado.',
+      valor_esperado: null, valor_encontrado: 37.5, percentual_esperado: null,
+      percentual_encontrado: null, competencia_esperada_inicio: null,
+      competencia_esperada_fim: null, competencia_encontrada: '2026-07-01',
+      resolucao_tipo: null, resolucao_observacao: null, identificada_por_id: MOCK_USER_ID,
+      resolvida_por_id: null, identificada_em: '2026-07-12T12:01:02.000Z',
+      resolvida_em: null, atualizado_em: '2026-07-12T12:01:02.000Z',
+    });
+  }
+  // Estados operacionais da Fase 3.1 sobre fatos previamente materializados.
+  const viafortePaid = db.parcelas.find((row) => row.proposta_id === 'mock-proposta-viaforte-original' && row.numero === 1);
+  if (viafortePaid) Object.assign(viafortePaid, {
+    status: 'paga', data_pagamento: '2026-07-10', data_baixa: '2026-07-10', valor_pago: viafortePaid.valor,
+  });
+  const auroraCancelled = db.parcelas.find((row) => row.proposta_id === 'mock-proposta-aurora-original' && row.numero === 11);
+  if (auroraCancelled) Object.assign(auroraCancelled, { status: 'cancelada' });
+  const auroraReversed = db.parcelas.find((row) => row.proposta_id === 'mock-proposta-aurora-original' && row.numero === 12);
+  if (auroraReversed) Object.assign(auroraReversed, { status: 'estornada' });
+  db.parcelas.filter((row) => Number(row.valor) < 0).forEach((row) => Object.assign(row, { status: 'estornada' }));
+  const cobrancaPipeline = db.pipelines.find((row) => row.entidade_tipo === 'cobranca');
+  const cobrancaStages = cobrancaPipeline
+    ? db.pipeline_stages.filter((row) => row.pipeline_id === cobrancaPipeline.id).sort((a, b) => Number(a.ordem) - Number(b.ordem))
+    : [];
+  const parcelasVencidas = db.parcelas.filter((row) =>
+    row.vencimento && row.vencimento < '2026-07-20' && !['paga', 'cancelada', 'estornada'].includes(String(row.status)),
+  );
+  if (cobrancaStages[0] && parcelasVencidas[0]) {
+    db.financeiro_cobrancas.push({
+      id: 'mock-cobranca-ativa-01', parcela_id: parcelasVencidas[0].id, stage_id: cobrancaStages[1]?.id ?? cobrancaStages[0].id,
+      responsavel_id: MOCK_USER_ID, data_abertura: '2026-07-15', vencimento_followup: '2026-07-21',
+      status: 'ATIVA', prioridade: 'ALTA', ultima_cobranca_em: '2026-07-18T14:30:00.000Z',
+      proxima_cobranca_em: '2026-07-21T13:00:00.000Z', canal_preferencial: 'WHATSAPP',
+      observacoes: 'Cliente contatado; aguardando confirmação da programação de pagamento.',
+      encerrada_em: null, motivo_encerramento: null,
+    });
+  }
+  if (cobrancaStages[0] && parcelasVencidas[1]) {
+    db.financeiro_cobrancas.push({
+      id: 'mock-cobranca-ativa-02', parcela_id: parcelasVencidas[1].id, stage_id: cobrancaStages[0].id,
+      responsavel_id: 'mock-user-renato', data_abertura: '2026-07-19', vencimento_followup: '2026-07-22',
+      status: 'ATIVA', prioridade: 'MEDIA', ultima_cobranca_em: null,
+      proxima_cobranca_em: '2026-07-22T13:00:00.000Z', canal_preferencial: 'EMAIL',
+      observacoes: 'Primeira tratativa pendente.', encerrada_em: null, motivo_encerramento: null,
+    });
+  }
   // Caso deliberadamente divergente para validar a recuperação coletiva do 2.9b.
   db.parcelas.push({
     id: 'mock-parcela-rafael-manual-10', proposta_id: 'mock-proposta-rafael', numero: 10,

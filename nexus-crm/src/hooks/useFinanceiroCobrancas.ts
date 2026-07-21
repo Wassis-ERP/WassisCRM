@@ -1,124 +1,87 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
-import { queryKeys } from '../lib/queryClient';
-import type { Database } from '../types/database';
-import { useAuth } from './useAuth';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '../lib/queryClient'
+import {
+  closeFinanceiroCobranca,
+  createFinanceiroCobranca,
+  getFinanceiroCobranca,
+  listCobrancaResponsaveis,
+  listFinanceiroCobrancas,
+  listParcelasElegiveisCobranca,
+  maintainFinanceiroCobranca,
+  reopenFinanceiroCobranca,
+  type CobrancaMaintenanceInput,
+  type CreateCobrancaInput,
+} from '../modules/financeiro/cobrancasDomain'
+import type { CobrancaStatus } from '../types/database'
 
-type CobrancaRow = Database['public']['Tables']['financeiro_cobrancas']['Row'];
-type CobrancaInsert = Database['public']['Tables']['financeiro_cobrancas']['Insert'];
-type CobrancaUpdate = Database['public']['Tables']['financeiro_cobrancas']['Update'];
-
-export interface CreateCobrancaInput {
-  /**
-   * Opcional: permite criar cobrancas avulsas/inadimplencia pura (ver migracao 007).
-   * Se omitido e a coluna ainda for NOT NULL no banco, o insert falhara e o
-   * usuario recebera erro de constraint no modal ate a migracao ser aplicada.
-   */
-  oportunidadeId?: string | null;
-  pipelineId: string;
-  stageId: string;
-  proximoFollowup?: string | null;
-  observacoes?: string | null;
-  metadata?: Record<string, unknown>;
+function invalidateCobrancas(client: ReturnType<typeof useQueryClient>, id?: string) {
+  client.invalidateQueries({ queryKey: queryKeys.financeiroCobrancas })
+  client.invalidateQueries({ queryKey: ['kanban_cards', 'financeiro'] })
+  client.invalidateQueries({ queryKey: queryKeys.financeiroParcelas })
+  if (id) {
+    client.invalidateQueries({ queryKey: queryKeys.financeiroCobranca(id) })
+    client.invalidateQueries({ queryKey: queryKeys.entityTabs('cobranca', id) })
+  }
 }
 
-/**
- * Cria uma cobranca financeira vinculada ao tenant/responsavel logado.
- * Cobrancas podem ser vinculadas a uma oportunidade (apolice) OU avulsas
- * para controle puro de inadimplencia (quando a migracao 007 estiver aplicada).
- */
-export function useCreateCobranca() {
-  const qc = useQueryClient();
-  const { user } = useAuth();
-
-  return useMutation({
-    mutationFn: async (input: CreateCobrancaInput): Promise<CobrancaRow> => {
-      if (!user?.tenantId) throw new Error('Usuario sem tenant vinculado');
-
-      const payload: CobrancaInsert = {
-        // Cast para any so para contornar a tipagem atual (NOT NULL); o banco decide.
-        oportunidade_id: (input.oportunidadeId ?? null) as unknown as CobrancaInsert['oportunidade_id'],
-        pipeline_id: input.pipelineId,
-        stage_id: input.stageId,
-        proximo_followup: input.proximoFollowup ?? null,
-        observacoes: input.observacoes ?? null,
-        metadata: (input.metadata ?? {}) as CobrancaInsert['metadata'],
-        responsavel_id: user.id,
-        tenant_id: user.tenantId,
-        status: 'pending',
-      };
-
-      const { data, error } = await supabase.from('financeiro_cobrancas').insert(payload).select('*').single();
-      if (error) throw error;
-      return data as CobrancaRow;
-    },
-    onSuccess: (row) => {
-      qc.invalidateQueries({ queryKey: queryKeys.cards('financeiro', row.pipeline_id, 'pending') });
-      qc.invalidateQueries({ queryKey: queryKeys.cards('financeiro', row.pipeline_id, 'all') });
-    },
-  });
-}
-
-/** Atualiza colunas pontuais de uma cobranca. */
-export function useUpdateCobranca() {
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (args: { id: string; patch: CobrancaUpdate }): Promise<CobrancaRow> => {
-      const { data, error } = await supabase
-        .from('financeiro_cobrancas')
-        .update(args.patch)
-        .eq('id', args.id)
-        .select('*')
-        .single();
-      if (error) throw error;
-      return data as CobrancaRow;
-    },
-    onSuccess: (row) => {
-      qc.invalidateQueries({ queryKey: queryKeys.cards('financeiro', row.pipeline_id, 'pending') });
-      qc.invalidateQueries({ queryKey: queryKeys.cards('financeiro', row.pipeline_id, 'all') });
-      qc.invalidateQueries({ queryKey: ['cobranca', row.id] });
-    },
-  });
-}
-
-/**
- * Busca detalhe de uma cobranca (eventual join na oportunidade e segurado).
- */
-export function useCobranca(id: string | undefined) {
+export function useFinanceiroCobrancas(branchIds: readonly string[] | null) {
   return useQuery({
-    enabled: !!id,
-    queryKey: ['cobranca', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('financeiro_cobrancas')
-        .select(`
-          *,
-          oportunidades:oportunidade_id (
-            id,
-            nome,
-            segurados:segurado_id ( id, nome, cpf_cnpj, telefone, email ),
-            ramos:ramo_id ( id, nome ),
-            seguradoras:seguradora_id ( id, nome )
-          )
-        `)
-        .eq('id', id as string)
-        .single();
-      if (error) throw error;
+    queryKey: [...queryKeys.financeiroCobrancas, ...(branchIds ?? ['all'])],
+    queryFn: async () => listFinanceiroCobrancas(branchIds),
+  })
+}
 
-      const row = data as Record<string, unknown>;
-      const rid = row.responsavel_id as string | undefined;
-      if (rid) {
-        const { data: prof, error: pErr } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
-          .eq('id', rid)
-          .maybeSingle();
-        if (!pErr && prof) {
-          return { ...row, profiles: prof } as typeof data;
-        }
-      }
-      return data;
-    },
-  });
+export function useParcelasElegiveisCobranca(branchIds: readonly string[] | null) {
+  return useQuery({
+    queryKey: [...queryKeys.financeiroCobrancas, 'elegiveis', ...(branchIds ?? ['all'])],
+    queryFn: async () => listParcelasElegiveisCobranca(branchIds),
+  })
+}
+
+export function useCobranca(id: string | undefined, branchIds: readonly string[] | null) {
+  return useQuery({
+    enabled: Boolean(id),
+    queryKey: queryKeys.financeiroCobranca(id),
+    queryFn: async () => id ? getFinanceiroCobranca(id, branchIds) : null,
+  })
+}
+
+export function useCobrancaResponsaveis() {
+  return useQuery({
+    queryKey: [...queryKeys.financeiroCobrancas, 'responsaveis'],
+    queryFn: async () => listCobrancaResponsaveis(),
+  })
+}
+
+export function useCreateCobranca(branchIds: readonly string[] | null) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: CreateCobrancaInput) => createFinanceiroCobranca(input, branchIds),
+    onSuccess: (row) => invalidateCobrancas(client, row.id),
+  })
+}
+
+export function useMaintainCobranca() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: CobrancaMaintenanceInput) => maintainFinanceiroCobranca(input),
+    onSuccess: (result) => invalidateCobrancas(client, result.row.id),
+  })
+}
+
+export function useCloseCobranca() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: { id: string; status: Exclude<CobrancaStatus, 'ATIVA'>; reason?: string }) =>
+      closeFinanceiroCobranca(input.id, input.status, input.reason),
+    onSuccess: (result) => invalidateCobrancas(client, result.row.id),
+  })
+}
+
+export function useReopenCobranca() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => reopenFinanceiroCobranca(id),
+    onSuccess: (result) => invalidateCobrancas(client, result.row.id),
+  })
 }

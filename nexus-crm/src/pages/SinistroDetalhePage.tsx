@@ -1,479 +1,600 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import {
   AlertTriangle,
   ArrowLeft,
-  Check,
-  DollarSign,
+  Banknote,
+  Building2,
+  CalendarDays,
+  ChevronRight,
+  ClipboardList,
   ExternalLink,
-  FileText,
-  Mail,
-  Phone,
-  X,
-} from 'lucide-react';
-import DateField from '../components/DateField';
-import ConcludeCardModal from '../components/kanban/ConcludeCardModal';
-import { useSinistro, useUpdateSinistro } from '../hooks/useSinistros';
-import { usePipelineStages } from '../hooks/usePipelineStages';
-import { SINISTRO_CORE_FIELDS, SINISTRO_METADATA_BY_RAMO } from '../modules/sinistro/fieldSchema';
-import type { CardStatus, KanbanCard } from '../modules/types';
-import type { Database } from '../types/database';
+  FileCheck2,
+  MapPin,
+  Pencil,
+  ShieldCheck,
+  UserRound,
+  Users,
+  Wrench,
+} from 'lucide-react'
+import { useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import SinistroMaintenanceForm, { SinistroEnvolvidosEditor } from '../components/sinistro/SinistroMaintenanceForm'
+import SinistroOperationalActions from '../components/sinistro/SinistroOperationalActions'
+import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
+import { EntityTabsBar, type EntityTab } from '../components/detail/EntityTabsBar'
+import { DetailCard, DetailField, EmptyState, StatusBadge, type BadgeTone } from '../components/detail/primitives'
+import AnexosLogsTab from '../components/detail/tabs/AnexosLogsTab'
+import CamposPersonalizadosTab from '../components/detail/tabs/CamposPersonalizadosTab'
+import ObservacoesTab from '../components/detail/tabs/ObservacoesTab'
+import TarefasTab from '../components/detail/tabs/TarefasTab'
+import { useEntityTabsState } from '../components/detail/useEntityTabsState'
+import { usePermission } from '../hooks/usePermission'
+import {
+  useMaintainSinistro,
+  useOperateSinistro,
+  useSinistro,
+  useSinistroResponsaveis,
+  type SinistroEnvolvidoDetalhe,
+} from '../hooks/useSinistros'
+import type { SinistroOperationalAction, SinistroOperationalInput } from '../modules/sinistro/closure'
+import type { SinistroStatus } from '../types/database'
+import { fmtDate } from '../utils/date'
 
-type TipoSinistro = Database['public']['Enums']['tipo_sinistro'];
+type TabId = 'visao' | 'envolvidos' | 'tarefas' | 'personalizados' | 'anexos' | 'observacoes'
 
-interface JoinSegurado {
-  id: string;
-  nome: string;
-  cpf_cnpj: string | null;
-  telefone: string | null;
-  email: string | null;
+const VALID_TABS: TabId[] = ['visao', 'envolvidos', 'tarefas', 'personalizados', 'anexos', 'observacoes']
+
+const STATUS_VIEW: Record<SinistroStatus, { label: string; tone: BadgeTone }> = {
+  aberto: { label: 'Aberto', tone: 'info' },
+  reaberto: { label: 'Reaberto', tone: 'warning' },
+  encerrado_sem_indenizacao: { label: 'Encerrado sem indenização', tone: 'neutral' },
+  encerrado_com_indenizacao: { label: 'Encerrado com indenização', tone: 'success' },
+  cancelado: { label: 'Cancelado', tone: 'danger' },
 }
 
-interface JoinOportunidade {
-  id: string;
-  nome: string;
-  segurados: JoinSegurado | null;
-  ramos: { id: string; nome: string } | null;
-  seguradoras: { id: string; nome: string } | null;
+const OPERATION_VIEW: Record<SinistroOperationalAction, {
+  title: string
+  description: string
+  confirmLabel: string
+  tone: 'success' | 'warning' | 'danger'
+}> = {
+  CONCLUIR_SEM_INDENIZACAO: {
+    title: 'Concluir sem indenização?',
+    description: 'O Sinistro será encerrado sem pagamento. A etapa do Kanban será preservada.',
+    confirmLabel: 'Concluir',
+    tone: 'warning',
+  },
+  CONCLUIR_COM_INDENIZACAO: {
+    title: 'Concluir com indenização?',
+    description: 'Datas e valores finais serão registrados e auditados. A etapa do Kanban será preservada.',
+    confirmLabel: 'Concluir',
+    tone: 'success',
+  },
+  NEGAR: {
+    title: 'Registrar negativa?',
+    description: 'O Sinistro será encerrado sem indenização, preservando o motivo informado na auditoria.',
+    confirmLabel: 'Registrar negativa',
+    tone: 'warning',
+  },
+  CANCELAR: {
+    title: 'Cancelar Sinistro?',
+    description: 'O processo será cancelado sem apagar dados, envolvidos ou histórico anteriores.',
+    confirmLabel: 'Cancelar Sinistro',
+    tone: 'danger',
+  },
+  REABRIR: {
+    title: 'Reabrir Sinistro?',
+    description: 'O processo voltará à operação e manterá integralmente datas, valores e histórico anteriores.',
+    confirmLabel: 'Reabrir',
+    tone: 'warning',
+  },
 }
 
-interface JoinProfile {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
+function formatCurrency(value: number | null): string | undefined {
+  if (value == null) return undefined
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
-const TIPO_SINISTRO_OPTIONS = SINISTRO_CORE_FIELDS.find((f) => f.key === 'tipo_sinistro')?.options ?? [];
+function safeDate(value: string | null): string | undefined {
+  return value ? fmtDate(value) : undefined
+}
 
-/**
- * Pagina de detalhe de um Sinistro.
- * Le de `public.sinistros` com join em oportunidade->segurado/ramo/seguradora.
- * Permite editar campos core + metadata JSONB por ramo, mover stage e concluir.
- */
+function LoadingState() {
+  return (
+    <div className="animate-pulse space-y-6" aria-label="Carregando sinistro">
+      <div className="h-5 w-56 rounded bg-bg-surface-3" />
+      <div className="rounded-[8px] border border-border-1 bg-bg-surface p-6">
+        <div className="flex gap-4">
+          <div className="h-14 w-14 rounded-[8px] bg-bg-surface-3" />
+          <div className="flex-1 space-y-3">
+            <div className="h-6 w-72 max-w-full rounded bg-bg-surface-3" />
+            <div className="h-4 w-96 max-w-full rounded bg-bg-surface-2" />
+          </div>
+        </div>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="h-64 rounded-[8px] bg-bg-surface-2" />
+        <div className="h-64 rounded-[8px] bg-bg-surface-2" />
+      </div>
+    </div>
+  )
+}
+
 export default function SinistroDetalhePage() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const sinistroId = String(id ?? '');
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [editing, setEditing] = useState<'overview' | 'envolvidos' | 'operational' | null>(null)
+  const confirm = useConfirm()
+  const { notify } = useSystemFeedback()
+  const { can } = usePermission('sinistro')
+  const detail = useSinistro(id)
+  const responsaveis = useSinistroResponsaveis()
+  const maintain = useMaintainSinistro()
+  const operate = useOperateSinistro()
+  const sinistro = detail.data
+  const filialId = sinistro?.apolices?.segurados?.filial_id ?? null
+  const tabsState = useEntityTabsState('sinistro', id, { filialId })
 
-  const detail = useSinistro(sinistroId);
-  const update = useUpdateSinistro();
+  const requestedTab = searchParams.get('tab')
+  const activeTab: TabId = VALID_TABS.includes(requestedTab as TabId) ? requestedTab as TabId : 'visao'
 
-  const rawRow = (detail.data as Record<string, unknown> | undefined) ?? undefined;
-  const pipelineId = (rawRow?.pipeline_id as string | null | undefined) ?? undefined;
-  const stagesQuery = usePipelineStages(pipelineId);
+  if (!id) {
+    return (
+      <EmptyPage
+        message="Identificador de Sinistro inválido."
+        onBack={() => navigate('/sinistros')}
+      />
+    )
+  }
 
-  const oportunidade = (rawRow?.oportunidades ?? null) as JoinOportunidade | null;
-  const segurado = oportunidade?.segurados ?? null;
-  const responsavel = (rawRow?.profiles ?? null) as JoinProfile | null;
-  const ramoNome = oportunidade?.ramos?.nome ?? null;
+  if (detail.isLoading) return <LoadingState />
 
-  const [formData, setFormData] = useState({
-    numeroSinistro: '',
-    dataSinistro: '',
-    dataAviso: '',
-    tipoSinistro: '' as TipoSinistro | '',
-    valorPrejuizo: 0,
-    valorIndenizacao: 0,
-    stageId: '',
-    observacoes: '',
-  });
-  const [metaFields, setMetaFields] = useState<Record<string, unknown>>({});
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [concludeMode, setConcludeMode] = useState<Exclude<CardStatus, 'pending'> | null>(null);
+  if (detail.isError || !sinistro) {
+    return (
+      <EmptyPage
+        message="Sinistro não encontrado ou sem permissão de acesso."
+        onBack={() => navigate('/sinistros')}
+        onRetry={() => detail.refetch()}
+      />
+    )
+  }
 
-  useEffect(() => {
-    if (!rawRow) return;
-    setFormData({
-      numeroSinistro: (rawRow.numero_sinistro as string | null) ?? '',
-      dataSinistro: (rawRow.data_sinistro as string | null) ?? '',
-      dataAviso: (rawRow.data_aviso as string | null) ?? '',
-      tipoSinistro: (rawRow.tipo_sinistro as TipoSinistro | null) ?? '',
-      valorPrejuizo: (rawRow.valor_prejuizo as number | null) ?? 0,
-      valorIndenizacao: (rawRow.valor_indenizacao as number | null) ?? 0,
-      stageId: (rawRow.stage_id as string | null) ?? '',
-      observacoes: (rawRow.observacoes as string | null) ?? '',
-    });
-    setMetaFields((rawRow.metadata as Record<string, unknown> | null) ?? {});
-  }, [rawRow]);
+  const status = sinistro.status ? STATUS_VIEW[sinistro.status] : STATUS_VIEW.aberto
+  const apolice = sinistro.apolices
+  const segurado = apolice?.segurados
+  const envolvidos = sinistro.sinistro_envolvidos ?? []
+  const pendentes = tabsState.tarefas.filter((tarefa) => tarefa.status !== 'Concluída').length
+  const canUpdate = can('update')
+  const canDelete = can('delete')
 
-  const metaFieldsForRamo = useMemo(() => {
-    if (!ramoNome) return [];
-    return SINISTRO_METADATA_BY_RAMO[ramoNome] ?? [];
-  }, [ramoNome]);
+  const tabs: EntityTab<TabId>[] = [
+    { id: 'visao', label: 'Visão geral' },
+    { id: 'envolvidos', label: 'Envolvidos', badge: envolvidos.length || undefined },
+    { id: 'tarefas', label: 'Tarefas', badge: pendentes || undefined },
+    { id: 'personalizados', label: 'Campos personalizados' },
+    { id: 'anexos', label: 'Anexos e logs', badge: tabsState.anexos.length || undefined },
+    { id: 'observacoes', label: 'Observações', badge: tabsState.observacoes.length || undefined },
+  ]
 
-  const funnelSteps = stagesQuery.data ?? [];
-  const currentIdx = useMemo(
-    () => funnelSteps.findIndex((s) => s.id === formData.stageId),
-    [funnelSteps, formData.stageId],
-  );
-  const safeCurrentIdx = currentIdx === -1 ? 0 : currentIdx;
-  const currentStage = funnelSteps.find((s) => s.id === formData.stageId);
-  const canWin = !!currentStage?.is_win_eligible;
-  const isConcluded = (rawRow?.status as CardStatus | undefined) !== 'pending' && !!rawRow?.status;
-
-  const cardForConclude: KanbanCard | null = rawRow
-    ? {
-        id: sinistroId,
-        pipelineId: (rawRow.pipeline_id as string | null) ?? null,
-        stageId: (rawRow.stage_id as string | null) ?? null,
-        status: (rawRow.status as CardStatus) ?? 'pending',
-        title: (rawRow.numero_sinistro as string | null) ?? (oportunidade?.nome ?? 'Sinistro'),
-        responsavelId: (rawRow.responsavel_id as string | null) ?? null,
-        raw: rawRow,
-      }
-    : null;
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-
-  const handleDiscard = () => {
-    if (!rawRow) return;
-    setFormData({
-      numeroSinistro: (rawRow.numero_sinistro as string | null) ?? '',
-      dataSinistro: (rawRow.data_sinistro as string | null) ?? '',
-      dataAviso: (rawRow.data_aviso as string | null) ?? '',
-      tipoSinistro: (rawRow.tipo_sinistro as TipoSinistro | null) ?? '',
-      valorPrejuizo: (rawRow.valor_prejuizo as number | null) ?? 0,
-      valorIndenizacao: (rawRow.valor_indenizacao as number | null) ?? 0,
-      stageId: (rawRow.stage_id as string | null) ?? '',
-      observacoes: (rawRow.observacoes as string | null) ?? '',
-    });
-    setMetaFields((rawRow.metadata as Record<string, unknown> | null) ?? {});
-    setSaveStatus('idle');
-    setSaveError(null);
-  };
-
-  const handleSave = async () => {
-    setSaveStatus('saving');
-    setSaveError(null);
-    try {
-      await update.mutateAsync({
-        id: sinistroId,
-        patch: {
-          numero_sinistro: formData.numeroSinistro || null,
-          data_sinistro: formData.dataSinistro || null,
-          data_aviso: formData.dataAviso || null,
-          tipo_sinistro: formData.tipoSinistro || null,
-          valor_prejuizo: formData.valorPrejuizo || null,
-          valor_indenizacao: formData.valorIndenizacao || null,
-          stage_id: formData.stageId || null,
-          observacoes: formData.observacoes || null,
-          metadata: metaFields as never,
-        },
-      });
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 1800);
-    } catch (err) {
-      setSaveStatus('error');
-      setSaveError(err instanceof Error ? err.message : 'Erro ao salvar');
+  const handleTabChange = (nextTab: TabId) => {
+    if (editing) {
+      notify({
+        title: 'Conclua ou cancele a edição',
+        description: 'A edição permanece no bloco atual para evitar perda de alterações.',
+        tone: 'warning',
+      })
+      return
     }
-  };
-
-  if (detail.isLoading) {
-    return (
-      <div className="animate-fade-in flex items-center justify-center py-24">
-        <p className="text-fg-4 font-bold uppercase tracking-widest text-xs">Carregando sinistro...</p>
-      </div>
-    );
+    const next = new URLSearchParams(searchParams)
+    if (nextTab === 'visao') next.delete('tab')
+    else next.set('tab', nextTab)
+    setSearchParams(next, { replace: true })
   }
 
-  if (detail.isError || !rawRow) {
-    return (
-      <div className="animate-fade-in flex flex-col items-center justify-center py-24 gap-4">
-        <p className="text-signal-danger font-bold uppercase tracking-widest text-xs">Sinistro nao encontrado</p>
-        <button
-          onClick={() => navigate(-1)}
-          className="px-5 py-2 bg-bg-surface-2 text-fg-1 rounded-[6px] text-sm font-bold"
-        >
-          Voltar
-        </button>
-      </div>
-    );
+  const handleSave = async (input: Parameters<typeof maintain.mutateAsync>[0]) => {
+    try {
+      const result = await maintain.mutateAsync(input)
+      setEditing(null)
+      notify({
+        title: 'Sinistro atualizado',
+        description: `${result.changedFields} campo(s) e ${result.insertedEnvolvidos + result.updatedEnvolvidos + result.removedEnvolvidos} envolvido(s) alterados.`,
+        tone: 'success',
+      })
+    } catch (error) {
+      notify({
+        title: 'Não foi possível salvar',
+        description: error instanceof Error ? error.message : 'A operação foi revertida integralmente.',
+        tone: 'danger',
+      })
+    }
   }
 
-  const clienteNome = segurado?.nome ?? oportunidade?.nome ?? 'Sem cliente';
-  const email = segurado?.email ?? '';
-  const telefone = segurado?.telefone ?? '';
-  const criadoPor = responsavel?.full_name ?? '-';
-  const shortId = sinistroId.slice(0, 8).toUpperCase();
+  const handleOperationalCommand = async (input: SinistroOperationalInput): Promise<boolean> => {
+    const view = OPERATION_VIEW[input.action]
+    const confirmed = await confirm({
+      title: view.title,
+      description: view.description,
+      confirmLabel: view.confirmLabel,
+      tone: view.tone,
+    })
+    if (!confirmed) return false
+
+    try {
+      const result = await operate.mutateAsync(input)
+      setEditing(null)
+      notify({
+        title: 'Operação concluída',
+        description: `${result.changedFields} campo(s) atualizado(s) com auditoria.`,
+        tone: 'success',
+      })
+      return true
+    } catch (error) {
+      notify({
+        title: 'Não foi possível concluir a operação',
+        description: error instanceof Error ? error.message : 'A operação foi revertida integralmente.',
+        tone: 'danger',
+      })
+      return false
+    }
+  }
+
+  const confirmRemove = (title: string, description: string) => confirm({
+    title,
+    description,
+    confirmLabel: 'Remover',
+    tone: 'danger',
+  })
+
+  const runTabAction = async (action: () => Promise<void>, successTitle?: string) => {
+    try {
+      await action()
+      if (successTitle) notify({ title: successTitle, tone: 'success' })
+    } catch (error) {
+      notify({
+        title: 'Não foi possível concluir a ação',
+        description: error instanceof Error ? error.message : 'Tente novamente.',
+        tone: 'danger',
+      })
+    }
+  }
 
   return (
-    <div className="animate-fade-in max-w-7xl mx-auto pb-12">
-      <div className="relative z-0 bg-bg-surface backdrop-blur-md border-b border-border-1 -mx-4 px-4 md:-mx-8 md:px-8 mb-8 shadow-[var(--shadow-1)]">
-        <div className="max-w-[1440px] mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2.5 hover:bg-bg-surface-2 rounded-[6px] text-fg-3 transition-colors border border-transparent hover:border-border-1"
-              >
-                <ArrowLeft size={18} />
-              </button>
-              <div>
-                <h1 className="text-xl font-black tracking-tight text-fg-1 flex items-center gap-2">
-                  <AlertTriangle size={18} className="text-ramo-empresarial" /> #{shortId}
-                  <span className="text-fg-3 text-base font-medium">| {clienteNome}</span>
+    <div className="animate-fade-in">
+      <div className="mb-5 flex items-center gap-2 text-sm text-fg-3">
+        <button
+          type="button"
+          onClick={() => navigate('/sinistros')}
+          className="flex items-center gap-1.5 transition-colors hover:text-accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40"
+        >
+          <ArrowLeft size={15} /> Sinistros
+        </button>
+        <ChevronRight size={14} className="text-fg-4" />
+        <span className="truncate font-medium text-fg-1">
+          {sinistro.numero_sinistro ? `Sinistro ${sinistro.numero_sinistro}` : `Aviso ${sinistro.numero_aviso ?? sinistro.id}`}
+        </span>
+      </div>
+
+      <section className="mb-5 rounded-[8px] border border-border-1 bg-bg-surface p-6 shadow-[var(--shadow-1)]">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[8px] bg-signal-danger/10 text-signal-danger">
+              <AlertTriangle size={25} />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-bold tracking-[-0.02em] text-fg-1">
+                  {segurado?.nome ?? 'Sinistro sem segurado identificado'}
                 </h1>
-                <p className="text-[10px] text-fg-4 font-bold uppercase tracking-wider">
-                  Registrado por {criadoPor}
-                  {formData.numeroSinistro ? ` - Sinistro ${formData.numeroSinistro}` : ''}
-                </p>
+                <StatusBadge status={status.label} tone={status.tone} />
+              </div>
+              <p className="mt-1 text-sm font-semibold text-fg-3">
+                {[
+                  sinistro.numero_sinistro ? `Sinistro ${sinistro.numero_sinistro}` : `Aviso ${sinistro.numero_aviso ?? 'sem número'}`,
+                  apolice?.ramos?.nome,
+                  apolice?.seguradoras?.nome,
+                ].filter(Boolean).join(' · ')}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-fg-3">
+                <span className="inline-flex items-center gap-1.5 font-mono">
+                  <CalendarDays size={13} /> {safeDate(sinistro.data_ocorrencia) ?? 'Data não informada'}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <ClipboardList size={13} /> {sinistro.pipeline_stages?.nome ?? 'Etapa não identificada'}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <UserRound size={13} /> {sinistro.profiles?.full_name ?? 'Sem responsável'}
+                </span>
               </div>
             </div>
-
-            <div className="flex items-center gap-3">
-              {!isConcluded && (
-                <>
-                  {canWin && (
-                    <button
-                      onClick={() => setConcludeMode('won')}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-signal-success/10 hover:bg-signal-success/20 border border-signal-success/20 text-signal-success rounded-full text-xs font-black uppercase tracking-widest transition-all"
-                    >
-                      <Check size={14} /> Concluir
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setConcludeMode('lost')}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-signal-danger/10 hover:bg-signal-danger/20 border border-signal-danger/20 text-signal-danger rounded-full text-xs font-black uppercase tracking-widest transition-all"
-                  >
-                    <X size={14} /> Negar
-                  </button>
-                </>
-              )}
-
-              {isConcluded && (
-                <span className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest ${
-                  (rawRow.status as CardStatus) === 'won'
-                    ? 'bg-signal-success/10 text-signal-success border border-signal-success/20'
-                    : 'bg-signal-danger/10 text-signal-danger border border-signal-danger/20'
-                }`}>
-                  {(rawRow.status as CardStatus) === 'won' ? 'Concluido' : 'Negado'}
-                </span>
-              )}
-
-              <button
-                onClick={handleDiscard}
-                className="px-5 py-2.5 text-sm font-bold text-fg-3 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[6px] transition-all"
-              >
-                Descartar
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saveStatus === 'saving'}
-                className="bg-accent-primary hover:bg-accent-primary-hover active:scale-95 text-fg-on-brand px-8 py-2.5 rounded-full text-sm font-black shadow-[var(--shadow-brand)] transition-all flex items-center gap-2 disabled:opacity-60"
-              >
-                {saveStatus === 'saving' ? 'Salvando...' : saveStatus === 'saved' ? 'Salvo!' : 'Salvar Alteracoes'}
-              </button>
-            </div>
           </div>
 
-          <div className="py-3 border-t border-border-1 flex items-center gap-1 overflow-x-auto no-scrollbar">
-            {funnelSteps.map((step, idx) => {
-              const isActive = step.id === formData.stageId;
-              const isPast = idx < safeCurrentIdx;
-              return (
-                <div key={step.id} className="flex items-center gap-1">
-                  <button
-                    onClick={() => setFormData({ ...formData, stageId: step.id })}
-                    className={`relative h-8 px-4 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap ${
-                      isActive ? 'bg-accent-primary text-fg-on-brand border-accent-primary shadow-[var(--shadow-brand)]'
-                      : isPast ? 'bg-signal-success/10 text-signal-success border-signal-success/20 hover:bg-signal-success/20'
-                      : 'bg-bg-surface-2 text-fg-4 border-border-1 hover:border-border-2'
-                    }`}
-                  >
-                    {isPast && <div className="w-1.5 h-1.5 rounded-full bg-signal-success" />}
-                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-fg-on-brand" />}
-                    {step.name}
-                  </button>
-                  {idx < funnelSteps.length - 1 && (
-                    <div className={`h-[2px] w-4 ${isPast ? 'bg-signal-success/40' : 'bg-border-1'}`} />
-                  )}
-                </div>
-              );
-            })}
+          <div className="flex flex-wrap gap-2">
+            {canUpdate && activeTab === 'visao' && editing === null && (
+              <button
+                type="button"
+                onClick={() => setEditing('overview')}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-accent-primary bg-bg-surface px-4 py-2.5 text-sm font-bold text-accent-primary transition-colors hover:bg-accent-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40"
+              >
+                <Pencil size={15} /> Editar Sinistro
+              </button>
+            )}
+            {apolice && (
+              <button
+                type="button"
+                onClick={() => navigate(`/apolices/${apolice.id}`)}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-accent-primary px-4 py-2.5 text-sm font-semibold text-fg-on-brand shadow-[var(--shadow-brand)] transition-colors hover:bg-accent-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40"
+              >
+                <ShieldCheck size={16} /> Abrir apólice <ExternalLink size={14} />
+              </button>
+            )}
           </div>
+        </div>
+      </section>
 
-          {saveError && (
-            <div className="pb-3 text-[11px] font-bold text-signal-danger">{saveError}</div>
-          )}
+      <div className="mb-6 flex items-start gap-3 rounded-[6px] border border-accent-primary/20 bg-accent-primary-soft px-4 py-3 text-sm text-fg-2">
+        <FileCheck2 size={18} className="mt-0.5 shrink-0 text-accent-primary" />
+        <div>
+          <p className="font-bold text-fg-1">Manutenção contratual controlada</p>
+          <p className="mt-0.5 text-xs font-semibold text-fg-3">
+            Apólice e status permanecem protegidos. A etapa continua sendo movimentada exclusivamente pelo Kanban.
+          </p>
         </div>
       </div>
 
-      {oportunidade && (
-        <div className="bg-accent-primary-soft border border-accent-primary/10 rounded-[8px] p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[var(--shadow-1)]">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-[8px] bg-gradient-to-br from-ramo-empresarial to-brand-primary-deep flex items-center justify-center text-fg-on-brand text-2xl font-bold shadow-[var(--shadow-2)]">
-              {clienteNome.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-fg-1 uppercase tracking-tight">{clienteNome}</h2>
-              <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-fg-3 font-bold">
-                <span className="flex items-center gap-1.5 bg-bg-surface px-3 py-1 rounded-full shadow-[var(--shadow-1)]">
-                  <Mail size={14} className="text-accent-primary" />{email || '-'}
-                </span>
-                <span className="flex items-center gap-1.5 bg-bg-surface px-3 py-1 rounded-full shadow-[var(--shadow-1)]">
-                  <Phone size={14} className="text-accent-primary" />{telefone || '-'}
-                </span>
-                {ramoNome && (
-                  <span className="flex items-center gap-1.5 bg-bg-surface px-3 py-1 rounded-full shadow-[var(--shadow-1)]">
-                    <FileText size={14} className="text-accent-primary" />{ramoNome}
-                  </span>
+      {canUpdate && activeTab === 'visao' && (editing === null || editing === 'operational') && (
+        <SinistroOperationalActions
+          sinistro={sinistro}
+          isSaving={operate.isPending}
+          onExecute={handleOperationalCommand}
+          onActiveChange={(active) => setEditing(active ? 'operational' : null)}
+        />
+      )}
+
+      <EntityTabsBar tabs={tabs} active={activeTab} onChange={handleTabChange} />
+
+      <div role="tabpanel">
+        {activeTab === 'visao' && (editing === 'overview' ? (
+          <SinistroMaintenanceForm
+            sinistro={sinistro}
+            responsaveis={responsaveis.data ?? []}
+            isSaving={maintain.isPending}
+            onCancel={() => setEditing(null)}
+            onSave={(input) => void handleSave(input)}
+          />
+        ) : <VisaoGeral sinistro={sinistro} />)}
+        {activeTab === 'envolvidos' && (editing === 'envolvidos' ? (
+          <SinistroEnvolvidosEditor
+            sinistro={sinistro}
+            isSaving={maintain.isPending}
+            onCancel={() => setEditing(null)}
+            onSave={(input) => void handleSave(input)}
+            onConfirmRemove={(nome) => confirmRemove('Remover envolvido?', `${nome} será removido deste Sinistro.`)}
+            onLastInsuredBlocked={() => notify({
+              title: 'O último segurado não pode ser removido',
+              description: 'Todo Sinistro deve manter ao menos um envolvido do tipo Segurado.',
+              tone: 'warning',
+            })}
+          />
+        ) : (
+          <Envolvidos
+            envolvidos={envolvidos}
+            action={canUpdate ? (
+              <button type="button" onClick={() => setEditing('envolvidos')} className="inline-flex items-center gap-2 rounded-full border border-border-1 px-3 py-2 text-xs font-bold text-accent-primary hover:bg-accent-primary-soft">
+                <Pencil size={14} /> Editar
+              </button>
+            ) : undefined}
+          />
+        ))}
+        {activeTab === 'tarefas' && (
+          <TarefasTab
+            tarefas={tabsState.tarefas}
+            onAdd={(task) => void runTabAction(() => tabsState.addTarefa(task), 'Tarefa criada')}
+            onEdit={canUpdate ? (taskId, task) => void runTabAction(() => tabsState.updateTarefa(taskId, task), 'Tarefa atualizada') : undefined}
+            onToggle={(taskId) => void runTabAction(() => tabsState.toggleTarefa(taskId))}
+            onRemove={canDelete ? (taskId) => void (async () => {
+              if (await confirmRemove('Remover tarefa?', 'A tarefa será excluída deste Sinistro.')) {
+                await runTabAction(() => tabsState.removeTarefa(taskId), 'Tarefa removida')
+              }
+            })() : undefined}
+            readOnly={!canUpdate}
+          />
+        )}
+        {activeTab === 'personalizados' && (
+          <CamposPersonalizadosTab entidadeTipo="sinistro" entidadeId={sinistro.id} readOnly={!canUpdate} />
+        )}
+        {activeTab === 'anexos' && (
+          <AnexosLogsTab
+            anexos={tabsState.anexos}
+            logs={tabsState.logs}
+            onAddAnexo={tabsState.addAnexo}
+            onEditAnexo={canUpdate ? (anexoId, anexo) => void runTabAction(() => tabsState.updateAnexo(anexoId, anexo), 'Metadados atualizados') : undefined}
+            onRemoveAnexo={canDelete ? (anexoId) => void (async () => {
+              if (await confirmRemove('Remover anexo?', 'Somente os metadados mantidos no mock serão removidos.')) {
+                await runTabAction(() => tabsState.removeAnexo(anexoId), 'Metadado removido')
+              }
+            })() : undefined}
+            autorPadrao="Usuário da sessão"
+            showAuditLogs={tabsState.showAuditLogs}
+            onToggleAuditLogs={tabsState.setShowAuditLogs}
+            metadataOnly
+            readOnly={!canUpdate}
+          />
+        )}
+        {activeTab === 'observacoes' && (
+          <ObservacoesTab
+            observacoes={tabsState.observacoes}
+            onAdd={tabsState.addObservacao}
+            onTogglePin={tabsState.togglePin}
+            mentionCandidates={tabsState.mentionCandidates}
+            readOnly={!canUpdate}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function VisaoGeral({ sinistro }: { sinistro: NonNullable<ReturnType<typeof useSinistro>['data']> }) {
+  const apolice = sinistro.apolices
+  const segurado = apolice?.segurados
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+      <div className="space-y-6">
+        <DetailCard title="Ocorrência e aviso" icon={AlertTriangle}>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <DetailField label="Número do aviso" mono>{sinistro.numero_aviso}</DetailField>
+            <DetailField label="Número do sinistro" mono>{sinistro.numero_sinistro}</DetailField>
+            <DetailField label="Protocolo da seguradora" mono>{sinistro.protocolo_seguradora}</DetailField>
+            <DetailField label="Data da ocorrência" mono>{safeDate(sinistro.data_ocorrencia)}</DetailField>
+            <DetailField label="Data do aviso" mono>{safeDate(sinistro.data_aviso)}</DetailField>
+            <DetailField label="Registro do aviso" mono>{safeDate(sinistro.data_registro_aviso)}</DetailField>
+            <DetailField label="Tipo">{sinistro.tipo_sinistro === 'judicial' ? 'Judicial' : 'Administrativo'}</DetailField>
+            <DetailField label="Responsável">{sinistro.profiles?.full_name}</DetailField>
+            <DetailField label="Causa" full>{sinistro.causa}</DetailField>
+            <DetailField label="Descrição" full>{sinistro.descricao}</DetailField>
+            <DetailField label="Local da ocorrência" full>{sinistro.local_ocorrencia}</DetailField>
+          </div>
+        </DetailCard>
+
+        <DetailCard title="Regulação e cobertura" icon={Wrench}>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <DetailField label="Cobertura">{sinistro.cobertura_nome}</DetailField>
+            <DetailField label="Código da cobertura" mono>{sinistro.cobertura_codigo}</DetailField>
+            <DetailField label="Documentação completa" mono>{safeDate(sinistro.data_documentacao_completa)}</DetailField>
+            <DetailField label="Regulador">{sinistro.regulador_nome}</DetailField>
+            <DetailField label="Oficina">{sinistro.oficina_nome}</DetailField>
+            <DetailField label="Motivo de negativa" full>{sinistro.negativa_motivo}</DetailField>
+          </div>
+        </DetailCard>
+
+        {sinistro.observacoes && (
+          <DetailCard title="Observação contratual" icon={ClipboardList}>
+            <p className="max-w-[72ch] whitespace-pre-wrap text-sm font-medium leading-relaxed text-fg-2">
+              {sinistro.observacoes}
+            </p>
+          </DetailCard>
+        )}
+      </div>
+
+      <div className="space-y-6">
+        <DetailCard title="Apólice vinculada" icon={ShieldCheck}>
+          <div className="space-y-4">
+            <DetailField label="Apólice" mono>{apolice?.numero_apolice}</DetailField>
+            <DetailField label="Segurado">{segurado?.nome}</DetailField>
+            <DetailField label="CPF/CNPJ" mono>{segurado?.cpf_cnpj}</DetailField>
+            <DetailField label="Seguradora">{apolice?.seguradoras?.nome}</DetailField>
+            <DetailField label="Ramo">{apolice?.ramos?.nome}</DetailField>
+            <DetailField label="Vigência" mono>
+              {apolice?.vigencia_inicio && apolice.vigencia_fim
+                ? `${fmtDate(apolice.vigencia_inicio)} a ${fmtDate(apolice.vigencia_fim)}`
+                : undefined}
+            </DetailField>
+          </div>
+        </DetailCard>
+
+        <DetailCard title="Valores" icon={Banknote}>
+          <div className="grid grid-cols-2 gap-5">
+            <DetailField label="Estimado" mono>{formatCurrency(sinistro.valor_estimado)}</DetailField>
+            <DetailField label="Pendente" mono>{formatCurrency(sinistro.valor_pendente)}</DetailField>
+            <DetailField label="Indenizado" mono>{formatCurrency(sinistro.valor_indenizado)}</DetailField>
+            <DetailField label="Regulação" mono>{formatCurrency(sinistro.valor_despesas_regulacao)}</DetailField>
+            <DetailField label="Salvado" mono>{formatCurrency(sinistro.valor_salvado)}</DetailField>
+            <DetailField label="Ressarcimento" mono>{formatCurrency(sinistro.valor_ressarcimento)}</DetailField>
+          </div>
+        </DetailCard>
+      </div>
+    </div>
+  )
+}
+
+function Envolvidos({ envolvidos, action }: { envolvidos: SinistroEnvolvidoDetalhe[]; action?: React.ReactNode }) {
+  if (envolvidos.length === 0) {
+    return (
+      <DetailCard title="Envolvidos" icon={Users} action={action}>
+        <EmptyState icon={Users} title="Nenhum envolvido registrado" hint="Os envolvidos serão mantidos separadamente do cadastro de segurados." />
+      </DetailCard>
+    )
+  }
+
+  return (
+    <DetailCard title="Envolvidos" icon={Users} action={action}>
+      <div className="divide-y divide-border-1">
+        {envolvidos.map((envolvido) => (
+          <div key={envolvido.id} className="grid gap-4 py-5 first:pt-0 last:pb-0 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.2fr)]">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] ${
+                envolvido.tipo === 'TERCEIRO'
+                  ? 'bg-signal-warning/15 text-signal-warning'
+                  : 'bg-accent-primary-soft text-accent-primary'
+              }`}>
+                {envolvido.tipo === 'TERCEIRO' ? <UserRound size={18} /> : <Building2 size={18} />}
+              </span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="truncate text-sm font-bold text-fg-1">{envolvido.nome ?? 'Envolvido sem nome'}</h3>
+                  <StatusBadge
+                    status={envolvido.tipo === 'TERCEIRO' ? 'Terceiro' : 'Segurado'}
+                    tone={envolvido.tipo === 'TERCEIRO' ? 'warning' : 'info'}
+                    dot={false}
+                  />
+                </div>
+                <p className="mt-1 font-mono text-xs text-fg-4">{envolvido.cpf_cnpj ?? 'Documento não informado'}</p>
+                {envolvido.responsavel_pelo_evento && (
+                  <p className="mt-2 text-xs font-semibold text-signal-warning">Indicado como responsável pelo evento</p>
                 )}
               </div>
             </div>
-          </div>
-          <button
-            onClick={() => oportunidade.id && navigate(`/oportunidades/${oportunidade.id}`)}
-            className="px-6 py-2.5 bg-bg-surface text-accent-primary border border-accent-primary/20 rounded-full text-sm font-black shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] hover:-translate-y-0.5 transition-all flex items-center gap-2"
-          >
-            <ExternalLink size={16} /> Oportunidade Vinculada
-          </button>
-        </div>
-      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12 animate-fade-in">
-        <div className="lg:col-span-7 space-y-6">
-          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-            <div className="flex items-center gap-2 mb-6 text-fg-4">
-              <AlertTriangle size={18} className="text-ramo-empresarial" />
-              <h3 className="text-xs font-bold uppercase tracking-widest">Dados do Sinistro</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-fg-3 uppercase">Numero do Sinistro</label>
-                <input
-                  type="text"
-                  value={formData.numeroSinistro}
-                  onChange={(e) => setFormData({ ...formData, numeroSinistro: e.target.value })}
-                  className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-fg-3 uppercase">Tipo de Sinistro</label>
-                <select
-                  value={formData.tipoSinistro}
-                  onChange={(e) => setFormData({ ...formData, tipoSinistro: e.target.value as TipoSinistro | '' })}
-                  className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                >
-                  <option value="">Selecione</option>
-                  {TIPO_SINISTRO_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-fg-3 uppercase">Data do Sinistro</label>
-                <DateField
-                  value={formData.dataSinistro}
-                  onChange={(v) => setFormData({ ...formData, dataSinistro: v })}
-                  inputClassName="bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-fg-3 uppercase">Data do Aviso</label>
-                <DateField
-                  value={formData.dataAviso}
-                  onChange={(v) => setFormData({ ...formData, dataAviso: v })}
-                  inputClassName="bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl"
-                />
-              </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <DetailField label="Item segurado">
+                {envolvido.apolice_itens
+                  ? `Item ${envolvido.apolice_itens.numero_item ?? '—'} · ${envolvido.apolice_itens.descricao ?? envolvido.apolice_itens.identificador_externo ?? 'Sem descrição'}`
+                  : undefined}
+              </DetailField>
+              <DetailField label="Placa" mono>{envolvido.placa}</DetailField>
+              <DetailField label="Tipo de dano">{envolvido.tipo_dano}</DetailField>
+              <DetailField label="Contato">{envolvido.telefone ?? envolvido.email}</DetailField>
+              <DetailField label="Seguradora do terceiro">{envolvido.seguradora_terceiro}</DetailField>
+              <DetailField label="Apólice do terceiro" mono>{envolvido.apolice_terceiro}</DetailField>
+              <DetailField label="Valor reclamado" mono>{formatCurrency(envolvido.valor_reclamado)}</DetailField>
+              <DetailField label="Valor indenizado" mono>{formatCurrency(envolvido.valor_indenizado)}</DetailField>
+              <DetailField label="Observações" full>{envolvido.observacoes}</DetailField>
             </div>
           </div>
-
-          {metaFieldsForRamo.length > 0 && (
-            <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-              <div className="flex items-center gap-2 mb-6 text-fg-4">
-                <FileText size={18} className="text-accent-primary" />
-                <h3 className="text-xs font-bold uppercase tracking-widest">Campos de {ramoNome}</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {metaFieldsForRamo.map((field) => (
-                  <div key={field.key} className="space-y-2">
-                    <label className="text-[10px] font-bold text-fg-3 uppercase">{field.label}</label>
-                    {field.type === 'boolean' ? (
-                      <label className="flex items-center gap-2 px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-xl">
-                        <input
-                          type="checkbox"
-                          checked={!!metaFields[field.key]}
-                          onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.checked }))}
-                        />
-                        <span className="text-[10px] font-bold text-fg-3">Sim</span>
-                      </label>
-                    ) : field.type === 'textarea' ? (
-                      <textarea
-                        value={String(metaFields[field.key] ?? '')}
-                        onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                        rows={2}
-                        className="w-full px-3 py-2 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-xl text-sm resize-none"
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={String(metaFields[field.key] ?? '')}
-                        onChange={(e) => setMetaFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                        className="w-full px-3 py-2.5 bg-bg-surface-2 text-fg-1 border border-border-1 rounded-xl text-sm"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-4">Observacoes</h3>
-            <textarea
-              value={formData.observacoes}
-              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-              className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl p-4 text-sm h-32 resize-none focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-              placeholder="Descreva a ocorrencia, andamento, documentos recebidos..."
-            />
-          </div>
-        </div>
-
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-            <div className="flex items-center gap-2 mb-6 text-fg-4">
-              <DollarSign size={18} className="text-signal-success" />
-              <h3 className="text-xs font-bold uppercase tracking-widest">Valores</h3>
-            </div>
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-fg-3 uppercase">Valor de Prejuizo (R$)</label>
-                <input
-                  type="number"
-                  value={formData.valorPrejuizo}
-                  onChange={(e) => setFormData({ ...formData, valorPrejuizo: Number(e.target.value) })}
-                  className="w-full bg-bg-surface-2 border-border-1 rounded-[8px] py-3 px-4 text-xl font-black text-fg-1 focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-fg-3 uppercase">Valor de Indenizacao (R$)</label>
-                <input
-                  type="number"
-                  value={formData.valorIndenizacao}
-                  onChange={(e) => setFormData({ ...formData, valorIndenizacao: Number(e.target.value) })}
-                  className="w-full bg-bg-surface-2 border-border-1 rounded-[8px] py-3 px-4 text-xl font-black text-signal-success focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                />
-                <p className="text-[10px] text-fg-4">
-                  {formatCurrency(formData.valorIndenizacao || 0)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
+      <p className="mt-5 flex items-start gap-2 border-t border-border-1 pt-4 text-xs font-semibold text-fg-4">
+        <MapPin size={14} className="mt-0.5 shrink-0" />
+        Terceiros permanecem neste processo e não são adicionados ao cadastro de segurados.
+      </p>
+    </DetailCard>
+  )
+}
 
-      <ConcludeCardModal
-        isOpen={!!concludeMode}
-        card={cardForConclude}
-        mode={concludeMode ?? 'won'}
-        module="sinistro"
-        pipelineId={(rawRow.pipeline_id as string | null) ?? ''}
-        onClose={() => setConcludeMode(null)}
-        onDone={() => detail.refetch()}
-      />
+function EmptyPage({
+  message,
+  onBack,
+  onRetry,
+}: {
+  message: string
+  onBack: () => void
+  onRetry?: () => void
+}) {
+  return (
+    <div className="flex min-h-[45vh] flex-col items-center justify-center text-center text-fg-3">
+      <AlertTriangle size={28} className="mb-3 text-signal-warning" />
+      <p className="font-semibold">{message}</p>
+      <div className="mt-4 flex items-center gap-3">
+        {onRetry && (
+          <button type="button" onClick={onRetry} className="text-sm font-semibold text-accent-primary hover:underline">
+            Tentar novamente
+          </button>
+        )}
+        <button type="button" onClick={onBack} className="text-sm font-semibold text-accent-primary hover:underline">
+          Voltar para Sinistros
+        </button>
+      </div>
     </div>
-  );
+  )
 }

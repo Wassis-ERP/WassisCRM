@@ -6,7 +6,6 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import './index.css'
 import App from './App'
 import { AuthProvider } from './contexts/AuthContext'
-import { SettingsProvider } from './contexts/SettingsContext'
 import { PropostasProvider } from './contexts/PropostasContext'
 import { queryClient } from './lib/queryClient'
 import { ConfirmProvider } from './components/feedback/ConfirmProvider'
@@ -19,13 +18,11 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <SettingsProvider>
-            <PropostasProvider>
-              <ConfirmProvider>
-                <App />
-              </ConfirmProvider>
-            </PropostasProvider>
-          </SettingsProvider>
+          <PropostasProvider>
+            <ConfirmProvider>
+              <App />
+            </ConfirmProvider>
+          </PropostasProvider>
         </AuthProvider>
       </BrowserRouter>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />}

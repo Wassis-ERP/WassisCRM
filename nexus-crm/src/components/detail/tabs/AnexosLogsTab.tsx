@@ -3,8 +3,8 @@
  * cadastro e linha do tempo de eventos. Como o app é frontend-puro, o arquivo
  * selecionado apenas vira metadado no mock, sem upload real.
  */
-import { useRef } from 'react'
-import { FileText, Image, Archive, Download, Clock, Plus, SlidersHorizontal } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { FileText, Image, Archive, Download, Clock, Plus, SlidersHorizontal, Pencil, Trash2, Save, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { DetailCard, EmptyState, GhostButton, Timeline } from '../primitives'
 import { fmtDate } from '../../../utils/date'
@@ -35,18 +35,60 @@ export default function AnexosLogsTab({
   anexos,
   logs,
   onAddAnexo,
+  onEditAnexo,
+  onRemoveAnexo,
   autorPadrao,
   showAuditLogs,
   onToggleAuditLogs,
+  metadataOnly = false,
+  readOnly = false,
 }: {
   anexos: Anexo[]
   logs: LogEntry[]
   onAddAnexo: (a: Omit<Anexo, 'id'>) => void
+  onEditAnexo?: (id: string, a: Pick<Anexo, 'nome' | 'categoria' | 'descricao' | 'status'>) => void
+  onRemoveAnexo?: (id: string) => void
   autorPadrao?: string
   showAuditLogs: boolean
   onToggleAuditLogs: (show: boolean) => void
+  metadataOnly?: boolean
+  readOnly?: boolean
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const [editing, setEditing] = useState<Anexo | null>(null)
+  const [draft, setDraft] = useState({ nome: '', categoria: 'documento', descricao: '', status: 'ativo' })
+
+  const startEditing = (anexo: Anexo) => {
+    setEditing(anexo)
+    setDraft({
+      nome: anexo.nome,
+      categoria: anexo.categoria ?? 'documento',
+      descricao: anexo.descricao ?? '',
+      status: anexo.status ?? 'ativo',
+    })
+  }
+
+  const saveMetadata = () => {
+    if (!editing || !draft.nome.trim()) return
+    if (editing.id) onEditAnexo?.(editing.id, draft)
+    else onAddAnexo({
+      nome: draft.nome.trim(),
+      tipo: extToTipo(draft.nome),
+      tamanho: '0 B',
+      tamanhoBytes: 0,
+      data: new Date().toISOString(),
+      autor: autorPadrao,
+      categoria: draft.categoria,
+      descricao: draft.descricao,
+      status: draft.status,
+    })
+    setEditing(null)
+  }
+
+  const startMetadata = () => {
+    setDraft({ nome: '', categoria: 'documento', descricao: '', status: 'ativo' })
+    setEditing({ id: '', nome: '', tipo: 'doc', tamanho: '0 B' })
+  }
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return
@@ -69,19 +111,39 @@ export default function AnexosLogsTab({
         title="Anexos"
         icon={FileText}
         action={
-          <GhostButton icon={Plus} onClick={() => fileRef.current?.click()}>
-            Adicionar
-          </GhostButton>
+          !readOnly && (
+            <GhostButton icon={Plus} onClick={() => metadataOnly ? startMetadata() : fileRef.current?.click()}>
+              {metadataOnly ? 'Adicionar metadado' : 'Adicionar'}
+            </GhostButton>
+          )
         }
         bodyClassName=""
       >
-        <input
-          ref={fileRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={(e) => handleFiles(e.target.files)}
-        />
+        {!readOnly && !metadataOnly && (
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+        )}
+        {editing && (
+          <div className="m-4 space-y-3 rounded-[8px] border border-border-1 bg-bg-surface-2 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-black text-fg-1">Metadados do anexo</h3>
+              <button type="button" onClick={() => setEditing(null)} className="rounded-[6px] p-1.5 text-fg-4 hover:bg-bg-surface-3 hover:text-fg-1" aria-label="Fechar edição"><X size={15} /></button>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-xs font-bold text-fg-3">Nome do arquivo<input value={draft.nome} onChange={(event) => setDraft((current) => ({ ...current, nome: event.target.value }))} className="mt-1 w-full rounded-[6px] border border-border-1 bg-bg-surface px-3 py-2 text-sm text-fg-1 focus:border-accent-primary focus:outline-none" /></label>
+              <label className="text-xs font-bold text-fg-3">Categoria<input value={draft.categoria} onChange={(event) => setDraft((current) => ({ ...current, categoria: event.target.value }))} className="mt-1 w-full rounded-[6px] border border-border-1 bg-bg-surface px-3 py-2 text-sm text-fg-1 focus:border-accent-primary focus:outline-none" /></label>
+              <label className="text-xs font-bold text-fg-3 sm:col-span-2">Descrição<textarea value={draft.descricao} onChange={(event) => setDraft((current) => ({ ...current, descricao: event.target.value }))} rows={2} className="mt-1 w-full resize-none rounded-[6px] border border-border-1 bg-bg-surface px-3 py-2 text-sm text-fg-1 focus:border-accent-primary focus:outline-none" /></label>
+            </div>
+            <div className="flex justify-end">
+              <button type="button" onClick={saveMetadata} disabled={!draft.nome.trim()} className="inline-flex items-center gap-2 rounded-full bg-accent-primary px-4 py-2 text-xs font-black text-fg-on-brand disabled:opacity-40"><Save size={14} />Salvar metadados</button>
+            </div>
+          </div>
+        )}
         {anexos.length ? (
           <div className="divide-y divide-border-1">
             {anexos.map((a) => {
@@ -104,13 +166,11 @@ export default function AnexosLogsTab({
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="p-1.5 text-fg-4 hover:text-accent-primary transition-colors shrink-0"
-                    title="Baixar"
-                  >
-                    <Download size={16} />
-                  </button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    {a.disponivelParaDownload && <button type="button" className="p-1.5 text-fg-4 hover:text-accent-primary transition-colors" title="Baixar"><Download size={16} /></button>}
+                    {!readOnly && onEditAnexo && <button type="button" onClick={() => startEditing(a)} className="rounded-[6px] p-1.5 text-fg-4 hover:bg-bg-surface-3 hover:text-accent-primary" aria-label={`Editar metadados de ${a.nome}`}><Pencil size={15} /></button>}
+                    {!readOnly && onRemoveAnexo && <button type="button" onClick={() => onRemoveAnexo(a.id)} className="rounded-[6px] p-1.5 text-fg-4 hover:bg-signal-danger/10 hover:text-signal-danger" aria-label={`Remover anexo ${a.nome}`}><Trash2 size={15} /></button>}
+                  </div>
                 </div>
               )
             })}

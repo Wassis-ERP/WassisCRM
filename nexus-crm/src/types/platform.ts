@@ -1,10 +1,9 @@
 /**
- * Tipos da plataforma multi-corretora (contrato v1.1 — ver
- * `.claude/artefatos/wassis_erp_esqueleto_v1_1.dbml`).
+ * Tipos auxiliares da plataforma multi-corretora. A fonte de verdade vigente e
+ * `.codex/artefatos/wassis_erp_esqueleto_v2_6.dbml`.
  *
- * Entidades introduzidas na v1.1 (D12 + D18) que ainda não constam do
- * `database.ts` gerado. O mock em memória é destipado; estes tipos dão forma
- * aos hooks/telas do front. Quando o backend gerar os tipos, migram para lá.
+ * Estes tipos dão forma a fronteiras de UI que ainda usam modelos auxiliares.
+ * Para tabelas e campos de negocio, `database.ts` deve refletir o DBML vigente.
  */
 
 /** CORRETORA (filial): unidade com CNPJ/CPF próprio dentro do grupo (tenant). */
