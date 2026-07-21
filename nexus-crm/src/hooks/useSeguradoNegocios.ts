@@ -48,14 +48,14 @@ export function useOportunidadesBySegurado(seguradoId: string | undefined) {
     queryFn: async (): Promise<OportunidadeResumo[]> => {
       const { data, error } = await supabase.from('oportunidades').select(`
           id,
-          nome,
-          status,
-          premio_liquido,
-          tipo_negocio,
-          vigencia_fim,
+          titulo,
+          ganha_em,
+          perdida_em,
+          valor_premio_estimado,
+          apolice_origem_id,
+          data_fechamento_prevista,
           segurado_id,
-          ramos:ramo_id ( id, nome ),
-          seguradoras:seguradora_id ( id, nome )
+          ramos:ramo_id ( id, nome )
         `)
 
       if (error) throw error
@@ -64,16 +64,16 @@ export function useOportunidadesBySegurado(seguradoId: string | undefined) {
         .filter((r) => r.segurado_id === seguradoId)
         .map<OportunidadeResumo>((r) => {
           const ramo = (r.ramos ?? null) as { nome: string } | null
-          const seguradora = (r.seguradoras ?? null) as { nome: string } | null
+          const status: CardStatus = r.ganha_em ? 'won' : r.perdida_em ? 'lost' : 'pending'
           return {
             id: r.id as string,
-            nome: (r.nome as string | null) ?? 'Oportunidade',
+            nome: (r.titulo as string | null) ?? 'Oportunidade',
             ramo: ramo?.nome ?? null,
-            seguradora: seguradora?.nome ?? null,
-            premio: r.premio_liquido != null ? Number(r.premio_liquido) : null,
-            status: r.status as CardStatus,
-            tipoNegocio: (r.tipo_negocio as string | null) ?? null,
-            vigenciaFim: (r.vigencia_fim as string | null) ?? null,
+            seguradora: null,
+            premio: r.valor_premio_estimado != null ? Number(r.valor_premio_estimado) : null,
+            status,
+            tipoNegocio: r.apolice_origem_id ? 'renovacao' : null,
+            vigenciaFim: (r.data_fechamento_prevista as string | null) ?? null,
           }
         })
     },

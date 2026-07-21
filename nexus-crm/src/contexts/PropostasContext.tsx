@@ -324,6 +324,7 @@ export function PropostasProvider({ children }: { children: ReactNode }) {
 
   const createRenewalOpportunity = (policyId: string) => {
     if (!user) throw new Error('Usuário da sessão não encontrado.')
+    if (!activeBranchId) throw new Error('Selecione uma corretora para iniciar a renovação.')
     const opportunity = persistRenewalOpportunity(contractTables(), {
       policyId,
       tenantId: user.tenantId ?? MOCK_TENANT_ID,

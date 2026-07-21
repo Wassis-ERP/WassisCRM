@@ -68,22 +68,33 @@ export interface ContractDocumentRow {
 
 export interface ContractOpportunityRow {
   id: string
-  nome: string
-  tenant_id: string | null
-  filial_id: string | null
+  tenant_id: string
+  filial_id: string
   segurado_id: string | null
   ramo_id: string | null
+  origem_id: string | null
   apolice_origem_id: string | null
-  responsavel_id: string
-  pipeline_id: string | null
-  stage_id: string | null
-  status: string
-  tipo_negocio: string | null
-  vigencia_inicio: string | null
-  vigencia_fim: string | null
+  responsavel_id: string | null
+  stage_id: string
+  motivo_perda_id: string | null
+  lead_nome: string | null
+  lead_documento: string | null
+  lead_email: string | null
+  lead_telefone: string | null
+  titulo: string | null
+  descricao: string | null
+  prioridade: string | null
+  valor_premio_estimado: number | null
+  valor_comissao_estimada: number | null
+  comissao_estimada_pct: number | null
+  agenciamento_pct: number | null
+  data_abertura: string | null
+  data_fechamento_prevista: string | null
+  ganha_em: string | null
+  perdida_em: string | null
+  motivo_perda_observacao: string | null
+  campanha: string | null
   observacoes: string | null
-  created_at: string
-  updated_at: string
 }
 
 interface ContractBranchRow {
@@ -186,7 +197,7 @@ export interface DerivedDocumentInput {
 export interface RenewalOpportunityInput {
   policyId: string
   tenantId: string
-  filialId: string | null
+  filialId: string
   responsibleId: string
 }
 
@@ -584,7 +595,9 @@ export function createRenewalOpportunity(
   const branch = branchFor(tables, policy)
   if (!branch.renovavel) throw new ContractOperationError('Este ramo não permite renovação.')
   if (policy.status !== 'VIGENTE') throw new ContractOperationError('Somente apólices vigentes podem iniciar renovação.')
-  const existing = tables.opportunities.find((row) => row.apolice_origem_id === policy.id && row.status === 'pending')
+  const existing = tables.opportunities.find(
+    (row) => row.apolice_origem_id === policy.id && !row.ganha_em && !row.perdida_em,
+  )
   if (existing) throw new ContractOperationError('Já existe uma oportunidade de renovação ativa para esta apólice.')
 
   const pipeline = tables.pipelines.find((row) =>
@@ -597,22 +610,33 @@ export function createRenewalOpportunity(
 
   const opportunity: ContractOpportunityRow = {
     id: services.makeId('opportunity'),
-    nome: `Renovação · ${policy.numero_apolice ?? policy.id}`,
     tenant_id: input.tenantId,
     filial_id: input.filialId,
     segurado_id: policy.segurado_id,
     ramo_id: policy.ramo_id,
+    origem_id: null,
     apolice_origem_id: policy.id,
     responsavel_id: input.responsibleId,
-    pipeline_id: pipeline.id,
     stage_id: stageId,
-    status: 'pending',
-    tipo_negocio: 'renovacao',
-    vigencia_inicio: policy.vigencia_fim,
-    vigencia_fim: null,
+    motivo_perda_id: null,
+    lead_nome: null,
+    lead_documento: null,
+    lead_email: null,
+    lead_telefone: null,
+    titulo: `Renovação · ${policy.numero_apolice ?? policy.id}`,
+    descricao: `Renovação originada da apólice ${policy.numero_apolice ?? policy.id}.`,
+    prioridade: 'alta',
+    valor_premio_estimado: policy.premio_total,
+    valor_comissao_estimada: null,
+    comissao_estimada_pct: null,
+    agenciamento_pct: null,
+    data_abertura: services.today(),
+    data_fechamento_prevista: policy.vigencia_fim,
+    ganha_em: null,
+    perdida_em: null,
+    motivo_perda_observacao: null,
+    campanha: null,
     observacoes: `Renovação originada da apólice ${policy.numero_apolice ?? policy.id}.`,
-    created_at: `${services.today()}T12:00:00.000Z`,
-    updated_at: `${services.today()}T12:00:00.000Z`,
   }
   tables.opportunities.push(opportunity)
   services.audit?.('oportunidade', opportunity.id, 'criacao', null, policy.id)
@@ -625,10 +649,10 @@ export function transmitRenewalOpportunity(
   services: OperationServices,
 ): { policy: ContractPolicyRow; document: ContractDocumentRow } {
   const opportunity = tables.opportunities.find((row) => row.id === input.opportunityId)
-  if (!opportunity || !opportunity.apolice_origem_id || opportunity.tipo_negocio !== 'renovacao') {
+  if (!opportunity || !opportunity.apolice_origem_id) {
     throw new ContractOperationError('Oportunidade de renovação não encontrada.')
   }
-  if (opportunity.status !== 'pending') throw new ContractOperationError('A oportunidade já foi concluída.')
+  if (opportunity.ganha_em || opportunity.perdida_em) throw new ContractOperationError('A oportunidade já foi concluída.')
   const previous = activePolicy(tables, opportunity.apolice_origem_id)
   const duplicate = tables.policies.some((row) => row.renovada_de_id === previous.id && row.status !== 'RECUSADA')
   if (duplicate) throw new ContractOperationError('Esta oportunidade já possui uma apólice sucessora ativa.')
@@ -711,7 +735,14 @@ export function transmitRenewalOpportunity(
         }))
     })
 
-    auditChange(services, 'oportunidade', opportunity.id, 'status', opportunity as unknown as Record<string, unknown>, 'won')
+    auditChange(
+      services,
+      'oportunidade',
+      opportunity.id,
+      'ganha_em',
+      opportunity as unknown as Record<string, unknown>,
+      `${services.today()}T12:00:00.000Z`,
+    )
     services.audit?.('apolice', policy.id, 'criacao', null, previous.id)
     services.audit?.('proposta', document.id, 'criacao', null, 'RENOVACAO')
     return { policy, document }

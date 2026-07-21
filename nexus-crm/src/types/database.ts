@@ -101,6 +101,7 @@ type OportunidadeContractFields = {
   perdida_em: string | null
   motivo_perda_observacao: string | null
   campanha: string | null
+  observacoes: string | null
 }
 
 export type EndossoSubtipoRow = {
@@ -1207,99 +1208,53 @@ export type Database = {
       }
       oportunidades: {
         Row: OportunidadeContractFields & {
-          agenciamento: number | null
-          apolice_origem_id: string | null
-          comissao_percentual: number | null
-          concluded_at: string | null
-          created_at: string
-          filial_id: string | null
+          filial_id: string
           id: string
-          indicador: string | null
-          metadata: Json
           motivo_perda_id: string | null
-          nome: string
-          observacoes: string | null
           origem_id: string | null
-          pipeline_id: string | null
-          premio_liquido: number | null
-          producao: number | null
-          proximo_followup: string | null
           ramo_id: string | null
-          responsavel_id: string
+          responsavel_id: string | null
           segurado_id: string | null
-          seguradora_id: string | null
-          stage_id: string | null
-          status: Database["public"]["Enums"]["card_status"]
-          tenant_id: string | null
-          tipo_contato: boolean | null
-          tipo_negocio: Database["public"]["Enums"]["tipo_negocio"] | null
-          updated_at: string
-          vigencia_fim: string | null
-          vigencia_inicio: string | null
+          stage_id: string
+          tenant_id: string
         }
         Insert: Partial<OportunidadeContractFields> & {
-          agenciamento?: number | null
-          apolice_origem_id?: string | null
-          comissao_percentual?: number | null
-          concluded_at?: string | null
-          created_at?: string
-          filial_id?: string | null
+          filial_id: string
           id?: string
-          indicador?: string | null
-          metadata?: Json
           motivo_perda_id?: string | null
-          nome: string
-          observacoes?: string | null
           origem_id?: string | null
-          pipeline_id?: string | null
-          premio_liquido?: number | null
-          producao?: number | null
-          proximo_followup?: string | null
           ramo_id?: string | null
-          responsavel_id: string
+          responsavel_id?: string | null
           segurado_id?: string | null
-          seguradora_id?: string | null
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          tipo_contato?: boolean | null
-          tipo_negocio?: Database["public"]["Enums"]["tipo_negocio"] | null
-          updated_at?: string
-          vigencia_fim?: string | null
-          vigencia_inicio?: string | null
+          stage_id: string
+          tenant_id: string
         }
         Update: Partial<OportunidadeContractFields> & {
-          agenciamento?: number | null
-          apolice_origem_id?: string | null
-          comissao_percentual?: number | null
-          concluded_at?: string | null
-          created_at?: string
-          filial_id?: string | null
+          filial_id?: string
           id?: string
-          indicador?: string | null
-          metadata?: Json
           motivo_perda_id?: string | null
-          nome?: string
-          observacoes?: string | null
           origem_id?: string | null
-          pipeline_id?: string | null
-          premio_liquido?: number | null
-          producao?: number | null
-          proximo_followup?: string | null
           ramo_id?: string | null
-          responsavel_id?: string
+          responsavel_id?: string | null
           segurado_id?: string | null
-          seguradora_id?: string | null
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          tipo_contato?: boolean | null
-          tipo_negocio?: Database["public"]["Enums"]["tipo_negocio"] | null
-          updated_at?: string
-          vigencia_fim?: string | null
-          vigencia_inicio?: string | null
+          stage_id?: string
+          tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "oportunidades_apolice_origem_id_fkey"
+            columns: ["apolice_origem_id"]
+            isOneToOne: false
+            referencedRelation: "apolices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "oportunidades_motivo_perda_id_fkey"
             columns: ["motivo_perda_id"]
@@ -1312,13 +1267,6 @@ export type Database = {
             columns: ["origem_id"]
             isOneToOne: false
             referencedRelation: "origens"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "oportunidades_pipeline_id_fkey"
-            columns: ["pipeline_id"]
-            isOneToOne: false
-            referencedRelation: "pipelines"
             referencedColumns: ["id"]
           },
           {
@@ -1336,10 +1284,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "oportunidades_seguradora_id_fkey"
-            columns: ["seguradora_id"]
+            foreignKeyName: "oportunidades_responsavel_id_fkey"
+            columns: ["responsavel_id"]
             isOneToOne: false
-            referencedRelation: "seguradoras"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {

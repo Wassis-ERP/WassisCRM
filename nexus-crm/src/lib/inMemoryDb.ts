@@ -127,6 +127,7 @@ import {
   type PosVendaMaintenanceResult,
   type PosVendaStore,
 } from '../modules/pos_venda/domain'
+import { getAggerCatalogMappings } from '../modules/comercial/aggerCoverageMap'
 
 export type SinistroInMemoryContext = {
   tenantId: string
@@ -361,9 +362,10 @@ export const RELATIONS: Record<
   // forward (many-to-one): row.<alias> = registro único da tabela alvo
   'oportunidades.segurados': { target: 'segurados', localFk: 'segurado_id', kind: 'forward' },
   'oportunidades.ramos': { target: 'ramos', localFk: 'ramo_id', kind: 'forward' },
-  'oportunidades.seguradoras': { target: 'seguradoras', localFk: 'seguradora_id', kind: 'forward' },
   'oportunidades.origens': { target: 'origens', localFk: 'origem_id', kind: 'forward' },
   'oportunidades.motivos_perda': { target: 'motivos_perda', localFk: 'motivo_perda_id', kind: 'forward' },
+  'oportunidades.pipeline_stages': { target: 'pipeline_stages', localFk: 'stage_id', kind: 'forward' },
+  'oportunidades.profiles': { target: 'profiles', localFk: 'responsavel_id', kind: 'forward' },
   'apolices.segurados': { target: 'segurados', localFk: 'segurado_id', kind: 'forward' },
   'apolices.seguradoras': { target: 'seguradoras', localFk: 'seguradora_id', kind: 'forward' },
   'apolices.ramos': { target: 'ramos', localFk: 'ramo_id', kind: 'forward' },
@@ -858,11 +860,13 @@ export function seed(): void {
     { nome: 'Automóvel', codigo_susep: '0531', risk_type: 'VEICULO', grupo_operacional: 'Auto e Frota', forma_calculo: 'AUTO', is_monthly: false, ordem: 10 },
     { nome: 'Frota', codigo_susep: '0532', risk_type: 'VEICULO', grupo_operacional: 'Auto e Frota', forma_calculo: 'AUTO', is_monthly: false, ordem: 20 },
     { nome: 'Residencial', codigo_susep: '0114', risk_type: 'IMOVEL', grupo_operacional: 'Patrimonial', forma_calculo: 'RESIDENCIA', is_monthly: false, ordem: 30 },
-    { nome: 'Empresarial', codigo_susep: '0118', risk_type: 'EMPRESA', grupo_operacional: 'Empresarial', forma_calculo: 'EMPRESA', is_monthly: false, ordem: 40 },
-    { nome: 'Vida em Grupo Global', codigo_susep: '0993', risk_type: 'VIDA', grupo_operacional: 'Pessoas', forma_calculo: 'VIDA', is_monthly: false, ordem: 50 },
-    { nome: 'Vida em Grupo PME', codigo_susep: '0994', risk_type: 'VIDA', grupo_operacional: 'Pessoas', forma_calculo: 'VIDA', is_monthly: true, ordem: 60 },
-    { nome: 'Saúde Empresarial', codigo_susep: '1134', risk_type: 'SAUDE', grupo_operacional: 'Pessoas', forma_calculo: 'DIVERSOS', is_monthly: true, ordem: 70 },
-    { nome: 'Transporte', codigo_susep: '0621', risk_type: 'CARGA', grupo_operacional: 'Transporte', forma_calculo: 'DIVERSOS', is_monthly: true, ordem: 80 },
+    { nome: 'Condomínio', codigo_susep: '0116', risk_type: 'IMOVEL', grupo_operacional: 'Patrimonial', forma_calculo: 'CONDOMINIO', is_monthly: false, ordem: 40 },
+    { nome: 'Empresarial', codigo_susep: '0118', risk_type: 'EMPRESA', grupo_operacional: 'Empresarial', forma_calculo: 'EMPRESA', is_monthly: false, ordem: 50 },
+    { nome: 'Vida Individual', codigo_susep: '0990', risk_type: 'VIDA', grupo_operacional: 'Pessoas', forma_calculo: 'VIDA', is_monthly: false, ordem: 60 },
+    { nome: 'Vida em Grupo Global', codigo_susep: '0993', risk_type: 'VIDA', grupo_operacional: 'Pessoas', forma_calculo: 'VIDA', is_monthly: false, ordem: 70 },
+    { nome: 'Vida em Grupo PME', codigo_susep: '0994', risk_type: 'VIDA', grupo_operacional: 'Pessoas', forma_calculo: 'VIDA', is_monthly: true, ordem: 80 },
+    { nome: 'Saúde Empresarial', codigo_susep: '1134', risk_type: 'SAUDE', grupo_operacional: 'Pessoas', forma_calculo: 'DIVERSOS', is_monthly: true, ordem: 90 },
+    { nome: 'Transporte', codigo_susep: '0621', risk_type: 'CARGA', grupo_operacional: 'Transporte', forma_calculo: 'DIVERSOS', is_monthly: true, ordem: 100 },
   ].forEach((ramo) => {
     const id = newId();
     ramoIds[ramo.nome] = id;
@@ -906,6 +910,37 @@ export function seed(): void {
       ativo: true,
     });
   });
+  const aggerSupportedRamos = new Set(['Automóvel', 'Residencial', 'Condomínio', 'Empresarial', 'Vida Individual']);
+  db.ramos
+    .filter((ramo) => aggerSupportedRamos.has(String(ramo.nome)))
+    .forEach((ramo) => {
+      const mappings = getAggerCatalogMappings(ramo.forma_calculo);
+      mappings.forEach((mapping, index) => {
+        if (!mapping.internalCode) return;
+        const duplicated = db.coberturas_catalogo.some(
+          (item) => item.ramo_id === ramo.id && item.codigo === mapping.internalCode,
+        );
+        if (duplicated) return;
+        db.coberturas_catalogo.push({
+          id: newId(),
+          ramo_id: ramo.id,
+          codigo: mapping.internalCode,
+          codigo_susep: null,
+          nome: mapping.label,
+          descricao: `Mapeada da chave ${mapping.externalKey} da API do Aggilizador.`,
+          tipo_cobertura: mapping.catalogType,
+          caracteristica: 'massificado',
+          tipo_risco: ramo.risk_type === 'VIDA' ? 'pessoas' : 'danos',
+          modalidade: 'regular',
+          capital_lmi_padrao: mapping.valueType === 'capital_lmi' ? 0 : null,
+          franquia_padrao: null,
+          carencia_dias: 0,
+          obrigatoria: mapping.catalogType === 'basica',
+          ordem: (index + 1) * 10,
+          ativo: true,
+        });
+      });
+    });
   [
     {
       nome: 'Porto Seguro',

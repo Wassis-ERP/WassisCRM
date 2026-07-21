@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   ArrowLeft, ChevronRight, Phone, Mail, MapPin, Edit, Clock, TrendingUp,
   ShieldCheck, ShieldAlert, Users, Building2, User, Globe, Star, Plus, Trash2,
@@ -58,6 +58,14 @@ const SEXO_LABEL: Record<NonNullable<Segurado['sexo']>, string> = {
 
 type TabId = 'visao' | 'apolices' | 'cadastrais' | 'corretora' | 'tarefas' | 'personalizados' | 'anexos' | 'observacoes'
 
+const TAB_IDS: readonly TabId[] = [
+  'visao', 'apolices', 'cadastrais', 'corretora', 'tarefas', 'personalizados', 'anexos', 'observacoes',
+]
+
+function isTabId(value: string | null): value is TabId {
+  return value !== null && TAB_IDS.includes(value as TabId)
+}
+
 function enderecoFormatado(s: Segurado): string {
   const linha1 = [s.logradouro, s.numero].filter(Boolean).join(', ')
   const linha2 = [s.bairro, s.cidade, s.estado].filter(Boolean).join(' · ')
@@ -85,22 +93,8 @@ export default function SeguradoDetalhePage() {
   const [vinculoEdit, setVinculoEdit] = useState<PessoaContato | null>(null)
   const [vinculoModalOpen, setVinculoModalOpen] = useState(false)
   const [tab, setTab] = useState<TabId>('visao')
-
-  useEffect(() => {
-    const requestedTab = searchParams.get('tab')
-    if (
-      requestedTab === 'visao' ||
-      requestedTab === 'apolices' ||
-      requestedTab === 'cadastrais' ||
-      requestedTab === 'corretora' ||
-      requestedTab === 'tarefas' ||
-      requestedTab === 'personalizados' ||
-      requestedTab === 'anexos' ||
-      requestedTab === 'observacoes'
-    ) {
-      setTab(requestedTab)
-    }
-  }, [searchParams])
+  const requestedTab = searchParams.get('tab')
+  const activeTab = isTabId(requestedTab) ? requestedTab : tab
 
   const handleTabChange = (nextTab: TabId) => {
     setTab(nextTab)
@@ -322,10 +316,10 @@ export default function SeguradoDetalhePage() {
       </div>
 
       {/* Guias */}
-      <EntityTabsBar tabs={tabs} active={tab} onChange={handleTabChange} />
+      <EntityTabsBar tabs={tabs} active={activeTab} onChange={handleTabChange} />
 
       <div role="tabpanel">
-        {tab === 'visao' && (
+        {activeTab === 'visao' && (
           <TabVisaoGeral
             s={segurado}
             vinculos={isPJ ? contatosDaPJ : empresasDaPF}
@@ -338,8 +332,8 @@ export default function SeguradoDetalhePage() {
             onGoTab={setTab}
           />
         )}
-        {tab === 'apolices' && <ApolicesTab seguradoId={id} />}
-        {tab === 'cadastrais' && (
+        {activeTab === 'apolices' && <ApolicesTab seguradoId={id} />}
+        {activeTab === 'cadastrais' && (
           <TabCadastrais
             s={segurado}
             isPJ={isPJ}
@@ -350,14 +344,14 @@ export default function SeguradoDetalhePage() {
             onRemoveVinculo={handleRemoveVinculo}
           />
         )}
-        {tab === 'corretora' && <TabCorretora s={segurado} />}
-        {tab === 'tarefas' && (
+        {activeTab === 'corretora' && <TabCorretora s={segurado} />}
+        {activeTab === 'tarefas' && (
           <TarefasTab tarefas={tabsState.tarefas} onAdd={tabsState.addTarefa} onToggle={tabsState.toggleTarefa} />
         )}
-        {tab === 'personalizados' && (
+        {activeTab === 'personalizados' && (
           <CamposPersonalizadosTab entidadeTipo="segurado" entidadeId={segurado.id} />
         )}
-        {tab === 'anexos' && (
+        {activeTab === 'anexos' && (
           <AnexosLogsTab
             anexos={tabsState.anexos}
             logs={tabsState.logs}
@@ -367,7 +361,7 @@ export default function SeguradoDetalhePage() {
             onToggleAuditLogs={tabsState.setShowAuditLogs}
           />
         )}
-        {tab === 'observacoes' && (
+        {activeTab === 'observacoes' && (
           <ObservacoesTab
             observacoes={tabsState.observacoes}
             onAdd={tabsState.addObservacao}
@@ -498,6 +492,7 @@ function TabVisaoGeral({
                   premio={o.premio}
                   badge={OPP_BADGE[o.status]}
                   vencimento={o.vigenciaFim}
+                  dataLabel="previsto"
                   onClick={() => onOpenOportunidade(o.id)}
                 />
               ))}
@@ -653,6 +648,7 @@ function NegocioRow({
   premio,
   badge,
   vencimento,
+  dataLabel = 'vence',
   onClick,
 }: {
   titulo: string
@@ -661,6 +657,7 @@ function NegocioRow({
   premio?: number | null
   badge: { texto: string; tone: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }
   vencimento?: string | null
+  dataLabel?: string
   onClick?: () => void
 }) {
   const premioFmt = formatBRL(premio)
@@ -678,7 +675,7 @@ function NegocioRow({
       <div className="text-right shrink-0">
         {premioFmt && <p className="text-sm font-semibold text-fg-1">{premioFmt}</p>}
         {vencimento ? (
-          <p className="text-xs text-fg-4">vence {fmtDate(vencimento)}</p>
+          <p className="text-xs text-fg-4">{dataLabel} {fmtDate(vencimento)}</p>
         ) : (
           <StatusBadge status={badge.texto} tone={badge.tone} dot={false} />
         )}
