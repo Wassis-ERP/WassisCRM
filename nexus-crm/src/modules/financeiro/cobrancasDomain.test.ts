@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getTable } from '../../lib/inMemoryDb'
 import type { FinanceiroCobrancaRow, ParcelaRow } from '../../types/database'
 import { confirmParcelaPayments, reverseParcelaPayments } from './parcelasDomain'
@@ -20,6 +20,8 @@ let parcelaSnapshot: ParcelaRow[]
 let auditLength: number
 
 beforeEach(() => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-07-20T12:00:00-03:00'))
   cobrancaSnapshot = cobrancas().map((row) => ({ ...row }))
   parcelaSnapshot = parcelas().map((row) => ({ ...row }))
   auditLength = getTable('audit_logs').length
@@ -29,6 +31,7 @@ afterEach(() => {
   cobrancas().splice(0, cobrancas().length, ...cobrancaSnapshot.map((row) => ({ ...row })))
   parcelas().splice(0, parcelas().length, ...parcelaSnapshot.map((row) => ({ ...row })))
   getTable('audit_logs').splice(auditLength)
+  vi.useRealTimers()
 })
 
 function stageIds(): string[] {

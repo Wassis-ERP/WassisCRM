@@ -110,9 +110,18 @@ jobs:
             --write-out '%{http_code}' \
             "${WEBHOOK_URL}${separator}tag=${IMAGE_TAG}")"
 
-          cat "$response_file"
+          response_body="$(cat "$response_file")"
+          rm -f "$response_file"
+          printf '%s\n' "$response_body"
           if [ "$status_code" != "202" ]; then
-            echo "::error::Expected HTTP 202 from a Portainer service webhook, received ${status_code}. Configure a service webhook instead of a stack GitOps webhook."
+            case "$response_body" in
+              *unauthorized*|*Unauthorized*)
+                echo "::error::Portainer reached the service webhook but GHCR rejected the image pull. Configure the ghcr.io registry on the Portainer endpoint with a GitHub user and a token that has read:packages, then associate that registry credential with the service."
+                ;;
+              *)
+                echo "::error::Expected HTTP 202 from a Portainer service webhook, received ${status_code}. Verify the service webhook URL and the image tag."
+                ;;
+            esac
             exit 1
           fi
 
