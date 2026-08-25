@@ -13,10 +13,6 @@ on:
         options:
           - hml
           - prod
-      api_base_url:
-        description: "WAssisBE API base URL baked into the CRM build"
-        required: true
-        default: "https://api20-hml.wassis.com.br"
 
 permissions:
   contents: read
@@ -43,12 +39,13 @@ jobs:
           PROD_WEBHOOK_URL: ${{ secrets.PORTAINER_CRM_PROD_WEBHOOK_URL }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "api_base_url=${{ inputs.api_base_url }}" >> "$GITHUB_OUTPUT"
             if [ "${{ inputs.environment }}" = "prod" ]; then
               echo "tag=latest" >> "$GITHUB_OUTPUT"
+              echo "api_base_url=${PROD_API_BASE_URL}" >> "$GITHUB_OUTPUT"
               echo "webhook_url=${PROD_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
             else
               echo "tag=hml" >> "$GITHUB_OUTPUT"
+              echo "api_base_url=${HML_API_BASE_URL}" >> "$GITHUB_OUTPUT"
               echo "webhook_url=${HML_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
             fi
           else
