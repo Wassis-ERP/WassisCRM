@@ -34,7 +34,7 @@ describe('backendApi', () => {
       ok: true,
       json: async () => ({
         AccessToken: 'token-123',
-        ExpiresAtUtc: '2026-07-23T18:00:00Z',
+        ExpiresAtUtc: '2099-07-23T18:00:00Z',
         UserId: 'user-1',
         TenantId: 'tenant-1',
         BrokerageId: 'brokerage-1',
