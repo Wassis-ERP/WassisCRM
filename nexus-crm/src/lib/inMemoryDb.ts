@@ -1341,7 +1341,7 @@ export function seed(): void {
   ];
 
   pipelineDefs.forEach((p) => {
-    const pipelineId = newId();
+    const pipelineId = `mock-pipeline-${p.entidade_tipo}-${p.ordem}`;
     db.pipelines.push({
       id: pipelineId,
       nome: p.nome,
@@ -1356,7 +1356,7 @@ export function seed(): void {
     });
     p.stages.forEach((s, idx) => {
       db.pipeline_stages.push({
-        id: newId(),
+        id: `${pipelineId}-stage-${idx}`,
         pipeline_id: pipelineId,
         nome: s.nome,
         cor: s.cor,

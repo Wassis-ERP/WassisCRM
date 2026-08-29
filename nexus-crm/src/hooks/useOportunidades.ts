@@ -4,6 +4,14 @@ import { queryKeys } from '../lib/queryClient';
 import type { Database } from '../types/database';
 import { useAuth } from './useAuth';
 import { useActiveFilialId } from './useActiveFilial';
+import {
+  createBackendOpportunity,
+  getBackendInsuredPerson,
+  getBackendOpportunity,
+  updateBackendOpportunity,
+  usesBackendDomainData,
+} from '../lib/backendDomainApi';
+import { getTable } from '../lib/inMemoryDb';
 
 type OportunidadeRow = Database['public']['Tables']['oportunidades']['Row'];
 type OportunidadeInsert = Database['public']['Tables']['oportunidades']['Insert'];
@@ -70,6 +78,10 @@ export function useCreateOportunidade() {
         status: 'pending',
       };
 
+      if (usesBackendDomainData) {
+        return createBackendOpportunity(payload, user.tenantId);
+      }
+
       const { data, error } = await supabase.from('oportunidades').insert(payload).select('*').single();
       if (error) throw error;
       return data as OportunidadeRow;
@@ -86,9 +98,14 @@ export function useCreateOportunidade() {
  */
 export function useUpdateOportunidade() {
   const qc = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (args: { id: string; patch: OportunidadeUpdate }): Promise<OportunidadeRow> => {
+      if (usesBackendDomainData) {
+        return updateBackendOpportunity(args.id, args.patch, user?.tenantId ?? null);
+      }
+
       const { data, error } = await supabase
         .from('oportunidades')
         .update(args.patch)
@@ -110,10 +127,39 @@ export function useUpdateOportunidade() {
  * Busca detalhe de uma oportunidade com joins (segurado, ramo, seguradora, origem, motivo_perda, profile).
  */
 export function useOportunidade(id: string | undefined) {
+  const { user } = useAuth();
+
   return useQuery({
     enabled: !!id,
     queryKey: ['oportunidade', id],
     queryFn: async () => {
+      if (usesBackendDomainData) {
+        const opportunity = await getBackendOpportunity(id as string, user?.tenantId ?? null);
+        const insured = opportunity.segurado_id
+          ? await getBackendInsuredPerson(opportunity.segurado_id, user?.tenantId ?? null)
+          : null;
+        const byId = (table: string, value: string | null) =>
+          value ? getTable(table).find((item) => item.id === value) ?? null : null;
+
+        return {
+          ...opportunity,
+          segurados: insured
+            ? {
+                id: insured.id,
+                nome: insured.nome,
+                cpf_cnpj: insured.cpf_cnpj,
+                telefone: insured.telefone,
+                email: insured.email,
+              }
+            : null,
+          ramos: byId('ramos', opportunity.ramo_id),
+          seguradoras: byId('seguradoras', opportunity.seguradora_id),
+          origens: byId('origens', opportunity.origem_id),
+          motivos_perda: byId('motivos_perda', opportunity.motivo_perda_id),
+          profiles: byId('profiles', opportunity.responsavel_id),
+        };
+      }
+
       const { data, error } = await supabase
         .from('oportunidades')
         .select(`
