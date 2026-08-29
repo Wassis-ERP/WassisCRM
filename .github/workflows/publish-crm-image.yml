@@ -22,6 +22,8 @@ env:
   IMAGE_NAME: ghcr.io/wassis-erp/wassis-crm
   HML_API_BASE_URL: https://api20-hml.wassis.com.br
   PROD_API_BASE_URL: https://api20.wassis.com.br
+  HML_CRM_BASE_URL: https://crm20-hml.wassis.com.br
+  PROD_CRM_BASE_URL: https://crm20.wassis.com.br
 
 jobs:
   publish:
@@ -42,15 +44,18 @@ jobs:
             if [ "${{ inputs.environment }}" = "prod" ]; then
               echo "tag=latest" >> "$GITHUB_OUTPUT"
               echo "api_base_url=${PROD_API_BASE_URL}" >> "$GITHUB_OUTPUT"
+              echo "health_url=${PROD_CRM_BASE_URL}" >> "$GITHUB_OUTPUT"
               echo "webhook_url=${PROD_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
             else
               echo "tag=hml" >> "$GITHUB_OUTPUT"
               echo "api_base_url=${HML_API_BASE_URL}" >> "$GITHUB_OUTPUT"
+              echo "health_url=${HML_CRM_BASE_URL}" >> "$GITHUB_OUTPUT"
               echo "webhook_url=${HML_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
             fi
           else
             echo "tag=hml" >> "$GITHUB_OUTPUT"
             echo "api_base_url=${{ env.HML_API_BASE_URL }}" >> "$GITHUB_OUTPUT"
+            echo "health_url=${{ env.HML_CRM_BASE_URL }}" >> "$GITHUB_OUTPUT"
             echo "webhook_url=${HML_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
           fi
 
@@ -74,6 +79,7 @@ jobs:
           build-args: |
             VITE_API_BASE_URL=${{ steps.meta.outputs.api_base_url }}
             VITE_AUTH_MODE=backend
+            VITE_DATA_MODE=backend
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -128,3 +134,18 @@ jobs:
             echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
             echo "- Webhook response: HTTP ${status_code}"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify deployed CRM
+        env:
+          HEALTH_URL: ${{ steps.meta.outputs.health_url }}
+        run: |
+          for attempt in $(seq 1 18); do
+            if curl --fail --silent --show-error --location --max-time 10 "$HEALTH_URL" > /dev/null; then
+              echo "CRM is healthy at ${HEALTH_URL}."
+              exit 0
+            fi
+            echo "Waiting for CRM redeploy (${attempt}/18)..."
+            sleep 5
+          done
+          echo "::error::CRM did not become healthy after the Portainer redeploy."
+          exit 1

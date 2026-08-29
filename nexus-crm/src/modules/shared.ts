@@ -1,5 +1,10 @@
 import { supabase } from '../lib/supabase';
 import type { CardStatus, ConcludePayload, PipelineModule } from './types';
+import {
+  moveBackendOpportunityStage,
+  updateBackendOpportunity,
+  usesBackendDomainData,
+} from '../lib/backendDomainApi';
 
 /**
  * Tabela real por modulo - unica fonte que mapeia um modulo para seu backing store.
@@ -26,6 +31,11 @@ export async function genericUpdateStage(
   cardId: string,
   toStageId: string,
 ): Promise<void> {
+  if (module === 'comercial' && usesBackendDomainData) {
+    await moveBackendOpportunityStage(cardId, toStageId);
+    return;
+  }
+
   const table = getModuleTable(module);
   const { error } = await supabase
     .from(table)
@@ -45,6 +55,19 @@ export async function genericConclude(
   cardId: string,
   payload: ConcludePayload,
 ): Promise<void> {
+  if (module === 'comercial' && usesBackendDomainData) {
+    await updateBackendOpportunity(
+      cardId,
+      {
+        status: payload.status,
+        concluded_at: new Date().toISOString(),
+        motivo_perda_id: payload.status === 'lost' ? payload.motivoPerdaId ?? null : null,
+      },
+      null,
+    );
+    return;
+  }
+
   const table = getModuleTable(module);
   const now = new Date().toISOString();
 
@@ -66,6 +89,11 @@ export async function genericConclude(
  * Util para reverter um "Ganho"/"Perdido" acidental.
  */
 export async function genericReopen(module: PipelineModule, cardId: string): Promise<void> {
+  if (module === 'comercial' && usesBackendDomainData) {
+    await updateBackendOpportunity(cardId, { status: 'pending', concluded_at: null }, null);
+    return;
+  }
+
   const table = getModuleTable(module);
   const { error } = await supabase
     .from(table)

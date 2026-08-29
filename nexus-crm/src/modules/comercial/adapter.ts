@@ -2,6 +2,12 @@ import { supabase } from '../../lib/supabase';
 import { genericConclude, genericUpdateStage } from '../shared';
 import type { KanbanCard, ModuleAdapter } from '../types';
 import { ComercialCard } from './Card';
+import {
+  listBackendInsuredPeople,
+  listBackendOpportunities,
+  usesBackendDomainData,
+} from '../../lib/backendDomainApi';
+import { getTable } from '../../lib/inMemoryDb';
 
 /**
  * Adapter do Pipeline Comercial.
@@ -13,7 +19,55 @@ import { ComercialCard } from './Card';
 export const comercialAdapter: ModuleAdapter = {
   module: 'comercial',
 
-  async fetchCards({ pipelineId, includeConcluded, filialId }) {
+  async fetchCards({ pipelineId, tenantId, includeConcluded, filialId }) {
+    if (usesBackendDomainData) {
+      const [opportunities, insuredPeople] = await Promise.all([
+        listBackendOpportunities(
+          {
+            pipelineId,
+            status: includeConcluded ? null : 'pending',
+            officeBranchId: filialId,
+          },
+          tenantId,
+        ),
+        listBackendInsuredPeople(tenantId, filialId),
+      ]);
+      const insuredById = new Map(insuredPeople.map((item) => [item.id, item]));
+      const catalogName = (table: string, id: string | null) => {
+        if (!id) return undefined;
+        const row = getTable(table).find((item) => item.id === id);
+        return typeof row?.nome === 'string' ? row.nome : undefined;
+      };
+
+      return opportunities.map<KanbanCard>((row) => {
+        const insured = row.segurado_id ? insuredById.get(row.segurado_id) : undefined;
+        const insuranceLine = catalogName('ramos', row.ramo_id);
+        const insurer = catalogName('seguradoras', row.seguradora_id);
+
+        return {
+          id: row.id,
+          pipelineId: row.pipeline_id,
+          stageId: row.stage_id,
+          status: row.status,
+          title: insured?.nome ?? row.nome ?? 'Oportunidade',
+          subtitle: insuranceLine,
+          responsavelId: row.responsavel_id,
+          responsavelName: undefined,
+          responsavelAvatar: undefined,
+          primaryValue: row.premio_liquido,
+          primaryValueLabel: 'Premio',
+          dueDate: row.proximo_followup,
+          tags: [
+            insuranceLine ? { label: insuranceLine, tone: 'default' as const } : null,
+            insurer ? { label: insurer, tone: 'info' as const } : null,
+            row.tipo_negocio ? { label: String(row.tipo_negocio), tone: 'default' as const } : null,
+          ].filter(Boolean) as KanbanCard['tags'],
+          concludedAt: row.concluded_at,
+          raw: row as unknown as Record<string, unknown>,
+        };
+      });
+    }
+
     // Nao usar embed `profiles:responsavel_id`: o schema publico nao expoe FK
     // oportunidades.responsavel_id -> profiles (PostgREST retorna 400).
     let builder = supabase

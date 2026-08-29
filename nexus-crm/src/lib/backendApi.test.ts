@@ -51,11 +51,13 @@ describe('backendApi', () => {
     const { getBackendSessionSnapshot, loginToBackend } = await importBackendApi();
     const result = await loginToBackend('user@test.local', 'secret');
 
-    expect(fetchMock).toHaveBeenCalledWith('https://api.test/api/identity/login', {
+    const [, loginInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://api.test/api/identity/login');
+    expect(loginInit).toMatchObject({
       method: 'POST',
       body: JSON.stringify({ username: 'user@test.local', password: 'secret' }),
-      headers: { 'Content-Type': 'application/json' },
     });
+    expect(new Headers(loginInit.headers).get('Content-Type')).toBe('application/json');
     expect(result).toMatchObject({
       accessToken: 'token-123',
       branchId: 'branch-a',
@@ -91,12 +93,11 @@ describe('backendApi', () => {
     const { getBackendCurrentUser } = await importBackendApi();
     const result = await getBackendCurrentUser();
 
-    expect(fetchMock).toHaveBeenCalledWith('https://api.test/api/identity/me', {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer token-abc',
-      },
-    });
+    const [, currentUserInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://api.test/api/identity/me');
+    const currentUserHeaders = new Headers(currentUserInit.headers);
+    expect(currentUserHeaders.get('Content-Type')).toBe('application/json');
+    expect(currentUserHeaders.get('Authorization')).toBe('Bearer token-abc');
     expect(result).toMatchObject({
       isAuthenticated: true,
       branchId: 'branch-c',
@@ -104,6 +105,22 @@ describe('backendApi', () => {
       hasAllBranchesAccess: true,
       roles: ['brokerage_admin'],
     });
+  });
+
+  it('preserva o bearer token no cliente autenticado de dominio', async () => {
+    storage.set('wassis.backend.accessToken', 'token-domain');
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 'insured-1' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { requestAuthenticatedBackendJson } = await importBackendApi();
+    await requestAuthenticatedBackendJson('/api/segurados');
+
+    const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://api.test/api/segurados');
+    expect(new Headers(requestInit.headers).get('Authorization')).toBe('Bearer token-domain');
   });
 
   it('limpa sessao local quando token absoluto expirou', async () => {
