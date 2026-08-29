@@ -80,6 +80,7 @@ jobs:
             VITE_API_BASE_URL=${{ steps.meta.outputs.api_base_url }}
             VITE_AUTH_MODE=backend
             VITE_DATA_MODE=backend
+            VITE_BUILD_SHA=${{ github.sha }}
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -140,8 +141,9 @@ jobs:
           HEALTH_URL: ${{ steps.meta.outputs.health_url }}
         run: |
           for attempt in $(seq 1 18); do
-            if curl --fail --silent --show-error --location --max-time 10 "$HEALTH_URL" > /dev/null; then
-              echo "CRM is healthy at ${HEALTH_URL}."
+            response_body="$(curl --fail --silent --show-error --location --max-time 10 "${HEALTH_URL}?build=${GITHUB_SHA}" || true)"
+            if printf '%s' "$response_body" | grep --fixed-strings --quiet "content=\"${GITHUB_SHA}\""; then
+              echo "CRM build ${GITHUB_SHA} is healthy at ${HEALTH_URL}."
               exit 0
             fi
             echo "Waiting for CRM redeploy (${attempt}/18)..."
