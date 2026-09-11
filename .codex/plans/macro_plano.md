@@ -6,7 +6,7 @@
 
 ## Norte do plano
 
-- [~] 11/09/2026 — Publicação consolidada com DBML v3.1 e conciliação das integrações remotas. Micro-plano: `micro-plano-publicacao-consolidada-2026-09-11.md`.
+- [x] 11/09/2026 — Frontend consolidado e DBML v3.1 publicados em Dev, integrações remotas conciliadas. [PR #47](https://github.com/Wassis-ERP/WassisCRM/pull/47) acompanha checks, merge e homologação. Micro-plano: `micro-plano-publicacao-consolidada-2026-09-11.md`.
 
   Exceção autorizada nesta conciliação: preservar as integrações HTTP de Segurados/Oportunidades já implementadas pela outra equipe em main. Isso não amplia o escopo para construir backend ou novas APIs; limitações do DTO remoto constam de `resultado-publicacao-2026-09-11.md`.
 
