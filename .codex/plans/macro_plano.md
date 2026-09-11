@@ -6,6 +6,8 @@
 
 ## Norte do plano
 
+- [x] 11/09/2026 — Encerramento documental da primeira versão concluído: hand-off consolidado, checklists históricos reconciliados e aceite de escopo registrado com limites explícitos. Micro-plano: `micro-plano-encerramento-frontend-v1-2026-09-11.md`.
+
 - [x] 11/09/2026 — Frontend consolidado e DBML v3.1 publicados em Dev, integrações remotas conciliadas. [PR #47](https://github.com/Wassis-ERP/WassisCRM/pull/47) acompanha checks, merge e homologação. Micro-plano: `micro-plano-publicacao-consolidada-2026-09-11.md`.
 
   Exceção autorizada nesta conciliação: preservar as integrações HTTP de Segurados/Oportunidades já implementadas pela outra equipe em main. Isso não amplia o escopo para construir backend ou novas APIs; limitações do DTO remoto constam de `resultado-publicacao-2026-09-11.md`.
@@ -22,21 +24,21 @@ O contrato de referencia e formado por:
 - `.codex/artefatos/instrucoes_projeto_wassis_v3_1.md`
 - `.codex/artefatos/revisao_dbml_v2_0_vs_front.md`
 - `.codex/plans/diagnostico-dbml-v1_1-vs-macro-plano.md` (historico analitico;
-  nao substitui o contrato v2.0 nem o estado atual do codigo)
+  não substitui o contrato vigente v3.1 nem o estado atual do código)
 - `.contextos-mercado/portal_ajuda_quiver`
 - `.contextos-mercado/portal_ajuda_segfy`
 
-O hand-off versionavel para backend fica em `relatorio-endpoints-campos.md` na
-raiz do projeto. Por decisao de produto de 2026-07-10, ele sera consolidado
-quando as telas e contratos estiverem estabilizados, antes do hand-off final ao
-backend, e nao mais atualizado a cada tela. O conteudo atual e um snapshot
-parcial; `.codex/artefatos/endpoints` permanece como historico/anexo.
+O hand-off versionável para backend fica em `relatorio-endpoints-campos.md` na
+raiz. A consolidação da primeira versão foi autorizada em 11/09/2026 e reúne
+todos os módulos entregues, operações propostas e as 68 tabelas do DBML v3.1.
+A política de não atualizar por tela permanece para desenvolvimento futuro;
+`.codex/artefatos/endpoints` e microplanos anteriores preservam o histórico.
 
-O projeto atual e **frontend puro**. Os dados de dominio rodam contra mock em
-memoria; a autenticacao ja pode consumir o WAssisBE quando configurada. Backend
-de dominio, SQL, migrations, RLS/RBAC de banco e demais APIs reais pertencem a
-outra equipe. O papel deste repositorio e construir a experiencia no `nexus-crm`
-e preparar o contrato esperado para o backend.
+O entregável é o **frontend da primeira versão**. Os módulos de domínio são
+demonstrados em memória; autenticação e a integração HTTP legada de
+Segurados/Oportunidades permanecem disponíveis nos modos já existentes.
+Backend de domínio, novas APIs, SQL, migrations e RLS/RBAC pertencem à outra
+equipe. Limitações da API estão em `resultado-publicacao-2026-09-11.md`.
 
 ## Regras de execucao
 
@@ -70,138 +72,57 @@ e preparar o contrato esperado para o backend.
 
 ## Relatorio de Endpoints & Campos
 
-Direcao revisada em 2026-07-10: manter **um relatorio unico**, organizado por
-fase/modulo e versionavel na raiz do projeto, em:
+A consolidação autorizada de 11/09/2026 está em [relatorio-endpoints-campos.md](../../relatorio-endpoints-campos.md). Cobre plataforma/cadastros, configurações, EAV/guias, contratos/importação/agendas, financeiro, sinistros, pós-venda e comercial, com inventário de 68 tabelas/1.164 colunas do DBML v3.1.
 
-`relatorio-endpoints-campos.md`
-
-O arquivo atual e um snapshot parcial das fases ja consolidadas. Ele nao deve ser
-tratado como retrato completo do frontend enquanto o desenvolvimento estiver em
-andamento. Os relatorios separados ja emitidos continuam como historico/fonte em
-`.codex/artefatos/endpoints`:
-
-- `.codex/artefatos/endpoints/0.1-plataforma-corretoras.md`
-- `.codex/artefatos/endpoints/0.2-produtores.md`
-- `.codex/artefatos/endpoints/0.3-segurados.md`
-
-Durante o desenvolvimento, cada micro-plano deve preservar as notas necessarias
-ao futuro hand-off. A consolidacao final do relatorio acontece antes da entrega
-ao backend ou quando o usuario solicitar expressamente.
+As rotas descritas são propostas de implementação, salvo a seção que identifica a API HTTP existente. Este hand-off não certifica backend pronto. Os arquivos de `.codex/artefatos/endpoints` são históricos; notas antigas de “consolidar futuramente” nos microplanos foram atendidas por esta rodada e permanecem como contexto da época.
 
 ## Estado atual do projeto
 
-Feito no front/mock:
+**Primeira versão do frontend funcionalmente entregue; fechamento documental de 11/09/2026 registrado no [aceite](../../aceite-frontend-v1-2026-09-11.md).** Código de referência: `6059e829da9793d2d7ff584e4ef24ab711ba39c2`.
 
-- fundacao multi-corretora;
-- perfis cadastraveis e matriz de permissoes no front;
-- produtores em Configuracoes;
-- segurados reconciliado;
-- tela de detalhe de segurado com guias operacionais polimorficas persistidas no
-  mock por `entidade_tipo + entidade_id`;
-- kanbans legados de Oportunidades, Sinistros, Pos-venda e Financeiro;
-- superficie de Emissao aposentada, com as rotas `/emissoes` e `/emissoes/:id`
-  preservadas apenas como redirecionamentos de compatibilidade para o Painel;
-- eixo contratual de apolices/propostas, importacao documental, itens,
-  coberturas e agendas financeiras materializadas no mock/front.
-
-Principais lacunas:
-
-- podem permanecer residuos tecnicos de Emissao, mas a superficie operacional e
-  a navegacao propria ja foram aposentadas no recorte 2.6;
-- o Financeiro concluiu os recortes `3.1` a `3.6` e o complemento pos-HAR
-  `3.4R-A` sobre o contrato vigente, sem reabrir a modelagem financeira;
-- Sinistros concluiu fundacao, abertura, manutencao e fechamento operacional
-  sobre `apolice_id`, sem dependencia funcional de `oportunidade_id`;
-- Pos-venda foi reconstruido como modulo proprio sobre `apolice_id`, incluindo
-  onboarding e acompanhamento mensal elegivel;
-- campos personalizados e guias transversais ja foram reconciliados no primeiro
-  fluxo operacional de Segurado; a expansao para outros modulos ocorre conforme
-  cada modulo for reconstruido;
-- `metadata` JSON legado ainda aparece em modulos antigos;
-- `user_roles/app_role` foi removido dos tipos/mock legados; permissao de negocio
-  fica em `profile_filiais -> perfis -> role_permissions`;
-- `integracao_logs` permanece como responsabilidade tecnica de backend; nao ha
-  modulo generico de integracoes no roadmap atual.
-- o 6.4 entregou a primeira versao funcional de `Calculos`; a validacao de
-  mercado de 2026-07-22 abriu o 6.4R para separar pedido do corretor e resultado
-  por seguradora. O 6.4R-A fechou o contrato v3.0 e o 6.4R-B migrou
-  `database.ts`, dominio, mock e jornada Auto para esse contrato. O 6.5A
-  concluiu execucoes/resultados simulados; o 6.5B concluiu o comparativo e a
-  apresentacao comercial normalizada.
+- Fases 0–4 concluídas no escopo front/mock: cadastros, perfis/permissões, configurações/funis, EAV/guias, contratos/documentos, importação/cadastro manual, itens/coberturas, agendas, financeiro, sinistros e pós-venda.
+- Financeiro 3.1–3.6 e 3.4R-A concluídos; sinistros e pós-venda usam apólice como origem. Cobrança usa parcela. Processos canônicos derivam funil por etapa.
+- Comercial 6.2–6.5R e finalização de setembro concluídos: pedido por versão, execuções por seguradora, resultados, registro manual, seleção de até cinco cotações, apresentação/PDF e origem da proposta por cadastro manual ou importação.
+- Tipagem alinhada estruturalmente ao DBML v3.1: 67 tabelas no frontend, zero colunas ausentes/extras e zero divergências de nulabilidade no inventário. `integracao_logs` é técnico de backend.
+- Emissão como módulo separado e `user_roles/app_role` aposentados. `metadata` de negócio removido do contrato aplicado; DTOs remotos legados são traduzidos na fronteira HTTP.
+- Guias transversais preservam autoria humana, auditoria técnica e valores personalizados separados; anexos e integrações reais têm dependências de serviço explicitadas no hand-off.
 
 ## Painel executivo para as proximas sessoes
 
-Atualizado em 2026-07-23 para evitar perda de contexto entre sessoes.
+Atualizado em **11/09/2026**. Este painel substitui o resumo de julho; os detalhes datados abaixo preservam o histórico de cada fase.
 
-### Onde o projeto esta
+### Situação de entrega
 
-- Fases 0 a 4: core planejado concluido no front/mock.
-- Financeiro 3.1 a 3.6: concluido; checkpoint local mais recente do 3.6:
-  `15e3b10`.
-- Complemento `3.4R-A — Historico e conferencia de extratos` concluido em
-  2026-07-21. Micro-plano:
-  `.codex/plans/micro-plano-3.4R-A-historico-conferencia-extratos.md`.
-- Evidencia sanitizada que motivou o recorte:
-  `.codex/artefatos/benchmarks/segfy-har-financeiro.md`.
-- `6.4 — Calculos e especializacoes` foi concluido em 2026-07-21 sobre o
-  contrato v2.6; a implementacao permanece como evidencia historica.
-- A observacao do HFy Auto/SegFy e a comparacao com Quiver abriram os
-  micro-planos 6.4R-A, 6.4R-B, 6.5A e 6.5B.
-- O `6.4R-A — Reconciliacao contratual` foi concluido em 2026-07-22 com o par
-  DBML/instrucoes v3.0, sem alterar a baseline de codigo do 6.4.
-- O `6.4R-B — Jornada Auto condicional e assistida` foi concluido e validado em
-  2026-07-22, sem extrapolar a refatoracao para outros ramos.
-- O `6.5A — Execucoes e resultados simulados por seguradora` foi concluido e
-  validado em 2026-07-22, com 252 testes aprovados e jornada exercitada no
-  navegador.
-- O `6.5B — Comparativo e apresentacao comercial` foi concluido e validado em
-  2026-07-22, com tipos/mock normalizados, 258 testes aprovados e jornada
-  completa exercitada no navegador.
-- O `6.5R — Refinamento operacional da tela de calculo` foi concluido em
-  2026-07-23 apos reconciliar veiculo/coberturas com o padrao SegFy fornecido
-  pelo usuario, sem perder o versionamento e as validacoes ja concluidas.
+Construção principal do frontend encerrada no escopo da primeira versão. Hand-off consolidado e aceite de escopo documentado; não significa homologação operacional do sistema integrado. Evidências de código reaproveitadas: 304 testes, TypeScript/build e jornadas de navegador da última publicação. Novas alterações exigem validação proporcional ao risco.
 
 ### Ordem recomendada a partir daqui
 
-1. Publicacao da arvore consolidada concluida depois do
-   `G5 — Limpeza tecnica sem impacto funcional` (`82f1969`).
-2. Manter `3.4R-B` estacionado: no uso inicial, pendencias sao resolvidas antes
-   da baixa e nao justificam uma mesa posterior neste momento.
-3. Adiar a Fase 5 ate a preparacao comercial do SaaS.
-4. O 6.4R-B foi concluido sobre o contrato v3.0, sem extrapolar a jornada Auto
-   para outros ramos.
-5. O 6.5B foi concluido sobre os resultados aninhados e o historico do 6.5A,
-   sem alterar cotacoes nem criar propostas implicitamente.
-6. Usar o material SegFy/Quiver apenas como referencia de produto e o PDF da
-   API do Aggilizador como referencia de adapter. Nunca reproduzir tokens,
-   credenciais ou dados pessoais em planos/codigo.
+1. Usar o relatório consolidado e o par DBML/instruções v3.1 para o alinhamento com a equipe de backend.
+2. Abrir recortes próprios para integração e homologação de cada módulo quando houver API concreta; não implementar backend neste repositório.
+3. Tratar correções e melhorias de UX, desempenho e lint como manutenção/evolução, com microplano quando funcional.
+4. Retomar os itens adiados apenas por decisão explícita de produto; não escolher 6.6 como próxima implementação automática.
 
 ### Itens estacionados deliberadamente
 
-- busca automatica de extratos/documentos/parcelas em portais;
-- credenciais de seguradoras no frontend;
-- scraping, robo e monitoramento generico de integracoes;
-- persistencia real de fila, armazenamento, antivirus, retencao e URL assinada,
-  que dependem do backend;
-- anexo funcional na baixa manual, ate existir infraestrutura de arquivos;
-- integracoes com motor externo, reservadas ao 6.6 e dependentes de projeto de
-  API concreto; 6.4R–6.5 continuam demonstraveis apenas com mock frontend.
+- `3.4R-B`: mesa de exceções/retomada, condicional a feedback de uso.
+- `5.1–5.4`: dashboards reais, visão de grupo, cliente cruzado e relatórios SaaS, adiados para preparação comercial.
+- `6.6`: Agger/Aggilizador, condicionado à API/backend concretos.
+- `G9`: Central Técnica e Suporte, sem execução autorizada nesta entrega.
+- Busca em portais, credenciais de seguradoras, scraping/robôs, fila durável, storage/antivírus/retenção, OCR/parser homologado, anexo real de baixa e envio externo de mensagens dependem de frentes próprias/backend.
 
 ### Como iniciar uma nova sessao
 
-1. Ler este painel e o status do recorte indicado como proximo.
-2. Abrir o micro-plano correspondente antes de alterar codigo.
-3. Confirmar se houve mudanca no DBML/instrucoes desde a sessao anterior.
-4. Preservar os itens estacionados e nao ampliar escopo implicitamente.
-5. Ao concluir ou mudar o recorte, atualizar este painel e a entrada detalhada
-   da fase no mesmo checkpoint.
+1. Ler este painel, o aceite e as limitações de integração da seção 7 do hand-off.
+2. Confirmar contrato vigente e escopo autorizado; criar microplano para mudanças funcionais.
+3. Não reabrir funcionalidades pela simples presença de critérios históricos ou versões antigas em planos encerrados.
+4. Preservar backlog adiado e atualizar este painel quando houver nova decisão de produto.
 
-## Ordem executiva revisada
+## Ordem executiva histórica — sequência já executada no núcleo
 
 Decisao apos diagnostico V1/V2: priorizar o **core de gestao** antes do comercial
 avancado.
 
-Sequencia recomendada:
+Sequência histórica usada na construção (não é fila vigente de novas tarefas):
 
 1. Fundacao restante: catalogos essenciais e funis.
 2. Infra transversal: campos personalizados e guias polimorficas.
@@ -215,10 +136,8 @@ Sequencia recomendada:
 9. Comercial avancado, coberturas cotadas, multi-calculo, cotacoes e integracoes
    futuras com Agger/seguradoras quando houver projeto de API concreto.
 
-Oportunidades basicas podem continuar existindo como funil comercial simples.
-Multi-calculo, cotacoes, coberturas de cotacao e Agger ficam para o fim porque
-sao mais independentes do core operacional e dependem de decisoes/campos mais
-ricos.
+O comercial básico e o multicálculo foram concluídos após o núcleo operacional.
+A integração Agger continua adiada; o painel executivo acima define o estado vigente.
 
 Ficam fora do roadmap atual: contas a pagar/receber empresariais, fluxo de caixa,
 tesouraria, busca automatica de parcelas atrasadas, fila automatica de documentos
@@ -1108,11 +1027,12 @@ basicas podem continuar funcionando antes disso.
     - Micro-plano:
       `.codex/plans/micro-plano-6.5B-comparativo-apresentacao-comercial.md`.
     - Permitir selecionar cotacoes de calculos diferentes da mesma oportunidade,
-      comparar ate tres produtos e montar uma apresentacao unica agrupada por
+      comparar até cinco produtos (ampliação de 10/09/2026) e montar uma apresentação única agrupada por
       versao/perfil.
-    - Concluido em 2026-07-22 com bandeja persistente, comparativo de ate tres
-      produtos, configuracao/preview, representacao mock e persistencia
-      normalizada; 258 testes aprovados e fluxo validado no navegador.
+    - Concluído inicialmente em 22/07/2026 com bandeja, comparativo de três
+      produtos e apresentação normalizada; ampliado para cinco em 10/09/2026,
+      com revisão do PDF e origem da proposta manual/importada. As evidências
+      iniciais (258 testes) são históricas; a publicação posterior tem 304 testes.
   - [x] 6.5R **Refinamento operacional da tela de calculo**
     - Micro-plano:
       `.codex/plans/micro-plano-6.5R-refinamento-operacional-calculo.md`.
@@ -1217,9 +1137,9 @@ basicas podem continuar funcionando antes disso.
   - Relatorio movido para a raiz em 2026-07-08 para versionamento no GitHub.
   - Relatorios 0.1, 0.2 e 0.3 consolidados; 0.4a/0.4b absorvidos por G8;
     G8 e 0.5 consolidados.
-  - Decisao de 2026-07-10: o conteudo atual e snapshot parcial; os demais
-    modulos serao consolidados quando telas e contratos estiverem estabilizados,
-    antes do hand-off final ao backend.
+  - Consolidação dos demais módulos autorizada e concluída em 11/09/2026,
+    com 68 tabelas/1.164 colunas inventariadas. A política de julho permanece
+    como histórico; o relatório atual cobre o escopo entregue da V1.
 
 - [x] G2 **Aposentar `user_roles/app_role`**
   - Micro-plano: `.codex/plans/micro-plano-g2-aposentar-user-roles-app-role.md`
@@ -1248,24 +1168,13 @@ basicas podem continuar funcionando antes disso.
 
 ## Politica documental vigente
 
-O Relatorio de Endpoints & Campos de Configuracoes/G8 e 0.5 foi autorizado pelo
-usuario em 2026-07-08, consolidado em `relatorio-endpoints-campos.md` e movido
-para a raiz do projeto para versionamento no GitHub.
+G8/0.5 e plataforma iniciaram o relatório único em julho. A decisão de 10/07/2026 adiou novas consolidações até a estabilização do frontend. Em 11/09/2026, o usuário autorizou e esta rodada executou a consolidação de todas as frentes entregues, com inventário canônico completo e limites de integração.
 
-Em 2026-07-10, o usuario decidiu nao atualizar o relatorio apos cada tela, pois
-os fluxos ainda podem mudar durante a evolucao do produto. Os micro-planos devem
-preservar as notas de contrato e backend, mas o hand-off sera consolidado quando
-o frontend estiver estabilizado ou houver solicitacao explicita.
+Os microplanos históricos preservam notas e resultados da sua época; não se deve interpretar “handoff futuro” nesses registros como pendência atual quando o tema já estiver no relatório consolidado. Evoluções futuras continuam documentadas em microplanos e só geram nova consolidação quando estabilizadas ou solicitadas.
 
 ## Proximo micro-plano recomendado
 
-O micro-plano **6.5R — Refinamento operacional da tela de calculo** foi
-concluido em 2026-07-23. O proximo item catalogado e
-**6.6 — Agger/Aggilizador**,
-condicionado a um projeto concreto de API e a exposicao do backend; ele nao deve
-ser aberto apenas com a referencia visual atual. A Fase 5, o 3.4R-B e o G9
-permanecem adiados. O `relatorio-endpoints-campos.md` continua como snapshot
-parcial ate a consolidacao autorizada do hand-off.
+Nenhuma nova construção funcional é aberta automaticamente. O [microplano de encerramento](micro-plano-encerramento-frontend-v1-2026-09-11.md) formaliza esta entrega. A próxima frente dependerá da prioridade do usuário e do contrato de API disponível; manutenção, integração e homologação são recortes próprios. Fase 5, 3.4R-B, 6.6 e G9 permanecem adiados.
 
 ## Criterio para considerar o DBML integralmente mapeado
 
@@ -1278,8 +1187,9 @@ Cada tabela do DBML deve estar em pelo menos um destes estados:
 - responsabilidade exclusiva do backend, com contrato registrado para a futura
   consolidacao do hand-off.
 
-Antes da entrega ao backend, o Relatorio de Endpoints & Campos deve consolidar
-todas as tabelas e fluxos que ja estiverem estabilizados.
+Critério documental atendido na consolidação de 11/09/2026: todas as tabelas
+e fluxos estabilizados estão mapeados no relatório. Isso não certifica enforcement,
+integração real nem edição de cada coluna pela interface.
 
 ## Template minimo de micro-plano
 
