@@ -57,10 +57,11 @@ export const RAMO_CATEGORIA_RISCO_MAP = RAMO_CATEGORIAS_RISCO.reduce(
 );
 
 export function getRamoCategoriaRiscoFromFields(
-  riskType: RamoRiskType,
-  grupoOperacional: RamoGrupoOperacional,
+  riskType: RamoRiskType | null,
+  grupoOperacional: RamoGrupoOperacional | null,
   formaCalculo: RamoFormaCalculo | null,
 ) {
+  if (!riskType || !grupoOperacional) return { value: null, label: 'Não informado', risk_type: null, grupo_operacional: null, forma_calculo: null };
   const forma = formaCalculo ?? 'DIVERSOS';
   return (
     RAMO_CATEGORIAS_RISCO.find(
@@ -96,7 +97,7 @@ async function fetchLookup(table: 'ramos' | 'origens' | 'seguradoras' | 'motivos
   const { data, error } = await query.order('nome', { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as LookupRow[];
+  return ((data ?? []) as Array<{ id: string; nome: string | null }>).map(row => ({ ...row, nome: row.nome ?? 'Cadastro sem nome' }));
 }
 
 async function fetchRamos(): Promise<RamoRow[]> {
@@ -107,7 +108,7 @@ async function fetchRamos(): Promise<RamoRow[]> {
     .order('nome', { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as RamoRow[];
+  return ((data ?? []) as RamoRow[]).filter(row => [row.nome, row.risk_type, row.grupo_operacional, row.is_monthly, row.renovavel, row.permite_endosso, row.exige_item, row.exige_coberturas, row.ativo].every(value => value != null));
 }
 
 /** Lista de Ramos ativos do tenant. RLS aplica o isolamento. */

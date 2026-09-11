@@ -1,5 +1,7 @@
-import { requestAuthenticatedBackendJson } from './backendApi'
+import { getBackendSessionSnapshot, requestAuthenticatedBackendJson } from './backendApi'
 import type { Database, Json } from '../types/database'
+import { platformDefaults } from '../types/platformRows'
+import { getTable } from './inMemoryDb'
 
 type SeguradoRow = Database['public']['Tables']['segurados']['Row']
 type SeguradoInsert = Database['public']['Tables']['segurados']['Insert']
@@ -10,7 +12,7 @@ type OportunidadeUpdate = Database['public']['Tables']['oportunidades']['Update'
 
 export const usesBackendDomainData = import.meta.env.VITE_DATA_MODE === 'backend'
 
-interface BackendInsuredPerson {
+export interface BackendInsuredPerson {
   id: string
   officeBranchId: string | null
   name: string
@@ -43,7 +45,7 @@ interface BackendInsuredPerson {
   updatedAtUtc: string
 }
 
-interface BackendOpportunity {
+export interface BackendOpportunity {
   id: string
   officeBranchId: string | null
   name: string
@@ -73,11 +75,26 @@ interface BackendOpportunity {
   updatedAtUtc: string
 }
 
-function mapInsuredPerson(source: BackendInsuredPerson, tenantId: string | null): SeguradoRow {
+function requireId(value: string | null | undefined, label: string): string {
+  if (!value?.trim()) throw new Error(label + ' não informado pela integração.')
+  return value
+}
+
+const resolveTenant = (tenantId: string | null) => requireId(tenantId ?? getBackendSessionSnapshot()?.tenantId, 'Grupo')
+
+const unsupportedInsuredFields = ['nome_social', 'rg_ie', 'inscricao_municipal', 'atividade_economica', 'profissao', 'renda_mensal', 'cnh_numero', 'cnh_categoria', 'cnh_vencimento', 'celular', 'telefone2', 'whatsapp', 'pais', 'lgpd_autorizado_em', 'origem_importacao'] as const
+
+function rejectUnsupported<T extends object>(source: T, fields: readonly (keyof T)[]) {
+  const pending = fields.filter(key => source[key] != null && source[key] !== '')
+  if (pending.length) throw new Error('A integração atual ainda não permite salvar estes campos: ' + pending.join(', ') + '. Nenhum dado foi enviado.')
+}
+
+export function mapInsuredPerson(source: BackendInsuredPerson, tenantId: string | null): SeguradoRow {
   return {
+    ...platformDefaults.segurados,
     id: source.id,
-    tenant_id: tenantId,
-    filial_id: source.officeBranchId,
+    tenant_id: resolveTenant(tenantId),
+    filial_id: requireId(source.officeBranchId, 'Corretora'),
     nome: source.name,
     tipo: source.personType as SeguradoRow['tipo'],
     status: source.status as SeguradoRow['status'],
@@ -104,18 +121,21 @@ function mapInsuredPerson(source: BackendInsuredPerson, tenantId: string | null)
     gerente_id: source.managerId,
     chatwoot_id: source.chatwootId,
     lgpd_autorizado: source.lgpdAuthorized,
-    created_by: source.createdBy,
     created_at: source.createdAtUtc,
     updated_at: source.updatedAtUtc,
   }
 }
 
 function insuredRequest(source: SeguradoInsert | SeguradoRow) {
+  rejectUnsupported(source, unsupportedInsuredFields)
+  if (!source.nome?.trim() || !source.tipo || !source.status) throw new Error('Informe nome, tipo e status antes de salvar.')
+  if (source.lgpd_autorizado == null) throw new Error('Informe a decisão de autorização LGPD antes de salvar.')
+  requireId(source.filial_id, 'Corretora')
   return {
     officeBranchId: source.filial_id ?? null,
     name: source.nome,
-    personType: source.tipo ?? 'PF',
-    status: source.status ?? 'Ativo',
+    personType: source.tipo,
+    status: source.status,
     documentNumber: source.cpf_cnpj ?? null,
     email: source.email ?? null,
     phoneNumber: source.telefone ?? null,
@@ -137,7 +157,7 @@ function insuredRequest(source: SeguradoInsert | SeguradoRow) {
     producerId: source.produtor_id ?? null,
     managerId: source.gerente_id ?? null,
     chatwootId: source.chatwoot_id ?? null,
-    lgpdAuthorized: source.lgpd_autorizado ?? false,
+    lgpdAuthorized: source.lgpd_autorizado,
   }
 }
 
@@ -149,7 +169,7 @@ export async function listBackendInsuredPeople(
   return response
     .map((item) => mapInsuredPerson(item, tenantId))
     .filter((item) => !officeBranchId || item.filial_id === officeBranchId)
-    .sort((left, right) => left.nome.localeCompare(right.nome, 'pt-BR'))
+    .sort((left, right) => (left.nome ?? '').localeCompare(right.nome ?? '', 'pt-BR'))
 }
 
 export async function getBackendInsuredPerson(id: string, tenantId: string | null): Promise<SeguradoRow> {
@@ -187,39 +207,23 @@ function metadataObject(metadata: Json): Record<string, Json | undefined> {
     : {}
 }
 
-function mapOpportunity(source: BackendOpportunity, tenantId: string | null): OportunidadeRow {
+// O DTO HTTP legado fica nesta fronteira; não reintroduz colunas antigas no DBML.
+export function mapOpportunity(source: BackendOpportunity, tenantId: string | null): OportunidadeRow {
   const metadata = metadataObject(source.metadata)
+  if (!['pending', 'won', 'lost'].includes(source.status)) throw new Error('Status da oportunidade não reconhecido pela integração.')
+  if (source.status !== 'pending' && !source.concludedAtUtc) throw new Error('Oportunidade concluída sem data informada pela integração.')
   return {
     id: source.id,
-    tenant_id: tenantId,
-    filial_id: source.officeBranchId,
-    nome: source.name,
+    tenant_id: resolveTenant(tenantId),
+    filial_id: requireId(source.officeBranchId, 'Corretora'),
     responsavel_id: source.responsibleId,
     segurado_id: source.insuredPersonId,
-    pipeline_id: source.pipelineId,
-    stage_id: source.stageId,
+    stage_id: requireId(source.stageId, 'Etapa'),
     ramo_id: source.insuranceLineId,
-    seguradora_id: source.insurerId,
     origem_id: source.originId,
     motivo_perda_id: source.lossReasonId,
     apolice_origem_id: typeof metadata.apoliceOrigemId === 'string' ? metadata.apoliceOrigemId : null,
-    status: source.status as OportunidadeRow['status'],
-    tipo_negocio: source.businessType as OportunidadeRow['tipo_negocio'],
-    tipo_contato: source.contactType,
-    premio_liquido: source.netPremium,
-    comissao_percentual: source.commissionPercentage,
-    agenciamento: source.agencyPercentage,
-    producao: source.productionAmount,
-    vigencia_inicio: source.validityStartUtc,
-    vigencia_fim: source.validityEndUtc,
-    proximo_followup: source.nextFollowUpUtc,
-    concluded_at: source.concludedAtUtc,
-    indicador: source.referrer,
-    observacoes: source.notes,
-    metadata: source.metadata,
-    created_at: source.createdAtUtc,
-    updated_at: source.updatedAtUtc,
-    lead_nome: null,
+    lead_nome: source.insuredPersonId ? null : source.name,
     lead_documento: null,
     lead_email: null,
     lead_telefone: null,
@@ -230,44 +234,59 @@ function mapOpportunity(source: BackendOpportunity, tenantId: string | null): Op
     valor_comissao_estimada: null,
     comissao_estimada_pct: source.commissionPercentage,
     agenciamento_pct: source.agencyPercentage,
-    data_abertura: source.createdAtUtc,
-    data_fechamento_prevista: source.validityEndUtc,
+    data_abertura: source.createdAtUtc?.slice(0, 10) ?? null,
+    data_fechamento_prevista: null,
     ganha_em: source.status === 'won' ? source.concludedAtUtc : null,
     perdida_em: source.status === 'lost' ? source.concludedAtUtc : null,
     motivo_perda_observacao: null,
     campanha: null,
+    observacoes: null,
   }
 }
 
-function opportunityRequest(source: OportunidadeInsert | OportunidadeRow) {
-  const metadata = metadataObject(source.metadata ?? {})
-  if (source.apolice_origem_id) metadata.apoliceOrigemId = source.apolice_origem_id
-
+function opportunityRequest(source: OportunidadeInsert | OportunidadeRow, previous?: BackendOpportunity) {
+  if (previous && source.data_abertura !== undefined && source.data_abertura !== previous.createdAtUtc?.slice(0, 10)) {
+    throw new Error('A data de abertura é definida pela integração e não pode ser alterada.')
+  }
+  rejectUnsupported(source, ['lead_documento', 'lead_email', 'lead_telefone', 'prioridade', 'valor_comissao_estimada', 'data_fechamento_prevista', 'motivo_perda_observacao', 'campanha', 'observacoes'])
+  if (!source.segurado_id && source.titulo && source.lead_nome && source.titulo !== source.lead_nome && (!previous || source.lead_nome !== previous.name)) {
+    throw new Error('A integração atual usa um único nome para o lead e o título. Informe o mesmo valor nos dois campos.')
+  }
+  const previousMetadata = metadataObject(previous?.metadata ?? null)
+  const previousOrigin = typeof previousMetadata.apoliceOrigemId === 'string' ? previousMetadata.apoliceOrigemId : null
+  if (source.apolice_origem_id !== undefined && source.apolice_origem_id !== previousOrigin) {
+    throw new Error('O vínculo de renovação aguarda atualização da integração para o contrato v3.1.')
+  }
+  const stage = getTable('pipeline_stages').find(row => row.id === source.stage_id)
+  const pipelineId = typeof stage?.pipeline_id === 'string' ? stage.pipeline_id : source.stage_id === previous?.stageId ? previous?.pipelineId : null
+  const name = source.titulo?.trim() || source.lead_nome?.trim() || previous?.name
+  if (!name) throw new Error('Informe o título da oportunidade antes de salvar.')
   return {
-    officeBranchId: source.filial_id ?? null,
-    name: source.nome,
-    responsibleId: source.responsavel_id,
+    officeBranchId: requireId(source.filial_id, 'Corretora'),
+    name,
+    responsibleId: source.responsavel_id ?? null,
     insuredPersonId: source.segurado_id ?? null,
-    pipelineId: source.pipeline_id ?? null,
-    stageId: source.stage_id ?? null,
+    pipelineId: requireId(pipelineId, 'Funil da etapa'),
+    stageId: requireId(source.stage_id, 'Etapa'),
     insuranceLineId: source.ramo_id ?? null,
-    insurerId: source.seguradora_id ?? null,
+    insurerId: previous?.insurerId ?? null,
     originId: source.origem_id ?? null,
     lossReasonId: source.motivo_perda_id ?? null,
-    status: source.status ?? 'pending',
-    businessType: source.tipo_negocio ?? null,
-    contactType: source.tipo_contato ?? null,
-    netPremium: source.premio_liquido ?? null,
-    commissionPercentage: source.comissao_percentual ?? null,
-    agencyPercentage: source.agenciamento ?? null,
-    productionAmount: source.producao ?? null,
-    validityStartUtc: source.vigencia_inicio ?? null,
-    validityEndUtc: source.vigencia_fim ?? null,
-    nextFollowUpUtc: source.proximo_followup ?? null,
-    concludedAtUtc: source.concluded_at ?? null,
-    referrer: source.indicador ?? null,
-    notes: source.observacoes ?? null,
-    metadata,
+    status: source.ganha_em ? 'won' : source.perdida_em ? 'lost' : 'pending',
+    businessType: previous?.businessType ?? null,
+    contactType: previous?.contactType ?? null,
+    netPremium: source.valor_premio_estimado ?? null,
+    commissionPercentage: source.comissao_estimada_pct ?? null,
+    agencyPercentage: source.agenciamento_pct ?? null,
+    productionAmount: previous?.productionAmount ?? null,
+    validityStartUtc: previous?.validityStartUtc ?? null,
+    validityEndUtc: previous?.validityEndUtc ?? null,
+    nextFollowUpUtc: previous?.nextFollowUpUtc ?? null,
+    concludedAtUtc: source.ganha_em ?? source.perdida_em ?? null,
+    referrer: previous?.referrer ?? null,
+    notes: source.descricao ?? null,
+    // Preserva o legado recebido sem escrever novos dados de negócio em JSON.
+    metadata: previous?.metadata ?? {},
   }
 }
 
@@ -314,10 +333,11 @@ export async function updateBackendOpportunity(
   patch: OportunidadeUpdate,
   tenantId: string | null,
 ): Promise<OportunidadeRow> {
-  const current = await getBackendOpportunity(id, tenantId)
+  const previous = await requestAuthenticatedBackendJson<BackendOpportunity>(`/api/oportunidades/${id}`)
+  const current = mapOpportunity(previous, tenantId)
   const response = await requestAuthenticatedBackendJson<BackendOpportunity>(`/api/oportunidades/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(opportunityRequest({ ...current, ...patch })),
+    body: JSON.stringify(opportunityRequest({ ...current, ...patch }, previous)),
   })
   return mapOpportunity(response, tenantId)
 }

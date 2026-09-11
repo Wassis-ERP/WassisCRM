@@ -5,10 +5,13 @@ import { useAuth } from './useAuth';
 
 export interface TeamMember {
   id: string;
-  full_name: string;
+  nome_completo: string;
   email: string;
   avatar_url: string | null;
-  created_at: string;
+  ativo: boolean;
+  status: string | null;
+  convite_status: string | null;
+  convite_enviado_em: string | null;
   corretoras_count: number; // nº de corretoras que o membro acessa (profile_filiais)
   perfil_principal: string | null; // perfil na corretora "casa" (principal)
 }
@@ -26,24 +29,25 @@ export function useTeamAdmin() {
   const membersQuery = useQuery({
     queryKey: queryKeys.team,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_team_members');
+      const { data, error } = await supabase.rpc('get_team_members', {tenantId});
       if (error) throw error;
       return data as TeamMember[];
     },
   });
 
   const inviteMutation = useMutation({
-    mutationFn: async ({ email, full_name }: { email: string; full_name: string }): Promise<TeamMember> => {
+    mutationFn: async ({ email, nome_completo }: { email: string; nome_completo: string }): Promise<TeamMember> => {
       if (!tenantId) throw new Error('Tenant não encontrado');
+      if (!nome_completo.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new Error('Informe nome e email válidos.');
       // Cria o membro no mock (profiles). O acesso (perfil por corretora) é
       // atribuído depois em profile_filiais. No backend real isto vira convite.
       const { data, error } = await supabase
         .from('profiles')
-        .insert({ full_name, email, tenant_id: tenantId, avatar_url: null })
+        .insert({ nome_completo: nome_completo.trim(), email: email.trim(), tenant_id: tenantId, avatar_url: null, ativo: true, status: 'ATIVO', convite_status: 'PENDENTE', convite_enviado_em: new Date().toISOString() })
         .select()
         .single();
       if (error) throw error;
-      const profile = data as { id: string; created_at?: string };
+      const profile = data as { id: string; convite_enviado_em: string };
       await supabase.from('audit_logs').insert({
         action: 'INVITE_MEMBER',
         entity_type: 'profiles',
@@ -52,10 +56,10 @@ export function useTeamAdmin() {
       });
       return {
         id: profile.id,
-        full_name,
+        nome_completo,
         email,
         avatar_url: null,
-        created_at: profile.created_at ?? '',
+        ativo: true, status: 'ATIVO', convite_status: 'PENDENTE', convite_enviado_em: profile.convite_enviado_em,
         corretoras_count: 0,
         perfil_principal: null,
       };
@@ -65,7 +69,18 @@ export function useTeamAdmin() {
     },
   });
 
+  const setActive = useMutation({ mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+    const { error } = await supabase.from('profiles').update({ ativo, status: ativo ? 'ATIVO' : 'INATIVO' }).eq('id', id).eq('tenant_id', tenantId);
+    if (error) throw error;
+  }, onSuccess: () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.team });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.permissions });
+    window.dispatchEvent(new Event('wassis:access-changed'));
+  } });
+
   return {
+    setActive: setActive.mutateAsync,
+    isUpdating: setActive.isPending,
     members: membersQuery.data || [],
     isLoading: membersQuery.isLoading,
     invite: inviteMutation.mutateAsync,

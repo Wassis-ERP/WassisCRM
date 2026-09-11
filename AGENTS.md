@@ -98,13 +98,13 @@
 - Depois de consolidar o relatorio, atualize o estado documental correspondente no macro plano.
 
 ## Design de telas e UI/UX
-- Sempre que for desenhar, redesenhar ou implementar alguma tela no frontend, use a skill `wassis-design-uiux`.
-- A skill fica em `.agents\skills\wassis-design-uiux`.
+- Sempre que for desenhar, redesenhar ou implementar alguma tela no frontend, use a skill global `wassis-design`.
+- A skill e o design system ficam centralizados no escopo do usuario, em `~\.agents\skills\wassis-design`.
 - Antes de criar uma tela nova, leia as instrucoes da skill e siga seus padroes visuais, fluxos, componentes e criterios de usabilidade.
 - Correcao cosmetica localizada em modo `micro-enxuto` nao conta como desenhar, redesenhar ou implementar tela; use o padrao visual ja presente no arquivo/componente.
-- Para ajuste `enxuto`, use o design system ja conhecido e os padroes proximos do componente; carregue a skill `wassis-design-uiux` ou seus artefatos apenas se a decisao visual depender disso.
-- Use tambem a skill `impeccable` quando o trabalho envolver desenho, revisao, polimento, auditoria ou automacao visual de UI. Nos modos `micro-enxuto` e `enxuto`, use `impeccable` apenas se o usuario pedir, se houver redesenho/polimento amplo, ou se a inspecao local nao for suficiente. O contexto do Impeccable fica em `PRODUCT.md`, `DESIGN.md` e `.impeccable\design.json`; ele complementa a `wassis-design-uiux`, mas nao substitui o design system W.Assis.
-- Ao aplicar comandos ou heuristicas do Impeccable, preserve os tokens, componentes e decisoes da `wassis-design-uiux` como fonte visual de marca/produto.
+- Para ajuste `enxuto`, use o design system ja conhecido e os padroes proximos do componente; carregue a skill `wassis-design` ou seus artefatos apenas se a decisao visual depender disso.
+- Use tambem a skill `impeccable` quando o trabalho envolver desenho, revisao, polimento, auditoria ou automacao visual de UI. Nos modos `micro-enxuto` e `enxuto`, use `impeccable` apenas se o usuario pedir, se houver redesenho/polimento amplo, ou se a inspecao local nao for suficiente. O contexto do Impeccable fica em `PRODUCT.md`, `DESIGN.md` e `.impeccable\design.json`; ele complementa a `wassis-design`, mas nao substitui o design system W.Assis.
+- Ao aplicar comandos ou heuristicas do Impeccable, preserve os tokens, componentes e decisoes da `wassis-design` como fonte visual de marca/produto.
 - Preserve consistencia com a experiencia existente do WassisCRM e priorize telas operacionais, claras e eficientes para corretoras de seguros.
 - Fluxos de produto nao devem usar dialogos nativos do navegador (`window.confirm`, `window.alert`, `window.prompt` ou `alert`). Use o confirmador/feedback interno do sistema para confirmacoes, erros e placeholders temporarios.
 - Fluxos longos, minuciosos ou multietapas — especialmente importacao, processamento, revisao em lote, conciliacao e configuracao assistida — devem usar pagina e rota dedicadas, nunca modal. Preserve o estado entre as etapas e ofereca saida explicita; se sair puder causar perda de trabalho, use a confirmacao interna do sistema.
@@ -185,5 +185,5 @@
 - Artefatos principais: `.codex\artefatos\instrucoes_projeto_wassis_v2_0.md` e `.codex\artefatos\wassis_erp_esqueleto_v2_0.dbml`.
 - Planos: `.codex\plans\macro_plano.md` e micro-planos na mesma pasta.
 - Relatorio de endpoints versionavel e parcial durante o desenvolvimento: `relatorio-endpoints-campos.md`; historicos em `.codex\artefatos\endpoints`.
-- Skill de UI/UX: `.agents\skills\wassis-design-uiux`.
+- Skill global de marca e UI/UX: `~\.agents\skills\wassis-design`.
 - Aplicacao principal: `nexus-crm`.

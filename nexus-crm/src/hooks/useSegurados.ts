@@ -20,7 +20,8 @@ type SeguradoRow = Database['public']['Tables']['segurados']['Row'];
 type SeguradoUpdate = Database['public']['Tables']['segurados']['Update'];
 type SeguradoInsert = Database['public']['Tables']['segurados']['Insert'];
 type PessoaContatoRow = Database['public']['Tables']['pessoa_contato']['Row'];
-type PessoaContatoInsert = Database['public']['Tables']['pessoa_contato']['Insert'];
+import { getTable } from '../lib/inMemoryDb';
+import { saveCompanyContact } from '../modules/plataforma/platformCommands';
 
 const SEGURADOS_KEY = ['segurados'] as const;
 const PESSOA_CONTATO_KEY = ['pessoa_contato'] as const;
@@ -66,11 +67,11 @@ export function useSegurados() {
 
 export type CreateSeguradoInput = Omit<
   SeguradoInsert,
-  'id' | 'tenant_id' | 'filial_id' | 'created_by' | 'created_at' | 'updated_at'
+  'id' | 'tenant_id' | 'filial_id' | 'created_at' | 'updated_at'
 >;
 
 /**
- * Cria um segurado. Preenche `tenant_id`/`created_by` do usuário logado e carimba
+ * Cria um segurado. Preenche `tenant_id` do usuário logado e carimba
  * `filial_id` com a corretora ATIVA (R6). Campos exclusivos do tipo oposto já
  * chegam zerados (filtro feito no mapper).
  */
@@ -83,7 +84,9 @@ export function useCreateSegurado() {
     mutationFn: async (input: CreateSeguradoInput): Promise<SeguradoRow> => {
       if (!user?.tenantId) throw new Error('Usuario sem tenant vinculado');
       const cpfCnpj = onlyDigits(input.cpf_cnpj);
-      if (!cpfCnpj) throw new Error('CPF/CNPJ é obrigatório para cadastrar segurado');
+      if (!filialId) throw new Error('Selecione a corretora antes de cadastrar.');
+      if (!input.nome?.trim()) throw new Error('Nome é obrigatório.');
+      if (!cpfCnpj && input.status !== 'Prospecto') throw new Error('CPF/CNPJ é obrigatório para cadastrar segurado');
 
       const payload: SeguradoInsert = {
         ...input,
@@ -94,7 +97,6 @@ export function useCreateSegurado() {
         lgpd_autorizado: input.lgpd_autorizado ?? false,
         tenant_id: user.tenantId,
         filial_id: filialId,
-        created_by: user.id,
       };
 
       if (usesBackendDomainData) {
@@ -194,7 +196,7 @@ export function useIsDocumentoUnique() {
 // ---------------------------------------------------------------------------
 
 const PESSOA_CONTATO_SELECT =
-  '*, pj:pj_id ( id, nome, nome_fantasia ), pf:pf_id ( id, nome )';
+  '*, pj:pj_id ( id, nome, nome_fantasia ), pf:pf_id ( id, nome, email, telefone, celular )';
 
 /**
  * Vínculos `pessoa_contato` de uma pessoa.
@@ -226,97 +228,25 @@ export function usePessoaContatos(pessoaId: string | undefined) {
   });
 }
 
-export interface CreatePessoaContatoInput {
-  pjId: string;
-  pfId: string;
-  cargo?: string | null;
-  principal?: boolean;
-}
+export type CreatePessoaContatoInput = Omit<Parameters<typeof saveCompanyContact>[0], 'id' | 'tenantId'>;
+export type UpdatePessoaContatoInput = Omit<CreatePessoaContatoInput, 'pfId'> & { id: string; pfId?: string | null };
 
-/**
- * Cria um vínculo PJ↔PF. Se `principal=true`, desmarca os outros principais
- * do mesmo `pjId` (regra de unicidade condicional do PRD).
- */
 export function useCreatePessoaContato() {
-  const qc = useQueryClient();
-  const { user } = useAuth();
-
-  return useMutation({
-    mutationFn: async (input: CreatePessoaContatoInput): Promise<PessoaContatoRow> => {
-      if (!user?.tenantId) throw new Error('Usuario sem tenant vinculado');
-      if (input.principal) {
-        // Desmarca principal anterior do mesmo PJ.
-        await supabase
-          .from('pessoa_contato')
-          .update({ principal: false })
-          .eq('pj_id', input.pjId);
-      }
-
-      const payload: PessoaContatoInsert = {
-        pj_id: input.pjId,
-        pf_id: input.pfId,
-        cargo: input.cargo ?? null,
-        principal: input.principal ?? false,
-        tenant_id: user.tenantId,
-      };
-
-      const { data, error } = await supabase
-        .from('pessoa_contato')
-        .insert(payload)
-        .select('*')
-        .single();
-
-      if (error) throw error;
-      return data as PessoaContatoRow;
-    },
-    onSuccess: (_data, variables) => {
-      qc.invalidateQueries({ queryKey: PESSOA_CONTATO_KEY });
-      qc.invalidateQueries({ queryKey: [...PESSOA_CONTATO_KEY, variables.pjId] });
-      qc.invalidateQueries({ queryKey: [...PESSOA_CONTATO_KEY, variables.pfId] });
-    },
-  });
+  const qc = useQueryClient(); const { user } = useAuth();
+  return useMutation({mutationFn: async (input: CreatePessoaContatoInput): Promise<PessoaContatoRow> => {
+    if(!user?.tenantId)throw new Error('Grupo não encontrado.');
+    return saveCompanyContact({...input,tenantId:user.tenantId}) as PessoaContatoRow;
+  },onSuccess:()=>{void qc.invalidateQueries({queryKey:PESSOA_CONTATO_KEY});}});
 }
 
-export interface UpdatePessoaContatoInput {
-  id: string;
-  pjId: string;
-  cargo?: string | null;
-  principal?: boolean;
-}
-
-/**
- * Atualiza um vínculo. Se `principal=true`, desmarca os outros do mesmo `pjId`.
- */
 export function useUpdatePessoaContato() {
-  const qc = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (input: UpdatePessoaContatoInput): Promise<PessoaContatoRow> => {
-      if (input.principal) {
-        // Desmarca principal de TODOS os irmãos do mesmo PJ.
-        await supabase
-          .from('pessoa_contato')
-          .update({ principal: false })
-          .eq('pj_id', input.pjId);
-      }
-      const patch: Partial<PessoaContatoRow> = {};
-      if (input.cargo !== undefined) patch.cargo = input.cargo ?? null;
-      if (input.principal !== undefined) patch.principal = input.principal;
-
-      const { data, error } = await supabase
-        .from('pessoa_contato')
-        .update(patch)
-        .eq('id', input.id)
-        .select('*')
-        .single();
-
-      if (error) throw error;
-      return data as PessoaContatoRow;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: PESSOA_CONTATO_KEY });
-    },
-  });
+  const qc = useQueryClient(); const { user } = useAuth();
+  return useMutation({mutationFn: async(input: UpdatePessoaContatoInput): Promise<PessoaContatoRow> => {
+    if(!user?.tenantId)throw new Error('Grupo não encontrado.');
+    const current=getTable('pessoa_contato').find(r=>r.id===input.id);
+    if(!current)throw new Error('Contato não encontrado.');
+    return saveCompanyContact({...input,tenantId:user.tenantId,pfId:input.pfId===undefined?current.pf_id as string|null:input.pfId}) as PessoaContatoRow;
+  },onSuccess:()=>{void qc.invalidateQueries({queryKey:PESSOA_CONTATO_KEY});}});
 }
 
 /**

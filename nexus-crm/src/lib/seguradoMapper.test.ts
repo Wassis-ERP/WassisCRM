@@ -1,10 +1,12 @@
+import { platformDefaults } from '../types/platformRows'
 import { describe, expect, it } from 'vitest'
-import { buildCreateSeguradoInput, mapSeguradoRowToView, partialSeguradoToUpdate } from './seguradoMapper'
+import { buildCreateSeguradoInput, mapSeguradoRowToView, mapPessoaContatoRowToView, partialSeguradoToUpdate } from './seguradoMapper'
 import type { Database } from '../types/database'
 
 type SeguradoRow = Database['public']['Tables']['segurados']['Row']
 
 const baseRow: SeguradoRow = {
+  ...platformDefaults.segurados,
   bairro: null,
   cep: null,
   chatwoot_id: null,
@@ -13,7 +15,6 @@ const baseRow: SeguradoRow = {
   complemento: null,
   cpf_cnpj: '12345678901',
   created_at: '2026-06-22T12:00:00.000Z',
-  created_by: 'user-1',
   data_nascimento: null,
   email: null,
   endereco: null,
@@ -40,6 +41,14 @@ const baseRow: SeguradoRow = {
 }
 
 describe('seguradoMapper', () => {
+  it('separa canais herdados da PF dos valores próprios usados na edição do contato', () => {
+    const view = mapPessoaContatoRowToView({
+      ...platformDefaults.pessoa_contato, id: 'contato', pj_id: 'empresa', pf_id: 'pessoa',
+      pf: { id: 'pessoa', nome: 'Pessoa', email: 'pessoa@example.com', telefone: '1133334444', celular: '11999998888' },
+    })
+    expect(view.email).toBe('pessoa@example.com')
+    expect(view.dadosProprios).toEqual({ email: null, telefone: null, celular: null })
+  })
   it('mantem cpf_cnpj normalizado no payload de criacao', () => {
     const input = buildCreateSeguradoInput({
       tipo: 'PF',

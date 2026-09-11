@@ -1,3 +1,11 @@
+import type { Database } from '../types/database';
+
+// A leitura respeita null do contrato; os shapes de entrada continuam validando a autoria.
+type SchemaRead<Shape, Table extends keyof Database['public']['Tables']> = {
+  [Key in keyof Shape]: Key extends keyof Database['public']['Tables'][Table]['Row']
+    ? null extends Database['public']['Tables'][Table]['Row'][Key] ? Shape[Key] | null : Shape[Key]
+    : Shape[Key]
+};
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryClient';
@@ -16,7 +24,7 @@ type LookupTable = 'ramos' | 'origens' | 'seguradoras' | 'motivos_perda';
 export type RamoInput = {
   nome: string;
   codigo_susep: string;
-  categoria_risco: RamoCategoriaRisco;
+  categoria_risco: RamoCategoriaRisco | null;
   is_monthly: boolean;
   renovavel: boolean;
   permite_endosso: boolean;
@@ -27,7 +35,7 @@ export type RamoInput = {
   observacoes: string;
 };
 
-export type RamoAdminRow = {
+type RamoAdminRowInputShape = {
   id: string;
   tenant_id: string;
   nome: string;
@@ -45,7 +53,7 @@ export type RamoAdminRow = {
   observacoes: string | null;
 };
 
-export type SeguradoraRow = {
+type SeguradoraRowInputShape = {
   id: string;
   tenant_id: string;
   nome: string;
@@ -64,12 +72,12 @@ export type SeguradoraRow = {
   observacoes: string | null;
 };
 
-export type SeguradoraInput = Omit<SeguradoraRow, 'id' | 'tenant_id'>;
+export type SeguradoraInput = Omit<SeguradoraRowInputShape, 'id' | 'tenant_id'>;
 
 export type CatalogoEnxutoTable = 'origens' | 'motivos_perda';
 export type CatalogoEnxutoField = 'tipo' | 'categoria';
 
-export type CatalogoEnxutoRow = {
+type CatalogoEnxutoRowInputShape = {
   id: string;
   tenant_id: string;
   nome: string;
@@ -86,7 +94,7 @@ export type CatalogoEnxutoInput = {
   ativo: boolean;
 };
 
-export type CoberturaCatalogoRow = {
+type CoberturaCatalogoRowInputShape = {
   id: string;
   ramo_id: string;
   codigo: string | null;
@@ -105,7 +113,7 @@ export type CoberturaCatalogoRow = {
   ativo: boolean;
 };
 
-export type CoberturaCatalogoInput = Omit<CoberturaCatalogoRow, 'id'>;
+export type CoberturaCatalogoInput = Omit<CoberturaCatalogoRowInputShape, 'id'>;
 
 export type RecebimentoGradeTipo =
   | 'ANTECIPADO_N'
@@ -118,12 +126,12 @@ export type RecebimentoBaseCalculo = 'PREMIO_LIQUIDO' | 'PREMIO_TOTAL' | 'PARCEL
 export type RecebimentoPercentualSobre = 'COMISSAO_TOTAL' | 'PARCELA' | 'PREMIO';
 export type RecebimentoComissaoTipo = 'NORMAL' | 'AGENCIAMENTO' | 'VITALICIA' | 'ADICIONAL' | 'RESTITUICAO';
 
-export type RecebimentoGradeRow = {
+type RecebimentoGradeRowInputShape = {
   id: string;
   seguradora_id: string;
   ramo_id: string;
   nome: string;
-  tipo: RecebimentoGradeTipo;
+  tipo: RecebimentoGradeTipo | null;
   qtd_parcelas: number;
   base_calculo: RecebimentoBaseCalculo | null;
   percentual_default: number | null;
@@ -134,23 +142,23 @@ export type RecebimentoGradeRow = {
   observacoes: string | null;
 };
 
-export type RecebimentoGradeInput = Omit<RecebimentoGradeRow, 'id' | 'base_calculo' | 'observacoes'> & {
+export type RecebimentoGradeInput = Omit<RecebimentoGradeRowInputShape, 'id' | 'base_calculo' | 'observacoes'> & {
   base_calculo: RecebimentoBaseCalculo;
   observacoes: string;
 };
 
-export type RecebimentoGradeParcelaRow = {
+type RecebimentoGradeParcelaRowInputShape = {
   id: string;
   grade_id: string;
   numero: number;
-  tipo_comissao: RecebimentoComissaoTipo;
+  tipo_comissao: RecebimentoComissaoTipo | null;
   percentual: number | null;
   percentual_sobre: RecebimentoPercentualSobre | null;
   dias_apos_vencimento: number | null;
   ativo: boolean;
 };
 
-export type RecebimentoGradeParcelaInput = Omit<RecebimentoGradeParcelaRow, 'id' | 'percentual_sobre'> & {
+export type RecebimentoGradeParcelaInput = Omit<RecebimentoGradeParcelaRowInputShape, 'id' | 'percentual_sobre'> & {
   percentual_sobre: RecebimentoPercentualSobre;
 };
 
@@ -159,18 +167,18 @@ export type RepasseTipoDocumento = 'NOVA' | 'RENOVACAO';
 export type RepasseBase = 'COMISSAO' | 'PREMIO_LIQUIDO' | 'VALOR_FIXO';
 export type RepasseGatilho = 'NA_EMISSAO' | 'PRIMEIRA_COMISSAO' | 'CONFORME_RECEBIMENTO' | 'PARCELADO';
 
-export type RepasseRegraRow = {
+type RepasseRegraRowInputShape = {
   id: string;
   tenant_id: string;
   filial_id: string | null;
   produtor_id: string | null;
   ramo_id: string | null;
-  papel: RepassePapel;
+  papel: RepassePapel | null;
   tipo_documento: RepasseTipoDocumento | null;
-  base: RepasseBase;
+  base: RepasseBase | null;
   percentual: number | null;
   valor_fixo: number | null;
-  gatilho: RepasseGatilho;
+  gatilho: RepasseGatilho | null;
   qtd_parcelas: number | null;
   limite_parcelas: number | null;
   prioridade: number;
@@ -180,7 +188,7 @@ export type RepasseRegraRow = {
   observacoes: string | null;
 };
 
-export type RepasseRegraInput = Omit<RepasseRegraRow, 'id' | 'tenant_id' | 'inicio_vigencia' | 'fim_vigencia' | 'observacoes'> & {
+export type RepasseRegraInput = Omit<RepasseRegraRowInputShape, 'id' | 'tenant_id' | 'inicio_vigencia' | 'fim_vigencia' | 'observacoes'> & {
   inicio_vigencia: string;
   fim_vigencia: string;
   observacoes: string;
@@ -201,14 +209,14 @@ export type CampoTipoDado =
 
 export type CampoFormato = 'NUMERO' | 'PERCENTUAL' | 'MOEDA';
 
-export type CampoDefinicaoRow = {
+type CampoDefinicaoRowInputShape = {
   id: string;
   tenant_id: string;
   filial_id: string | null;
   entidade_tipo: CampoEntidadeTipo;
   chave: string;
   nome: string;
-  tipo_dado: CampoTipoDado;
+  tipo_dado: CampoTipoDado | null;
   formato: CampoFormato | null;
   obrigatorio: boolean;
   ativo: boolean;
@@ -224,7 +232,7 @@ export type CampoDefinicaoRow = {
 };
 
 export type CampoDefinicaoInput = Omit<
-  CampoDefinicaoRow,
+  CampoDefinicaoRowInputShape,
   'id' | 'tenant_id' | 'chave' | 'ajuda' | 'mascara' | 'placeholder' | 'agrupamento'
 > & {
   chave: string;
@@ -234,7 +242,7 @@ export type CampoDefinicaoInput = Omit<
   agrupamento: string;
 };
 
-export type CampoOpcaoRow = {
+type CampoOpcaoRowInputShape = {
   id: string;
   campo_definicao_id: string;
   rotulo: string;
@@ -243,7 +251,7 @@ export type CampoOpcaoRow = {
   ativo: boolean;
 };
 
-export type CampoOpcaoInput = Omit<CampoOpcaoRow, 'id' | 'valor'> & {
+export type CampoOpcaoInput = Omit<CampoOpcaoRowInputShape, 'id' | 'valor'> & {
   valor: string;
 };
 
@@ -273,6 +281,7 @@ export function buildRamoInsertPayload(input: RamoInput, tenantId: string) {
 }
 
 export function buildRamoUpdatePayload(input: RamoInput) {
+  if (!input.categoria_risco) throw new Error('Informe a categoria de risco do ramo.');
   const categoria = RAMO_CATEGORIA_RISCO_MAP[input.categoria_risco];
 
   return {
@@ -371,6 +380,7 @@ export function buildCoberturaCatalogoInsertPayload(input: CoberturaCatalogoInpu
 }
 
 export function buildRecebimentoGradeUpdatePayload(input: RecebimentoGradeInput) {
+  if (!input.nome.trim() || !input.tipo || !Number.isInteger(input.qtd_parcelas) || input.qtd_parcelas < 1) throw new Error('Complete nome, tipo e quantidade da grade.');
   return {
     seguradora_id: input.seguradora_id,
     ramo_id: input.ramo_id,
@@ -392,6 +402,7 @@ export function buildRecebimentoGradeInsertPayload(input: RecebimentoGradeInput)
 }
 
 export function buildRecebimentoGradeParcelaUpdatePayload(input: RecebimentoGradeParcelaInput) {
+  if (!input.tipo_comissao || !Number.isInteger(input.numero) || input.numero < 1) throw new Error('Informe número e tipo de comissão do evento.');
   return {
     grade_id: input.grade_id,
     numero: input.numero,
@@ -408,6 +419,7 @@ export function buildRecebimentoGradeParcelaInsertPayload(input: RecebimentoGrad
 }
 
 export function buildRepasseRegraUpdatePayload(input: RepasseRegraInput) {
+  if (!input.papel || !input.base || !input.gatilho || !Number.isFinite(input.prioridade)) throw new Error('Complete papel, base, gatilho e prioridade da regra.');
   return {
     filial_id: input.filial_id,
     produtor_id: input.produtor_id,
@@ -436,6 +448,7 @@ export function buildRepasseRegraInsertPayload(input: RepasseRegraInput, tenantI
 }
 
 export function buildCampoDefinicaoUpdatePayload(input: CampoDefinicaoInput) {
+  if (!input.tipo_dado || !input.nome.trim()) throw new Error('Informe nome e tipo do campo.');
   const numericType = input.tipo_dado === 'INTEIRO' || input.tipo_dado === 'DECIMAL';
   const textType = input.tipo_dado === 'TEXTO_CURTO' || input.tipo_dado === 'TEXTO_LONGO';
   return {
@@ -935,7 +948,7 @@ export function useRecebimentoGradesAdmin() {
       if (!input.seguradora_id) throw new Error('Seguradora é obrigatória');
       if (!input.ramo_id) throw new Error('Ramo é obrigatório');
       if (input.qtd_parcelas <= 0) throw new Error('Quantidade de parcelas deve ser maior que zero');
-      if ((listQuery.data ?? []).some((grade) => grade.ativo && grade.seguradora_id === input.seguradora_id && grade.ramo_id === input.ramo_id && grade.nome.trim().toLocaleLowerCase('pt-BR') === input.nome.trim().toLocaleLowerCase('pt-BR'))) {
+      if ((listQuery.data ?? []).some((grade) => grade.ativo && grade.seguradora_id === input.seguradora_id && grade.ramo_id === input.ramo_id && (grade.nome ?? '').trim().toLocaleLowerCase('pt-BR') === input.nome.trim().toLocaleLowerCase('pt-BR'))) {
         throw new Error('Já existe uma grade ativa com este nome para a seguradora e o ramo');
       }
 
@@ -959,6 +972,14 @@ export function useRecebimentoGradesAdmin() {
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
       const source = (listQuery.data ?? []).find((grade) => grade.id === id);
       if (!source) throw new Error('Grade de origem não encontrada');
+      if (source.tipo == null || source.qtd_parcelas == null || source.considera_iof == null || source.considera_adicional_fracionamento == null || source.vitalicio == null) throw new Error('Complete os dados da grade antes de duplicar.');
+      const { data: sourceEvents, error: eventsError } = await supabase
+        .from('recebimento_grade_parcelas')
+        .select('*')
+        .eq('grade_id', id)
+        .order('numero', { ascending: true });
+      if (eventsError) throw eventsError;
+      if (((sourceEvents ?? []) as RecebimentoGradeParcelaRow[]).some(event => event.numero == null || event.tipo_comissao == null || event.ativo == null)) throw new Error('Complete os eventos antes de duplicar.');
       const input: RecebimentoGradeInput = {
         seguradora_id: source.seguradora_id,
         ramo_id: source.ramo_id,
@@ -979,13 +1000,8 @@ export function useRecebimentoGradesAdmin() {
         .select()
         .single();
       if (createError) throw createError;
-      const { data: sourceEvents, error: eventsError } = await supabase
-        .from('recebimento_grade_parcelas')
-        .select('*')
-        .eq('grade_id', id)
-        .order('numero', { ascending: true });
-      if (eventsError) throw eventsError;
       for (const event of (sourceEvents ?? []) as RecebimentoGradeParcelaRow[]) {
+        if (event.numero == null || event.tipo_comissao == null || event.ativo == null) throw new Error('Complete os eventos antes de duplicar.');
         const eventInput: RecebimentoGradeParcelaInput = {
           grade_id: created.id,
           numero: event.numero,
@@ -1022,7 +1038,7 @@ export function useRecebimentoGradesAdmin() {
       if (!input.seguradora_id) throw new Error('Seguradora é obrigatória');
       if (!input.ramo_id) throw new Error('Ramo é obrigatório');
       if (input.qtd_parcelas <= 0) throw new Error('Quantidade de parcelas deve ser maior que zero');
-      if ((listQuery.data ?? []).some((grade) => grade.id !== id && grade.ativo && grade.seguradora_id === input.seguradora_id && grade.ramo_id === input.ramo_id && grade.nome.trim().toLocaleLowerCase('pt-BR') === input.nome.trim().toLocaleLowerCase('pt-BR'))) {
+      if ((listQuery.data ?? []).some((grade) => grade.id !== id && grade.ativo && grade.seguradora_id === input.seguradora_id && grade.ramo_id === input.ramo_id && (grade.nome ?? '').trim().toLocaleLowerCase('pt-BR') === input.nome.trim().toLocaleLowerCase('pt-BR'))) {
         throw new Error('Já existe uma grade ativa com este nome para a seguradora e o ramo');
       }
 
@@ -1467,3 +1483,21 @@ export function useCampoOpcoesAdmin(campoDefinicaoId: string | null) {
     isRemoving: removeMutation.isPending,
   };
 }
+
+export type RamoAdminRow = SchemaRead<RamoAdminRowInputShape, 'ramos'>;
+
+export type SeguradoraRow = SchemaRead<SeguradoraRowInputShape, 'seguradoras'>;
+
+export type CatalogoEnxutoRow = SchemaRead<CatalogoEnxutoRowInputShape, 'origens'>;
+
+export type CoberturaCatalogoRow = SchemaRead<CoberturaCatalogoRowInputShape, 'coberturas_catalogo'>;
+
+export type RecebimentoGradeRow = SchemaRead<RecebimentoGradeRowInputShape, 'recebimento_grades'>;
+
+export type RecebimentoGradeParcelaRow = SchemaRead<RecebimentoGradeParcelaRowInputShape, 'recebimento_grade_parcelas'>;
+
+export type RepasseRegraRow = SchemaRead<RepasseRegraRowInputShape, 'repasse_regras'>;
+
+export type CampoDefinicaoRow = SchemaRead<CampoDefinicaoRowInputShape, 'campo_definicoes'>;
+
+export type CampoOpcaoRow = SchemaRead<CampoOpcaoRowInputShape, 'campo_opcoes'>;

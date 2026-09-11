@@ -75,6 +75,8 @@ describe('cobrancasDomain', () => {
   it('rejeita abertura para parcela ainda não vencida sem persistência parcial', () => {
     const future = parcelas().find((row) => row.vencimento && row.vencimento > '2026-07-20' && row.status === 'em_aberto')
     expect(future).toBeDefined()
+    // O cenário precisa permanecer futuro independentemente da data da execução.
+    future!.vencimento = '2099-12-31'
     const before = cobrancas().length
     expect(() => createFinanceiroCobranca({ parcelaId: future!.id, stageId: stageIds()[0] })).toThrow(/efetivamente vencida/i)
     expect(cobrancas()).toHaveLength(before)

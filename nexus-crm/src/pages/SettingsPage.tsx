@@ -88,7 +88,7 @@ const PipelineStagesPreview = ({ pipelineId }: { pipelineId: string }) => {
   return (
     <div className="flex gap-1 mt-1 opacity-60">
       {stages.map((step) => (
-        <div key={step.id} className={`h-1 flex-1 rounded-full ${step.cor ?? 'bg-slate-400'}`} title={step.nome} />
+        <div key={step.id} className={`h-1 flex-1 rounded-full ${step.cor ?? 'bg-slate-400'}`} title={step.nome ?? 'Etapa sem nome'} />
       ))}
     </div>
   )
@@ -457,7 +457,7 @@ export default function SettingsPage() {
         {
           id: 'permissoes',
           label: 'Matriz de Permissões',
-          description: 'Autorize leitura, criação, edição e exclusão por perfil.',
+          description: 'Defina ações e escopo de acesso por perfil e módulo.',
           icon: ShieldCheck,
           component: <PermissionsMatrix />,
           meta: 'RBAC front',

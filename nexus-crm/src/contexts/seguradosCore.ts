@@ -29,16 +29,18 @@ export interface Segurado {
   id: string
 
   // Identificação
-  tipo: 'PF' | 'PJ'
+  tipo: 'PF' | 'PJ' | null
   nome: string
   nomeFantasia?: string
   documento: string
-  status: StatusPessoa
-  lgpdAutorizado: boolean
+  status: StatusPessoa | null
+  lgpdAutorizado: boolean | null
 
   // Contato
   email?: string
   telefone?: string
+  celular?: string
+  whatsapp?: string
   chatwootId?: string
 
   // Endereço estruturado
@@ -82,10 +84,18 @@ export interface Segurado {
 export interface PessoaContato {
   id: string
   pjId: string
-  pfId: string
+  pfId: string | null
   pjNome?: string
   pjNomeFantasia?: string
   pfNome?: string
+  dadosProprios?: { email: string | null; telefone: string | null; celular: string | null }
+  nome?: string
+  departamento?: string
+  email?: string
+  telefone?: string
+  celular?: string
+  observacoes?: string
+  ativo?: boolean
   cargo?: string
   principal: boolean
   createdAt?: string

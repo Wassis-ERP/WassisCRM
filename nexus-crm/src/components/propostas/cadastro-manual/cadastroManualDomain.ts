@@ -1,4 +1,5 @@
 import type { Database } from '../../../types/database'
+import { approveQuoteProposalOrigin, getQuoteProposalOrigin, quoteProposalDefaults, quoteProposalContract, validateQuoteProposalOrigin } from '../../../modules/comercial/quoteProposalOrigin'
 import {
   getTable,
   materializeDocumentAgendas,
@@ -35,7 +36,7 @@ type CoverageCatalogRow = Database['public']['Tables']['coberturas_catalogo']['R
 
 interface NamedRow { id: string; nome: string; ativo?: boolean; filial_id?: string | null }
 interface BranchOfficeRow { id: string; fantasia?: string | null; nome?: string | null; ativo?: boolean }
-interface ResponsibleRow { id: string; nome?: string | null; full_name?: string | null }
+interface ResponsibleRow { id: string; nome?: string | null; nome_completo?: string | null }
 interface PipelineRow { id: string; entidade_tipo: string }
 interface PipelineStageRow { id: string; pipeline_id: string; nome: string }
 
@@ -44,35 +45,35 @@ const numeric = (value: string): number => Number(value.replace(',', '.'))
 const nullable = (value: string): string | null => value.trim() || null
 
 export function getManualLookups(): ManualLookups {
-  const insureds = rows<InsuredRow>('segurados').filter((row) => row.status === 'Ativo')
+  const insureds = rows<InsuredRow>('segurados').filter((row) => row.status !== 'Inativo')
   const insurers = rows<InsurerRow>('seguradoras').filter((row) => row.ativo)
   const branches = rows<BranchRow>('ramos').filter((row) => row.ativo)
   const coverages = rows<CoverageCatalogRow>('coberturas_catalogo').filter((row) => row.ativo)
 
   return {
-    insureds: insureds.map((row) => ({ id: row.id, label: row.nome, detail: row.cpf_cnpj ?? undefined })),
+    insureds: insureds.map((row) => ({ id: row.id, label: row.nome ?? 'Cadastro sem nome', detail: row.cpf_cnpj ?? undefined })),
     branchOffices: rows<BranchOfficeRow>('filiais')
-      .filter((row) => row.ativo !== false)
+      .filter((row) => row.ativo === true)
       .map((row) => ({ id: row.id, label: row.fantasia ?? row.nome ?? 'Corretora' })),
-    insurers: insurers.map((row) => ({ id: row.id, label: row.nome })),
+    insurers: insurers.map((row) => ({ id: row.id, label: row.nome ?? 'Cadastro sem nome' })),
     branches: branches.map((row) => ({
       id: row.id,
-      label: row.nome,
+      label: row.nome ?? 'Cadastro sem nome',
       detail: row.grupo_operacional ?? undefined,
       riskType: row.risk_type ?? 'DIVERSOS',
       requiresItems: row.exige_item !== false,
     })),
     producers: rows<NamedRow>('produtores')
-      .filter((row) => row.ativo !== false)
-      .map((row) => ({ id: row.id, label: row.nome })),
+      .filter((row) => row.ativo === true)
+      .map((row) => ({ id: row.id, label: row.nome ?? 'Cadastro sem nome' })),
     responsibles: rows<ResponsibleRow>('profiles')
-      .map((row) => ({ id: row.id, label: row.full_name ?? row.nome ?? 'Usuário' })),
+      .map((row) => ({ id: row.id, label: row.nome_completo ?? row.nome ?? 'Usuário' })),
     grades: rows<GradeRow>('recebimento_grades')
       .filter((row) => row.ativo)
-      .map((row) => ({ id: row.id, label: row.nome, detail: `${row.qtd_parcelas} evento(s)` })),
+      .map((row) => ({ id: row.id, label: row.nome ?? 'Cadastro sem nome', detail: `${row.qtd_parcelas} evento(s)` })),
     coverages: coverages.map((row) => ({
       id: row.id,
-      label: row.nome,
+      label: row.nome ?? 'Cadastro sem nome',
       detail: row.codigo ?? undefined,
       branchId: row.ramo_id,
       defaultCapital: row.capital_lmi_padrao,
@@ -140,6 +141,30 @@ export function applyManualInsuredDefaults(draft: ManualDocumentDraft, insuredId
   }
 }
 
+export function applyQuoteToManualDraft(draft: ManualDocumentDraft, quoteId: string): ManualDocumentDraft {
+  if (!quoteId) return { ...draft, quoteId: undefined }
+  const { calculation, quote, insured } = getQuoteProposalOrigin(quoteId)
+  const item = createEmptyItem()
+  item.description = calculation.rotulo_versao ?? 'Risco cotado'
+  const auto = rows<Database['public']['Tables']['calc_auto']['Row']>('calc_auto').find((row) => row.calculo_id === calculation.id)
+  if (auto) Object.assign(item.details, { marca: auto.marca ?? '', modelo: auto.modelo ?? '', placa: auto.placa ?? '', chassi: auto.chassi ?? '' })
+  const property = rows<Database['public']['Tables']['calc_residencia']['Row']>('calc_residencia').find((row) => row.calculo_id === calculation.id)
+    ?? rows<Database['public']['Tables']['calc_condominio']['Row']>('calc_condominio').find((row) => row.calculo_id === calculation.id)
+  if (property) Object.assign(item.details, { cep: property.cep ?? '', endereco: property.endereco ?? '', cidade: property.cidade ?? '', uf: property.uf ?? '' })
+  const company = rows<Database['public']['Tables']['calc_empresa']['Row']>('calc_empresa').find((row) => row.calculo_id === calculation.id)
+  if (company) Object.assign(item.details, { cnpjRisco: company.cnpj ?? '', razaoSocialRisco: company.razao_social ?? '', atividade: company.atividade ?? '', cep: company.cep ?? '', endereco: company.endereco ?? '', cidade: company.cidade ?? '', uf: company.uf ?? '' })
+  if (getTable('calc_vida').some((row) => row.calculo_id === calculation.id)) {
+    if (insured?.tipo === 'PF') item.details.pessoaId = insured.id
+    else item.details.nomeGrupo = insured?.nome ?? ''
+  }
+  const number = (value: number | null) => value === null ? '' : String(value)
+  item.coverages = rows<Database['public']['Tables']['cotacao_coberturas']['Row']>('cotacao_coberturas')
+    .filter((row) => row.cotacao_id === quoteId && row.incluida !== false && row.cobertura_id)
+    .map((row) => ({ id: newId(), returnedCoverageId: row.id, catalogId: row.cobertura_id!, capital: number(row.limite_aceito), deductible: number(row.franquia_valor), premium: number(row.premio) }))
+  const next: ManualDocumentDraft = { ...draft, ...quoteProposalDefaults(quoteId), mode: 'PROPOSTA', iof: number(quote.iof), fractionationFee: number(quote.adicional_fracionamento), items: [item] }
+  return { ...next, gradeId: suggestManualGrade(next) }
+}
+
 export function suggestManualGrade(draft: ManualDocumentDraft): string {
   return compatibleReceiptGrades(
     rows<GradeRow>('recebimento_grades'),
@@ -158,7 +183,7 @@ function proposalStage(mode: ManualDocumentDraft['mode']): string | undefined {
 }
 
 export function validateManualDraft(draft: ManualDocumentDraft): string[] {
-  const errors: string[] = []
+  const errors: string[] = validateQuoteProposalOrigin(draft)
   if (!draft.insuredId) errors.push('Selecione o segurado.')
   if (!draft.branchOfficeId) errors.push('O segurado precisa estar vinculado a uma corretora.')
   if (!draft.insurerId) errors.push('Selecione a seguradora.')
@@ -233,7 +258,7 @@ export function previewManualAgendas(draft: ManualDocumentDraft): ManualAgendaPr
       && (!row.produtor_id || row.produtor_id === draft.producerId)
       && (!row.ramo_id || row.ramo_id === draft.branchId)
       && (!row.tipo_documento || row.tipo_documento === 'NOVA'))
-    .sort((a, b) => b.prioridade - a.prioridade)
+    .sort((a, b) => (b.prioridade ?? Number.MIN_SAFE_INTEGER) - (a.prioridade ?? Number.MIN_SAFE_INTEGER))
   const rule = rules[0]
   const transferAmount = rule
     ? (rule.base === 'PREMIO_LIQUIDO' ? net : commissionAmount) * Number(rule.percentual ?? 0) / 100
@@ -263,7 +288,7 @@ function companyRow(itemId: string, details: ManualItemDetails): CompanyInsert {
 }
 
 function lifeRow(itemId: string, details: ManualItemDetails): LifeInsert {
-  return { apolice_item_id: itemId, nome_grupo: nullable(details.nomeGrupo), n_vidas: numeric(details.numeroVidas) || null, capital_individual: numeric(details.capitalIndividual) || null }
+  return { apolice_item_id: itemId, pessoa_id: details.pessoaId || null, nome_grupo: nullable(details.nomeGrupo), n_vidas: numeric(details.numeroVidas) || null, capital_individual: numeric(details.capitalIndividual) || null }
 }
 
 export function createManualInsuranceDocument(draft: ManualDocumentDraft): ManualCreateResult {
@@ -279,6 +304,7 @@ export function createManualInsuranceDocument(draft: ManualDocumentDraft): Manua
   const branch = rows<BranchRow>('ramos').find((row) => row.id === draft.branchId)
 
   try {
+    const originContract = quoteProposalContract(draft.quoteId)
     const policy: PolicyInsert & { id: string } = {
       id: policyId,
       segurado_id: draft.insuredId,
@@ -286,6 +312,7 @@ export function createManualInsuranceDocument(draft: ManualDocumentDraft): Manua
       ramo_id: draft.branchId,
       produtor_id: draft.producerId,
       status: draft.mode === 'APOLICE' ? 'VIGENTE' : 'EM_EMISSAO',
+      renovada_de_id: originContract.renewedFromId,
       numero_apolice: draft.mode === 'APOLICE' ? draft.policyNumber.trim() : null,
       numero_controle_documento: nullable(draft.controlNumber),
       tipo_contratacao: draft.contractType,
@@ -310,7 +337,8 @@ export function createManualInsuranceDocument(draft: ManualDocumentDraft): Manua
       id: proposalId,
       apolice_id: policyId,
       stage_id: stageId,
-      tipo: 'NOVA',
+      tipo: originContract.type,
+      cotacao_id: draft.quoteId || null,
       responsavel_id: draft.responsibleId || MOCK_USER_ID,
       recebimento_grade_id: draft.gradeId || null,
       numero_proposta: nullable(draft.proposalNumber),
@@ -356,11 +384,17 @@ export function createManualInsuranceDocument(draft: ManualDocumentDraft): Manua
       if (branch?.risk_type === 'EMPRESA') rows<CompanyInsert>('item_empresa').push(companyRow(itemId, item.details))
       if (branch?.risk_type === 'VIDA') rows<LifeInsert>('item_vida').push(lifeRow(itemId, item.details))
       item.coverages.forEach((coverage) => {
+        const returned = rows<Database['public']['Tables']['cotacao_coberturas']['Row']>('cotacao_coberturas').find((row) => row.id === coverage.returnedCoverageId && row.cotacao_id === draft.quoteId && row.cobertura_id === coverage.catalogId)
+        const scalar = (value: string) => value.trim() === '' ? null : numeric(value)
         const row: CoverageInsert & { id: string } = {
           id: newId(), apolice_item_id: itemId, cobertura_id: coverage.catalogId,
           incluido_por_proposta_id: proposalId, excluido_por_proposta_id: null,
-          capital_lmi: numeric(coverage.capital) || null, franquia_valor: numeric(coverage.deductible) || null,
-          premio: numeric(coverage.premium) || null, premio_liquido: numeric(coverage.premium) || null,
+          capital_lmi: scalar(coverage.capital), franquia_valor: scalar(coverage.deductible),
+          premio: scalar(coverage.premium), premio_liquido: scalar(coverage.premium),
+          franquia_tipo: returned?.franquia_tipo ?? null,
+          carencia_dias: returned?.carencia_dias ?? null,
+          participacao_obrigatoria_pct: returned?.participacao_obrigatoria_pct ?? null,
+          observacoes: returned ? [returned.percentual_fipe_aceito === null ? null : `${returned.percentual_fipe_aceito}% FIPE`, returned.clausula_texto, returned.observacao_seguradora].filter(Boolean).join(' · ') || null : null,
           vigencia_inicio: draft.coverageStart, vigencia_fim: draft.coverageEnd,
         }
         rows<CoverageInsert & { id: string }>('item_coberturas').push(row)
@@ -388,6 +422,7 @@ export function createManualInsuranceDocument(draft: ManualDocumentDraft): Manua
     const agendas = draft.mode === 'APOLICE'
       ? materializeDocumentAgendas(proposalId, draft.firstDueDate)
       : { parcelas: 0, comissoes: 0, repasses: 0 }
+    approveQuoteProposalOrigin(draft.quoteId, proposalId)
     return { policyId, proposalId, agendas }
   } catch (error) {
     touchedTables.forEach((table) => getTable(table).splice(lengths.get(table) ?? 0))

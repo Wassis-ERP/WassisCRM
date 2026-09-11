@@ -91,7 +91,7 @@ describe('contractOperations', () => {
       policyId: 'apolice-1', tenantId: 'tenant-1', filialId: 'filial-1', responsibleId: 'usuario-1',
     }, tool.value)
 
-    expect(opportunity).toMatchObject({ apolice_origem_id: 'apolice-1', tipo_negocio: 'renovacao', status: 'pending' })
+    expect(opportunity).toMatchObject({ apolice_origem_id: 'apolice-1', ganha_em: null, perdida_em: null })
     const result = transmitRenewalOpportunity(tables, {
       opportunityId: opportunity.id, responsibleId: 'usuario-1', effectiveStart: '2027-01-01', effectiveEnd: '2027-12-31',
     }, tool.value)
@@ -100,14 +100,14 @@ describe('contractOperations', () => {
     expect(result.document).toMatchObject({ tipo: 'RENOVACAO', stage_id: 'analise' })
     expect(tables.policies[0].status).toBe('VIGENTE')
     expect(tables.items.some((item) => item.apolice_id === result.policy.id)).toBe(true)
-    expect(opportunity.status).toBe('won')
+    expect(opportunity.ganha_em).toBe('2026-07-12T12:00:00.000Z')
   })
 
   it('efetiva a renovação e atualiza sucessora e antecessora atomicamente', () => {
     const tables = fixture()
     const tool = services()
     const opportunity = createRenewalOpportunity(tables, {
-      policyId: 'apolice-1', tenantId: 'tenant-1', filialId: null, responsibleId: 'usuario-1',
+      policyId: 'apolice-1', tenantId: 'tenant-1', filialId: 'filial-1', responsibleId: 'usuario-1',
     }, tool.value)
     const { policy, document } = transmitRenewalOpportunity(tables, {
       opportunityId: opportunity.id, responsibleId: 'usuario-1', effectiveStart: '2027-01-01', effectiveEnd: '2027-12-31',
@@ -126,7 +126,7 @@ describe('contractOperations', () => {
   it('impede segunda oportunidade de renovação ativa', () => {
     const tables = fixture()
     const tool = services()
-    const input = { policyId: 'apolice-1', tenantId: 'tenant-1', filialId: null, responsibleId: 'usuario-1' }
+    const input = { policyId: 'apolice-1', tenantId: 'tenant-1', filialId: 'filial-1', responsibleId: 'usuario-1' }
     createRenewalOpportunity(tables, input, tool.value)
     expect(() => createRenewalOpportunity(tables, input, tool.value)).toThrow('Já existe uma oportunidade')
   })

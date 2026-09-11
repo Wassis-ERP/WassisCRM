@@ -1,0 +1,2000 @@
+{
+  "source": ".codex\\artefatos\\wassis_erp_esqueleto_v3_1.dbml",
+  "tables": 68,
+  "columns": 1164,
+  "frontendTables": 67,
+  "extraTables": [],
+  "results": [
+    {
+      "table": "tenants",
+      "columns": 23,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "slug",
+          "dbRequired": false,
+          "ts": "string"
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "table": "filiais",
+      "columns": 36,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "lgpd_aceito",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        },
+        {
+          "column": "matriz_id",
+          "target": "filiais.id",
+          "represented": true
+        },
+        {
+          "column": "gerente_id",
+          "target": "produtores.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "profiles",
+      "columns": 14,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "perfis",
+      "columns": 8,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "nome",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "sistema",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "profile_filiais",
+      "columns": 8,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "principal",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "profile_id",
+          "target": "profiles.id",
+          "represented": true
+        },
+        {
+          "column": "filial_id",
+          "target": "filiais.id",
+          "represented": true
+        },
+        {
+          "column": "perfil_id",
+          "target": "perfis.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "role_permissions",
+      "columns": 10,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "perfil_id",
+          "target": "perfis.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "produtores",
+      "columns": 35,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "nome",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        },
+        {
+          "column": "profile_id",
+          "target": "profiles.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "segurados",
+      "columns": 46,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "tipo",
+          "dbRequired": false,
+          "ts": "\"PF\" | \"PJ\""
+        },
+        {
+          "column": "nome",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "status",
+          "dbRequired": false,
+          "ts": "\"Ativo\" | \"Inativo\" | \"Prospecto\""
+        },
+        {
+          "column": "lgpd_autorizado",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "created_at",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "updated_at",
+          "dbRequired": false,
+          "ts": "string"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        },
+        {
+          "column": "filial_id",
+          "target": "filiais.id",
+          "represented": true
+        },
+        {
+          "column": "produtor_id",
+          "target": "produtores.id",
+          "represented": true
+        },
+        {
+          "column": "gerente_id",
+          "target": "produtores.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "pessoa_contato",
+      "columns": 12,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "principal",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "pj_id",
+          "target": "segurados.id",
+          "represented": true
+        },
+        {
+          "column": "pf_id",
+          "target": "segurados.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "seguradoras",
+      "columns": 16,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "nome",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "aceita_importacao_pdf",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "aceita_busca_automatica",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "ramos",
+      "columns": 15,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "nome",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "risk_type",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "grupo_operacional",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "is_monthly",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "renovavel",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "permite_endosso",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "exige_item",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "exige_coberturas",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "endosso_subtipos",
+      "columns": 9,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "nome",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "natureza_canonica",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        },
+        {
+          "column": "filial_id",
+          "target": "filiais.id",
+          "represented": true
+        },
+        {
+          "column": "ramo_id",
+          "target": "ramos.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "cancelamento_motivos",
+      "columns": 8,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "nome",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        },
+        {
+          "column": "filial_id",
+          "target": "filiais.id",
+          "represented": true
+        },
+        {
+          "column": "ramo_id",
+          "target": "ramos.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "origens",
+      "columns": 6,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "nome",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "motivos_perda",
+      "columns": 6,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "nome",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "coberturas_catalogo",
+      "columns": 16,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "nome",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "obrigatoria",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "ramo_id",
+          "target": "ramos.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "pipelines",
+      "columns": 10,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "nome",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "entidade_tipo",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "modelo_fabrica",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "permite_customizacao",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        },
+        {
+          "column": "filial_id",
+          "target": "filiais.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "pipeline_stages",
+      "columns": 12,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "nome",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "ordem",
+          "dbRequired": false,
+          "ts": "number"
+        },
+        {
+          "column": "finaliza_com_sucesso",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "finaliza_com_perda",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "pipeline_id",
+          "target": "pipelines.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "oportunidades",
+      "columns": 28,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        },
+        {
+          "column": "filial_id",
+          "target": "filiais.id",
+          "represented": true
+        },
+        {
+          "column": "segurado_id",
+          "target": "segurados.id",
+          "represented": true
+        },
+        {
+          "column": "ramo_id",
+          "target": "ramos.id",
+          "represented": true
+        },
+        {
+          "column": "origem_id",
+          "target": "origens.id",
+          "represented": true
+        },
+        {
+          "column": "apolice_origem_id",
+          "target": "apolices.id",
+          "represented": true
+        },
+        {
+          "column": "responsavel_id",
+          "target": "profiles.id",
+          "represented": true
+        },
+        {
+          "column": "stage_id",
+          "target": "pipeline_stages.id",
+          "represented": true
+        },
+        {
+          "column": "motivo_perda_id",
+          "target": "motivos_perda.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "calculos",
+      "columns": 21,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "origem",
+          "dbRequired": false,
+          "ts": "CalculoOrigem"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "oportunidade_id",
+          "target": "oportunidades.id",
+          "represented": true
+        },
+        {
+          "column": "ramo_id",
+          "target": "ramos.id",
+          "represented": true
+        },
+        {
+          "column": "segurado_id",
+          "target": "segurados.id",
+          "represented": true
+        },
+        {
+          "column": "seguradora_anterior_id",
+          "target": "seguradoras.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "calc_auto",
+      "columns": 35,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": []
+    },
+    {
+      "table": "calc_residencia",
+      "columns": 20,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": []
+    },
+    {
+      "table": "calc_condominio",
+      "columns": 20,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": []
+    },
+    {
+      "table": "calc_vida",
+      "columns": 13,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": []
+    },
+    {
+      "table": "calc_empresa",
+      "columns": 22,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": []
+    },
+    {
+      "table": "calc_diversos",
+      "columns": 5,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": []
+    },
+    {
+      "table": "calculo_coberturas",
+      "columns": 10,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "calculo_id",
+          "target": "calculos.id",
+          "represented": true
+        },
+        {
+          "column": "cobertura_id",
+          "target": "coberturas_catalogo.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "calculo_execucoes",
+      "columns": 17,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "calculo_id",
+          "target": "calculos.id",
+          "represented": true
+        },
+        {
+          "column": "seguradora_id",
+          "target": "seguradoras.id",
+          "represented": true
+        },
+        {
+          "column": "reexecucao_de_id",
+          "target": "calculo_execucoes.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "cotacoes",
+      "columns": 17,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "execucao_id",
+          "target": "calculo_execucoes.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "cotacao_coberturas",
+      "columns": 17,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "cotacao_id",
+          "target": "cotacoes.id",
+          "represented": true
+        },
+        {
+          "column": "cobertura_id",
+          "target": "coberturas_catalogo.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "cotacao_parcelamentos",
+      "columns": 13,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "cotacao_id",
+          "target": "cotacoes.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "apresentacoes_comerciais",
+      "columns": 18,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "oportunidade_id",
+          "target": "oportunidades.id",
+          "represented": true
+        },
+        {
+          "column": "criado_por_id",
+          "target": "profiles.id",
+          "represented": true
+        },
+        {
+          "column": "cotacao_escolhida_id",
+          "target": "cotacoes.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "apresentacao_cotacoes",
+      "columns": 9,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "apresentacao_id",
+          "target": "apresentacoes_comerciais.id",
+          "represented": true
+        },
+        {
+          "column": "cotacao_id",
+          "target": "cotacoes.id",
+          "represented": true
+        },
+        {
+          "column": "parcelamento_id",
+          "target": "cotacao_parcelamentos.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "apolices",
+      "columns": 33,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "segurado_id",
+          "target": "segurados.id",
+          "represented": true
+        },
+        {
+          "column": "seguradora_id",
+          "target": "seguradoras.id",
+          "represented": true
+        },
+        {
+          "column": "ramo_id",
+          "target": "ramos.id",
+          "represented": true
+        },
+        {
+          "column": "renovada_de_id",
+          "target": "apolices.id",
+          "represented": true
+        },
+        {
+          "column": "produtor_id",
+          "target": "produtores.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "propostas",
+      "columns": 37,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "apolice_id",
+          "target": "apolices.id",
+          "represented": true
+        },
+        {
+          "column": "cotacao_id",
+          "target": "cotacoes.id",
+          "represented": true
+        },
+        {
+          "column": "stage_id",
+          "target": "pipeline_stages.id",
+          "represented": true
+        },
+        {
+          "column": "responsavel_id",
+          "target": "profiles.id",
+          "represented": true
+        },
+        {
+          "column": "recebimento_grade_id",
+          "target": "recebimento_grades.id",
+          "represented": true
+        },
+        {
+          "column": "endosso_subtipo_id",
+          "target": "endosso_subtipos.id",
+          "represented": true
+        },
+        {
+          "column": "cancelamento_motivo_id",
+          "target": "cancelamento_motivos.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "apolice_itens",
+      "columns": 12,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "apolice_id",
+          "target": "apolices.id",
+          "represented": true
+        },
+        {
+          "column": "incluido_por_proposta_id",
+          "target": "propostas.id",
+          "represented": true
+        },
+        {
+          "column": "excluido_por_proposta_id",
+          "target": "propostas.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "item_veiculo",
+      "columns": 25,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": []
+    },
+    {
+      "table": "item_imovel",
+      "columns": 15,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": []
+    },
+    {
+      "table": "item_empresa",
+      "columns": 19,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": []
+    },
+    {
+      "table": "item_vida",
+      "columns": 14,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "pessoa_id",
+          "target": "segurados.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "item_coberturas",
+      "columns": 15,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "apolice_item_id",
+          "target": "apolice_itens.id",
+          "represented": true
+        },
+        {
+          "column": "cobertura_id",
+          "target": "coberturas_catalogo.id",
+          "represented": true
+        },
+        {
+          "column": "incluido_por_proposta_id",
+          "target": "propostas.id",
+          "represented": true
+        },
+        {
+          "column": "excluido_por_proposta_id",
+          "target": "propostas.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "sinistros",
+      "columns": 32,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "apolice_id",
+          "target": "apolices.id",
+          "represented": true
+        },
+        {
+          "column": "stage_id",
+          "target": "pipeline_stages.id",
+          "represented": true
+        },
+        {
+          "column": "responsavel_id",
+          "target": "profiles.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "sinistro_envolvidos",
+      "columns": 16,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "sinistro_id",
+          "target": "sinistros.id",
+          "represented": true
+        },
+        {
+          "column": "apolice_item_id",
+          "target": "apolice_itens.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "pos_vendas",
+      "columns": 15,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "apolice_id",
+          "target": "apolices.id",
+          "represented": true
+        },
+        {
+          "column": "stage_id",
+          "target": "pipeline_stages.id",
+          "represented": true
+        },
+        {
+          "column": "responsavel_id",
+          "target": "profiles.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "recebimento_grades",
+      "columns": 13,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "nome",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "tipo",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "qtd_parcelas",
+          "dbRequired": false,
+          "ts": "number"
+        },
+        {
+          "column": "considera_iof",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "considera_adicional_fracionamento",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "vitalicio",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "seguradora_id",
+          "target": "seguradoras.id",
+          "represented": true
+        },
+        {
+          "column": "ramo_id",
+          "target": "ramos.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "recebimento_grade_parcelas",
+      "columns": 8,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "numero",
+          "dbRequired": false,
+          "ts": "number"
+        },
+        {
+          "column": "tipo_comissao",
+          "dbRequired": false,
+          "ts": "ComissaoTipo"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "grade_id",
+          "target": "recebimento_grades.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "repasse_regras",
+      "columns": 18,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "papel",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "base",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "gatilho",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "prioridade",
+          "dbRequired": false,
+          "ts": "number"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        },
+        {
+          "column": "filial_id",
+          "target": "filiais.id",
+          "represented": true
+        },
+        {
+          "column": "produtor_id",
+          "target": "produtores.id",
+          "represented": true
+        },
+        {
+          "column": "ramo_id",
+          "target": "ramos.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "parcelas",
+      "columns": 20,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "proposta_id",
+          "target": "propostas.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "financeiro_cobrancas",
+      "columns": 14,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "status",
+          "dbRequired": false,
+          "ts": "CobrancaStatus"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "parcela_id",
+          "target": "parcelas.id",
+          "represented": true
+        },
+        {
+          "column": "stage_id",
+          "target": "pipeline_stages.id",
+          "represented": true
+        },
+        {
+          "column": "responsavel_id",
+          "target": "profiles.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "comissoes",
+      "columns": 16,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "tipo_comissao",
+          "dbRequired": false,
+          "ts": "ComissaoTipo"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "proposta_id",
+          "target": "propostas.id",
+          "represented": true
+        },
+        {
+          "column": "parcela_id",
+          "target": "parcelas.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "comissao_extratos",
+      "columns": 37,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        },
+        {
+          "column": "filial_id",
+          "target": "filiais.id",
+          "represented": true
+        },
+        {
+          "column": "seguradora_id",
+          "target": "seguradoras.id",
+          "represented": true
+        },
+        {
+          "column": "recebido_por_id",
+          "target": "profiles.id",
+          "represented": true
+        },
+        {
+          "column": "processado_por_id",
+          "target": "profiles.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "comissao_extrato_itens",
+      "columns": 29,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "extrato_id",
+          "target": "comissao_extratos.id",
+          "represented": true
+        },
+        {
+          "column": "produtor_id",
+          "target": "produtores.id",
+          "represented": true
+        },
+        {
+          "column": "ramo_id",
+          "target": "ramos.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "comissao_conciliacoes",
+      "columns": 23,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "item_id",
+          "target": "comissao_extrato_itens.id",
+          "represented": true
+        },
+        {
+          "column": "comissao_id",
+          "target": "comissoes.id",
+          "represented": true
+        },
+        {
+          "column": "associado_por_id",
+          "target": "profiles.id",
+          "represented": true
+        },
+        {
+          "column": "confirmado_por_id",
+          "target": "profiles.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "comissao_conciliacao_ocorrencias",
+      "columns": 20,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "item_id",
+          "target": "comissao_extrato_itens.id",
+          "represented": true
+        },
+        {
+          "column": "conciliacao_id",
+          "target": "comissao_conciliacoes.id",
+          "represented": true
+        },
+        {
+          "column": "identificada_por_id",
+          "target": "profiles.id",
+          "represented": true
+        },
+        {
+          "column": "resolvida_por_id",
+          "target": "profiles.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "comissao_baixas",
+      "columns": 14,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "comissao_id",
+          "target": "comissoes.id",
+          "represented": true
+        },
+        {
+          "column": "baixa_origem_id",
+          "target": "comissao_baixas.id",
+          "represented": true
+        },
+        {
+          "column": "criado_por_id",
+          "target": "profiles.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "comissao_baixa_conciliacoes",
+      "columns": 5,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "baixa_id",
+          "target": "comissao_baixas.id",
+          "represented": true
+        },
+        {
+          "column": "conciliacao_id",
+          "target": "comissao_conciliacoes.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "repasses",
+      "columns": 19,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "proposta_id",
+          "target": "propostas.id",
+          "represented": true
+        },
+        {
+          "column": "comissao_id",
+          "target": "comissoes.id",
+          "represented": true
+        },
+        {
+          "column": "beneficiario_id",
+          "target": "produtores.id",
+          "represented": true
+        },
+        {
+          "column": "regra_id",
+          "target": "repasse_regras.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "repasse_recibos",
+      "columns": 20,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "filial_id",
+          "target": "filiais.id",
+          "represented": true
+        },
+        {
+          "column": "beneficiario_id",
+          "target": "produtores.id",
+          "represented": true
+        },
+        {
+          "column": "emitido_por_id",
+          "target": "profiles.id",
+          "represented": true
+        },
+        {
+          "column": "cancelado_por_id",
+          "target": "profiles.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "repasse_recibo_itens",
+      "columns": 12,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "recibo_id",
+          "target": "repasse_recibos.id",
+          "represented": true
+        },
+        {
+          "column": "repasse_id",
+          "target": "repasses.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "atividades",
+      "columns": 19,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "entidade_tipo",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "entidade_id",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "tipo",
+          "dbRequired": false,
+          "ts": "string"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        },
+        {
+          "column": "filial_id",
+          "target": "filiais.id",
+          "represented": true
+        },
+        {
+          "column": "responsavel_id",
+          "target": "profiles.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "atividade_mencoes",
+      "columns": 5,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "atividade_id",
+          "target": "atividades.id",
+          "represented": true
+        },
+        {
+          "column": "profile_id",
+          "target": "profiles.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "anexos",
+      "columns": 15,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "entidade_tipo",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "entidade_id",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "nome_arquivo",
+          "dbRequired": false,
+          "ts": "string"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        },
+        {
+          "column": "filial_id",
+          "target": "filiais.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "audit_logs",
+      "columns": 13,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "entidade_tipo",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "entidade_id",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "acao",
+          "dbRequired": false,
+          "ts": "string"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        },
+        {
+          "column": "user_id",
+          "target": "profiles.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "integracao_logs",
+      "columns": 15,
+      "missingTable": true
+    },
+    {
+      "table": "campo_definicoes",
+      "columns": 19,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "nome",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "tipo_dado",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "obrigatorio",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        },
+        {
+          "column": "visivel_em_listagem",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "tenant_id",
+          "target": "tenants.id",
+          "represented": true
+        },
+        {
+          "column": "filial_id",
+          "target": "filiais.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "campo_opcoes",
+      "columns": 6,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [
+        {
+          "column": "rotulo",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "valor",
+          "dbRequired": false,
+          "ts": "string"
+        },
+        {
+          "column": "ativo",
+          "dbRequired": false,
+          "ts": "boolean"
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "campo_definicao_id",
+          "target": "campo_definicoes.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "campo_valores",
+      "columns": 12,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "campo_definicao_id",
+          "target": "campo_definicoes.id",
+          "represented": true
+        },
+        {
+          "column": "valor_opcao_id",
+          "target": "campo_opcoes.id",
+          "represented": true
+        }
+      ]
+    },
+    {
+      "table": "campo_valor_opcoes",
+      "columns": 4,
+      "representation": "database.ts",
+      "missingDatabaseTable": false,
+      "missing": [],
+      "extra": [],
+      "incompatible": [],
+      "nullability": [],
+      "foreignKeys": [
+        {
+          "column": "campo_valor_id",
+          "target": "campo_valores.id",
+          "represented": true
+        },
+        {
+          "column": "campo_opcao_id",
+          "target": "campo_opcoes.id",
+          "represented": true
+        }
+      ]
+    }
+  ]
+}

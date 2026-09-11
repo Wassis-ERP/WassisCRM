@@ -75,7 +75,7 @@ export interface ComissaoFilters {
   competenciaDe: string
   competenciaAte: string
   status: '' | ComissaoStatusOperacional
-  tipo: '' | ComissaoRow['tipo_comissao']
+  tipo: '' | NonNullable<ComissaoRow['tipo_comissao']>
 }
 
 export interface BaixaManualItemInput {
@@ -248,7 +248,7 @@ export function listFinanceiroComissoes(branchIds?: readonly string[] | null): F
       apoliceId: policy.id,
       apoliceNumero: policy.numero_apolice,
       seguradoId: insured.id,
-      seguradoNome: insured.nome,
+      seguradoNome: insured.nome ?? 'Não informado',
       seguradoraId: insurer?.id ?? null,
       seguradoraNome: insurer?.nome ?? 'Seguradora não informada',
       ramoId: ramo?.id ?? null,
@@ -356,6 +356,7 @@ export function registerManualCommissionReceipt(command: BaixaManualCommand): Ba
       const view = commissionRows.find((row) => row.id === input.comissaoId)
       const commission = commissions.find((row) => row.id === input.comissaoId)
       if (!view || !commission) throw new Error('Uma comissão selecionada não foi encontrada.')
+      if (!commission.tipo_comissao) throw new Error('Informe o tipo de comissão antes da baixa.')
       if (view.filialId !== command.filialId || view.seguradoraId !== command.seguradoraId) {
         throw new Error('A baixa deve conter comissões da mesma corretora e seguradora.')
       }

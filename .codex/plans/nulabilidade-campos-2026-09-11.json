@@ -1,0 +1,604 @@
+[
+  {
+    "table": "tenants",
+    "column": "slug",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "filiais",
+    "column": "lgpd_aceito",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "filiais",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "perfis",
+    "column": "nome",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "perfis",
+    "column": "sistema",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "perfis",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "profile_filiais",
+    "column": "principal",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "produtores",
+    "column": "nome",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "produtores",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "segurados",
+    "column": "tipo",
+    "previous": "\"PF\" | \"PJ\"",
+    "read": "\"PF\" | \"PJ\" | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "segurados",
+    "column": "nome",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "segurados",
+    "column": "status",
+    "previous": "\"Ativo\" | \"Inativo\" | \"Prospecto\"",
+    "read": "\"Ativo\" | \"Inativo\" | \"Prospecto\" | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "segurados",
+    "column": "lgpd_autorizado",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "segurados",
+    "column": "created_at",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "segurados",
+    "column": "updated_at",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "pessoa_contato",
+    "column": "principal",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/platformRows.ts"
+  },
+  {
+    "table": "seguradoras",
+    "column": "nome",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "seguradoras",
+    "column": "aceita_importacao_pdf",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "seguradoras",
+    "column": "aceita_busca_automatica",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "seguradoras",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "ramos",
+    "column": "nome",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "ramos",
+    "column": "risk_type",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "ramos",
+    "column": "grupo_operacional",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "ramos",
+    "column": "is_monthly",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "ramos",
+    "column": "renovavel",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "ramos",
+    "column": "permite_endosso",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "ramos",
+    "column": "exige_item",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "ramos",
+    "column": "exige_coberturas",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "ramos",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "endosso_subtipos",
+    "column": "nome",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "endosso_subtipos",
+    "column": "natureza_canonica",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "endosso_subtipos",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "cancelamento_motivos",
+    "column": "nome",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "cancelamento_motivos",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "origens",
+    "column": "nome",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "origens",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "motivos_perda",
+    "column": "nome",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "motivos_perda",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "coberturas_catalogo",
+    "column": "nome",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "coberturas_catalogo",
+    "column": "obrigatoria",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "coberturas_catalogo",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "pipelines",
+    "column": "nome",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "pipelines",
+    "column": "entidade_tipo",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "pipelines",
+    "column": "modelo_fabrica",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "pipelines",
+    "column": "permite_customizacao",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "pipelines",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "pipeline_stages",
+    "column": "nome",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "pipeline_stages",
+    "column": "ordem",
+    "previous": "number",
+    "read": "number | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "pipeline_stages",
+    "column": "finaliza_com_sucesso",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "pipeline_stages",
+    "column": "finaliza_com_perda",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "pipeline_stages",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "calculos",
+    "column": "origem",
+    "previous": "CalculoOrigem",
+    "read": "CalculoOrigem | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "recebimento_grades",
+    "column": "nome",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "recebimento_grades",
+    "column": "tipo",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "recebimento_grades",
+    "column": "qtd_parcelas",
+    "previous": "number",
+    "read": "number | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "recebimento_grades",
+    "column": "considera_iof",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "recebimento_grades",
+    "column": "considera_adicional_fracionamento",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "recebimento_grades",
+    "column": "vitalicio",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "recebimento_grades",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "recebimento_grade_parcelas",
+    "column": "numero",
+    "previous": "number",
+    "read": "number | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "recebimento_grade_parcelas",
+    "column": "tipo_comissao",
+    "previous": "ComissaoTipo",
+    "read": "ComissaoTipo | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "recebimento_grade_parcelas",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "repasse_regras",
+    "column": "papel",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "repasse_regras",
+    "column": "base",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "repasse_regras",
+    "column": "gatilho",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "repasse_regras",
+    "column": "prioridade",
+    "previous": "number",
+    "read": "number | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "repasse_regras",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "financeiro_cobrancas",
+    "column": "status",
+    "previous": "CobrancaStatus",
+    "read": "CobrancaStatus | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "comissoes",
+    "column": "tipo_comissao",
+    "previous": "ComissaoTipo",
+    "read": "ComissaoTipo | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "atividades",
+    "column": "entidade_tipo",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "atividades",
+    "column": "entidade_id",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "atividades",
+    "column": "tipo",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "anexos",
+    "column": "entidade_tipo",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "anexos",
+    "column": "entidade_id",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "anexos",
+    "column": "nome_arquivo",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "audit_logs",
+    "column": "entidade_tipo",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "audit_logs",
+    "column": "entidade_id",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "audit_logs",
+    "column": "acao",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "campo_definicoes",
+    "column": "nome",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "campo_definicoes",
+    "column": "tipo_dado",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "campo_definicoes",
+    "column": "obrigatorio",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "campo_definicoes",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "campo_definicoes",
+    "column": "visivel_em_listagem",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "campo_opcoes",
+    "column": "rotulo",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "campo_opcoes",
+    "column": "valor",
+    "previous": "string",
+    "read": "string | null",
+    "file": "nexus-crm/src/types/database.ts"
+  },
+  {
+    "table": "campo_opcoes",
+    "column": "ativo",
+    "previous": "boolean",
+    "read": "boolean | null",
+    "file": "nexus-crm/src/types/database.ts"
+  }
+]

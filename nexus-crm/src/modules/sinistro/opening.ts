@@ -22,14 +22,14 @@ export type ApoliceSinistroOption = {
   vigencia_fim: string | null
   segurado: {
     id: string
-    nome: string
+    nome: string | null
     cpf_cnpj: string | null
     filial_id: string | null
     email: string | null
     telefone: string | null
   }
-  seguradora: { id: string; nome: string } | null
-  ramo: { id: string; nome: string; risk_type: string | null } | null
+  seguradora: { id: string; nome: string | null } | null
+  ramo: { id: string; nome: string | null; risk_type: string | null } | null
   itens: ApoliceItemRow[]
 }
 

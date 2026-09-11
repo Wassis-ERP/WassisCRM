@@ -1,0 +1,2340 @@
+// v3.1 (11/09/2026): adiciona calc_auto.chassi_remarcado nullable;
+// limite de cinco cotações por apresentação. v3.0 permanece histórico.
+// ============================================================================
+// W.ASSIS — ERP/CRM CORRETORA DE SEGUROS
+// ESQUELETO v3.0 — HAND-OFF DO FRONTEND (evolui o contrato v2.6)
+//   GRUPO × CORRETORAS + CONTRATO × DOCUMENTO + COMISSÃO × REPASSE
+//   + PÓS-VENDA (MÓDULO) + CAMPOS PERSONALIZADOS (EAV TIPADO) + MULTI-CÁLCULO
+//   + PERFIS DE ACESSO CADASTRÁVEIS (D18) + COLUNAS DE NEGÓCIO DE filiais
+//   + PRODUTORES COMO ENTIDADE PRÓPRIA (Fase 0.2)
+//   + DOCUMENTOS CONTRATUAIS CONDICIONAIS + CATÁLOGOS DE ENDOSSO/CANCELAMENTO
+//   + PEDIDO × EXECUÇÃO × RESULTADO × APRESENTAÇÃO COMERCIAL (D23)
+//
+// Este arquivo é o CONTRATO de schema sobre o qual o front constrói. Tabelas
+// finas de propósito: a equipe de front amplia os campos de negócio (anotados
+// nos comentários "colunas de negócio") ao desenhar as telas.
+//
+// ----------------------------------------------------------------------------
+// VERSIONAMENTO (SemVer do CONTRATO de schema — instruções e DBML sobem JUNTOS):
+//   MAJOR (2.0)   = QUEBRA o que o front já usa: renomear/remover coluna ou
+//                   tabela, trocar tipo, inverter FK, remover valor de enum.
+//   MINOR (1.x)   = ADITIVO e compatível: tabela nova, coluna nullable nova,
+//                   valor novo de enum, especialização nova (ex.: sinistro_auto,
+//                   pos_venda_implantacao), expansão de campo das tabelas finas.
+//   PATCH (1.0.x) = comentário / doc / esclarecimento; ZERO mudança estrutural.
+//
+//   v1.0 é a BASELINE. O 3.x usado antes dela foi numeração de ITERAÇÃO de
+//   design (RFCs); a v3.0 atual é SemVer posterior ao v2.6 e não se confunde com
+//   essas RFCs. Seu raciocínio permanece no LOG DE DECISÕES (ADR) abaixo.
+//
+//   v1.1 (20/06/2026) — ver D18 abaixo:
+//     + tabela `perfis` (perfis de acesso CADASTRÁVEIS: pré-configurados `sistema`
+//       + personalizados por grupo);
+//     ~ role_permissions e profile_filiais passam a referenciar `perfil_id` (FK)
+//       no lugar do enum app_role (consolidação pré-implementação no front);
+//     ~ papel GLOBAL por usuário (user_roles legado) APOSENTADO: permissão de
+//       negócio só pelo perfil por corretora; papel de identidade fica na auth;
+//     + `filiais` ganha as colunas de negócio levantadas na tela Corretoras/Filiais
+//       (razao_social, fantasia, cnpj_cpf [PF ou PJ], susep, percentual_imposto,
+//       lgpd_aceito[_em], gerente, contato, contatos, endereço, ativo) +
+//       UNIQUE(tenant_id, cnpj_cpf).
+//     + `produtores` ganha campos de negócio levantados na tela Produtores
+//       (nome, cpf_cnpj, contatos, dados mínimos de pagamento/repasse, ativo);
+//       `filiais.gerente_id` passa a preferir FK para produtores, preservando
+//       `filiais.gerente` como texto legado/compatível.
+//     (filial_id em segurados/oportunidades já existia desde a v1.0.)
+//
+//   v2.0 (04/07/2026) — MARCO DE COMPLETUDE DE CAMPOS, por decisão de produto:
+//     + expande colunas escalares de negócio nas tabelas existentes, usando
+//       contextos de mercado Quiver/Segfy, prática operacional de corretoras,
+//       SRO/SUSEP, Circular SUSEP 642 e o front/database.ts atual como referência;
+//     = NÃO cria tabela, NÃO remove/renomeia coluna existente, NÃO adiciona FK,
+//       NÃO altera cardinalidade nem reabre decisões D1-D18.
+//     ~ revisado contra `nexus-crm/src/types/database.ts` e front atual: campos
+//       já implementados foram preservados com seus nomes atuais; adições futuras
+//       ficam marcadas como "propostas v2.0".
+//     Observação: semanticamente seria um bump aditivo; o número 2.0 aqui marca
+//       congelamento funcional amplo de campos antes da retomada do frontend.
+//
+//   v2.1 (11/07/2026) — REVISÃO DOCUMENTAL E EDIÇÃO AUDITADA (2.2f):
+//     - remove propostas.data_efeito, premio_adicional e premio_restituicao;
+//     + vigencia_inicio passa a ser o início dos efeitos do documento;
+//     + cria endosso_subtipos e cancelamento_motivos, com escopo opcional por
+//       corretora/ramo e vínculo nullable em propostas;
+//     ~ premio_total/premio_liquido passam a preservar sinal negativo para
+//       restituição/estorno;
+//     ~ tipo_movimento_endosso fica restrito à natureza canônica do movimento;
+//     ~ audit_logs registra cada campo efetivamente alterado pela edição.
+//     Decisão explícita de produto: o par foi versionado como v2.1.
+//
+//   v2.2 (13/07/2026) — AGENCIAMENTO E TIPOS DE COMISSÃO (2.8):
+//     + propostas.agenciamento_pct separa o percentual de agenciamento do
+//       percentual normal/vitalício já registrado em comissao_pct;
+//     + recebimento_grade_parcelas.tipo_comissao tipa cada linha do molde;
+//     + comissoes.tipo_comissao preserva o tipo materializado no fato;
+//     = valores canônicos fechados: NORMAL | AGENCIAMENTO | VITALICIA |
+//       ADICIONAL | RESTITUICAO;
+//     ~ exemplo canônico: Saúde 300% de agenciamento + 2% vitalício gera três
+//       eventos AGENCIAMENTO de 100% e os seguintes VITALICIA de 2%.
+//
+//   v2.3 (14/07/2026) — EXTRATOS E CONCILIAÇÃO SECURITÁRIA (3.2):
+//     + cria comissao_extratos, comissao_extrato_itens,
+//       comissao_conciliacoes e comissao_conciliacao_ocorrencias;
+//     + fecha idempotência por arquivo, item e associação, com autoria;
+//     + modela item N:N comissão para suportar recebimentos parciais/agregados;
+//     - remove comissoes.extrato_numero e seguradora_lote do contrato vigente;
+//     = ingestão/normalização/conciliação não executam baixa nem alteram o
+//       recebimento da comissão.
+//
+//   v2.4 (15/07/2026) — COMISSÕES E BAIXA MANUAL (3.3):
+//     + cria comissao_baixas e comissao_baixa_conciliacoes;
+//     + baixa total/parcial e estorno viram eventos imutáveis e auditáveis;
+//     + permite N baixas por comissão e N conciliações confirmadas por baixa;
+//     + adiciona PARCIAL ao estado materializado da comissão;
+//     = valores previstos e informados não são sobrescritos pela baixa;
+//     = estorno compensa a baixa original, sem apagar histórico.
+//
+//   v2.5 (16/07/2026) — REPASSES E RECIBOS DE PAGAMENTO (3.5):
+//     + cria repasse_recibos e repasse_recibo_itens;
+//     + persiste recibo reemitível com snapshot escalar dos dados impressos;
+//     + baixa integral e cancelamento viram operações auditáveis e idempotentes;
+//     = cada recibo contém uma filial, um beneficiário e um sentido financeiro;
+//     = relatório/exportação comum permanece somente leitura;
+//     = pagamento parcial, múltiplos pagamentos ativos e rateio N:N permanecem
+//       fora do contrato do MVP.
+//
+//   v2.6 (20/07/2026) — COBRANÇAS SECURITÁRIAS POR PARCELA (3.6):
+//     + adiciona encerrada_em e motivo_encerramento à cobrança;
+//     = origem obrigatória em parcela efetivamente vencida;
+//     = status de ciclo de vida ATIVA | QUITADA | CANCELADA separado da etapa;
+//     = no máximo uma cobrança ATIVA por parcela, com índice único parcial no
+//       backend e validação transacional de domínio;
+//     = quitação exige parcela paga; cancelamento exige motivo;
+//     = reabertura exige parcela vencida e ausência de outra cobrança ativa;
+//     = oportunidade_id, pipeline_id, metadata e valores duplicados rejeitados.
+//
+//   v3.0 (22/07/2026) — RECONCILIAÇÃO DO MULTI-CÁLCULO (6.4R-A):
+//     + cria calculo_execucoes, cotacao_coberturas, cotacao_parcelamentos,
+//       apresentacoes_comerciais e apresentacao_cotacoes;
+//     ~ cotacoes passa a depender de execucao_id UNIQUE, não de calculo_id;
+//     ~ calculo_coberturas guarda somente o pedido comum do corretor;
+//     - remove de calculo_coberturas franquia monetária, prêmio, carência e
+//       participação efetiva; remove de cotacoes a forma única de pagamento;
+//     - aposenta calculos.aggilizador_id, banco_financiamento e
+//       cotacao_encaminhada_em; renomeia campos anteriores para semântica clara;
+//     = bump MAJOR porque reancora FKs e quebra campos já tipados no front;
+//     = retry, resultados e apresentações preservam histórico sem JSON.
+// ----------------------------------------------------------------------------
+// LOG DE DECISÕES (ADR condensado — o "porquê" das escolhas; detalhe nas
+// instruções do projeto, doc irmão deste arquivo):
+//   D1.  Contrato × documento (apolices + propostas). Tabela única REJEITADA.
+//   D2.  Casca EM_EMISSAO nasce na transmissão; recusada vira histórico.
+//   D3.  leads / emissoes / vistorias / tarefas / endossos não existem como tabela.
+//   D4.  orcamentos -> cotacoes; ponte = propostas.cotacao_id (UNIQUE).
+//   D5.  (REVISADA por D11) parcela pertence à proposta; comissão deixou de ser
+//        filha da parcela.
+//   D6.  Pessoa unificada = segurados (status Prospecto -> Ativo -> Inativo).
+//   D7.  sinistro_envolvidos (terceiros incluídos, fora do cadastro de pessoas).
+//   D8.  Renovação = nova oportunidade -> nova apólice (renovada_de_id, N:1).
+//   D9.  Menção em nota = atividade_mencoes (normalizada); nota fixada = fixada_em.
+//   D10. Vida em Grupo em UM nível de cobertura; Global = item-grupo, PME = vidas
+//        averbadas; apolice_coberturas ("plano" no contrato) REJEITADA.
+//   D11. Comissão (receita) × Repasse (despesa): duas agendas, duas tabelas;
+//        produtores reintroduzida; recebimento_grades(+parcelas) + repasse_regras;
+//        hierarquia genérica tipo Quiver REJEITADA.
+//   D12. Grupo × Corretoras: tenant = grupo, filial = corretora. Cadastros
+//        SEPARADOS por corretora; cpf_cnpj único POR FILIAL; profile_filiais
+//        (papel por corretora). Identidade compartilhada REJEITADA.
+//   D13. Identidade do risco × histórico de cobertura: item ancorado na apólice;
+//        proposta_itens REJEITADA; valor versiona em item_coberturas (excluir +
+//        incluir, nunca UPDATE destrutivo).
+//   D14. Pós-venda É MÓDULO: 1 entidade_tipo + N pipelines. entidade_tipo CONGELADO.
+//   D15. atividades × audit_logs NÃO se fundem; vw_timeline une na LEITURA.
+//   D16. Campos personalizados = EAV TIPADO (4 tabelas; zero JSON/array).
+//   D17. MULTI-CÁLCULO (pendência 8 RESOLVIDA; fronteira revisada por D23).
+//   D18. PERFIS DE ACESSO CADASTRÁVEIS (v1.1): papel deixa de ser enum app_role
+//        fixo e vira tabela `perfis` (pré-configurados `sistema` master/gestor/
+//        produtor/operador + personalizados por grupo). role_permissions e
+//        profile_filiais passam a referenciar perfil_id (FK). AUTORIA (CRUD de
+//        perfis + permissões) = FRONTEND; APLICAÇÃO (resolução em runtime + RLS)
+//        = BACKEND. Enum app_role rígido REJEITADO.
+//        O PAPEL GLOBAL por usuário (user_roles legado do front) é APOSENTADO: a
+//        permissão de NEGÓCIO vem só do perfil por corretora (profile_filiais);
+//        eventual papel de IDENTIDADE do provedor de auth é da camada de
+//        identidade, não do RBAC de negócio.
+//   D19. EXTRATO E CONCILIAÇÃO SECURITÁRIA: extrato, itens, associações e
+//        ocorrências ficam normalizados. Item × comissão é N:N por entidade
+//        associativa; conciliar não baixa. Idempotência existe nos três níveis.
+//   D20. BAIXA DE COMISSÃO: baixa e estorno são eventos imutáveis; a comissão
+//        pode receber N baixas parciais. Cada evento pode consumir N conciliações
+//        confirmadas por ponte explícita. Estorno é evento compensatório e fica
+//        bloqueado quando houver repasse PAGO vinculado.
+//   D21. RECIBO DE REPASSE: o pagamento integral é reconhecido somente pela
+//        emissão de recibo persistente. O recibo agrupa uma filial, beneficiário
+//        e sentido; seus itens congelam os dados impressos. Cancelar preserva o
+//        histórico e devolve os repasses a LIBERADO. Exportação não baixa.
+//   D22. COBRANÇA SECURITÁRIA: nasce de parcela efetivamente vencida e admite
+//        no máximo uma linha ATIVA por parcela. Stage representa andamento;
+//        status representa ATIVA | QUITADA | CANCELADA. Quitar exige parcela
+//        paga; cancelar exige motivo; reabrir exige nova elegibilidade.
+//        oportunidade_id, pipeline_id e metadata foram rejeitados.
+//   D23. PEDIDO × EXECUÇÃO × RESULTADO × APRESENTAÇÃO: calculos/calc_* e
+//        calculo_coberturas guardam o pedido comum; calculo_execucoes registra
+//        tentativas por seguradora; cotacoes e suas filhas guardam o retorno;
+//        apresentacoes_comerciais e itens preservam o recorte mostrado ao
+//        cliente. Retry e mudança de pedido criam fatos novos. Sobrescrita de
+//        histórico, orcamentos genéricos e JSON de negócio foram REJEITADOS.
+//
+// ----------------------------------------------------------------------------
+// D17 + D23 — MULTI-CÁLCULO E FRONTEIRA DE AUTORIA:
+//   Há agora ARMAZENAMENTO ESTRUTURADO do risco COTADO. O estado interino
+//   ("sem estrutura, no máximo o nome da oportunidade") cai porque o W.Assis terá
+//   multi-cálculo PRÓPRIO; a Agger (Aggilizador de Cálculos) é (a) referência dos
+//   campos [PDF de integração = especificação v1], (b) motor inicial e (c)
+//   fallback futuro. Forma: oportunidade -> N calculos (VERSÕES do pedido) ->
+//   N calculo_execucoes (TENTATIVAS por seguradora) -> 0..1 cotacao por execução.
+//   A oportunidade admite zero cálculos e seu Kanban não depende deste domínio.
+//   Especialização do risco cotado por CTI (calc_*, PK=FK), ESPELHANDO o padrão
+//   do item (item_*); calculo_coberturas registra apenas limites e preferências.
+//   COTADO != EMITIDO preservado: calc_* são tabelas SEPARADAS de item_* (não
+//     compartilham linha). De-para calc_* -> item_* no ganho (fase 2).
+//   "Cotar em nome de" (marido/esposa/filho) = segurado_id POR CÁLCULO (refina a
+//     diretriz original que falava em trocar na oportunidade — vários cotados
+//     coexistem sob a mesma oportunidade).
+//   % de comissão = DEFAULT no cálculo e SNAPSHOT aplicado na execução; NÃO
+//     encosta em recebimento_grades.
+//   Coberturas/franquias/parcelamentos DEVOLVIDOS vivem sob cotacoes. A
+//     apresentação comercial apenas seleciona resultados e nunca os altera.
+//   NÃO vira Single Table (tabelão de formulário com campos de todo ramo nulos —
+//     rejeitado por princípio). Códigos de fio da Agger (Sexo="1", Combustivel="1",
+//     Profissao="342") NÃO vazam crus pro schema: gravar o significado normalizado
+//     do W.Assis; traduzir W.Assis <-> Agger só no adaptador (payload cru -> log).
+//   entidade_tipo CONGELADO permanece intacto: calculo, calculo_execucao e
+//     apresentacao_comercial NÃO entram por ora. As guias transversais da fase
+//     comercial seguem em oportunidade/cotacao.
+//
+// ----------------------------------------------------------------------------
+// NOMENCLATURA OFICIAL:
+//   GRUPO    = a organização (cliente do SaaS) = tenant.
+//   CORRETORA= a unidade com CNPJ próprio dentro do grupo = filial.
+//   CÁLCULO  = snapshot do pedido comum. N por oportunidade.
+//   EXECUÇÃO = tentativa por seguradora, com comissão e estado próprios.
+//   COTAÇÃO  = resultado de UMA execução concluída. Vira proposta quando aprovada.
+//   APRESENTAÇÃO = seleção ordenada de cotações para o cliente; não altera resultado.
+//   PROPOSTA = documento transmitido à / emitido pela seguradora.  N por contrato.
+//              tipos: NOVA | RENOVACAO | ENDOSSO | CANCELAMENTO | FATURA
+//   APÓLICE  = o contrato em si. 1 linha por vigência (contêiner).
+//   COMISSÃO = RECEITA: o que a corretora recebe da seguradora.
+//   REPASSE  = DESPESA: o que a corretora paga a produtores/gerentes.
+//              Nunca usar "comissão" para o valor pago ao produtor.
+//
+// ----------------------------------------------------------------------------
+// REGRAS DE MODELAGEM
+//  R1. tenant_id só permanece onde NÃO existe caminho obrigatório (not null)
+//      até o tenant por outra FK. Nas demais, deriva do "pai".
+//  R2. pipeline_id não existe nos processos — deriva de stage_id.
+//  R3. FKs-atalho removidas quando o caminho longo é garantido por FKs not null.
+//  R4. FKs genéricas de auditoria (created_by, uploaded_by) ficam fora do
+//      esqueleto; autoria operacional exigida pelo ciclo de negócio pode ter FK
+//      explícita (ex.: recebido/processado/confirmado/resolvido por em D19).
+//  R5. anexos / atividades / campo_valores usam referência polimórfica
+//      (entidade_tipo + entidade_id).
+//  R6. filial_id segue a mesma regra do tenant_id (R1): só nas raízes. A CORRETORA
+//      (filial) é a unidade de isolamento; cadastros, apólices e produção são
+//      por corretora. A mesma pessoa em duas corretoras = dois registros.
+//  R7. CONTRATO × DOCUMENTO: o que é do contrato aponta para apolices (itens,
+//      sinistros, pós-venda, renovada_de); o que é do documento aponta para
+//      propostas (parcelas, COMISSÕES e REPASSES — cada um com agenda própria —,
+//      stage de tramitação, cotação de origem). O contrato nunca migra de
+//      tabela: "virar apólice" é UPDATE.
+//
+// [not null] marcado APENAS nas FKs que sustentam derivações (R1/R2/R6).
+//
+// ----------------------------------------------------------------------------
+// VARIAÇÃO DE DADOS POR SUB-TIPO (três mecanismos) — método de modelagem:
+//  Quando os dados variam DENTRO de um módulo conforme um discriminador (ramo
+//  na oportunidade/cálculo, risk_type no sinistro, processo no pós-venda):
+//   (1) muitos atributos próprios e estáveis  -> ESPECIALIZAÇÃO (CTI, PK=FK).
+//   (2) poucos campos que só valem p/ alguns   -> COLUNA NA PAI + visibilidade
+//                                                  condicional no front.
+//   (3) schema desconhecido / por corretora    -> CAMPOS PERSONALIZADOS (EAV
+//                                                  tipado — decisão 16).
+//  NUNCA Single Table (colunas perenemente nulas).
+//
+// ----------------------------------------------------------------------------
+// PREMISSAS (decididas em conversa):
+//  - GRUPO × CORRETORAS: o tenant é o grupo; cada corretora (CNPJ próprio) é uma
+//    filial. Corretora única = caso trivial (1 filial; nenhum cruzamento dispara).
+//  - CADASTROS SEPARADOS: a mesma pessoa tem um registro por corretora. A B não
+//    lê o cadastro da A (isolamento por estrutura + RLS). Ao digitar o CPF, a B
+//    só reconhece a IDENTIDADE pública e é avisada do vínculo cruzado — sem ver
+//    conteúdo.
+//  - USUÁRIO MULTI-CORRETORA: profile_filiais (M:N) define em quais corretoras o
+//    usuário atua e com qual papel em CADA uma (papel não é mais global).
+//  - Oportunidade nasce sem segurado (é o lead, com nome genérico) e ganha
+//    segurado_id na qualificação. Origem rastreada na oportunidade.
+//  - MULTI-CÁLCULO (D17/D23): a oportunidade admite 0..N cálculos. Cada cálculo
+//    registra um pedido comum e gera N execuções por seguradora; cada execução
+//    materializa no máximo uma cotação. A aprovada vira proposta por
+//    propostas.cotacao_id UNIQUE. O Kanban independe de cálculos.
+//  - Na transmissão nasce a "casca" do contrato: apolices.status = EM_EMISSAO,
+//    numero_apolice ainda nulo. Emissão = UPDATE (número/vigência, status VIGENTE).
+//    Recusa = stage Recusada + apolices.status RECUSADA (histórico preservado).
+//  - Renovação = nova oportunidade (apolice_origem_id) -> nova apólice
+//    (renovada_de_id); a antiga vira RENOVADA. Não renovou: NAO_RENOVADA.
+//  - Ramos faturáveis (transporte, vida em grupo PME, saúde): fatura mensal é
+//    proposta tipo FATURA com suas próprias parcelas.
+//  - Vida em Grupo: GLOBAL = 1 item por GRUPO (pessoa_id NULL, n_vidas; ajuste de
+//    capital = ENDOSSO no item-grupo). PME = 1 item por VIDA averbada (movimentação
+//    mensal via FATURA). Coberturas SEMPRE em item_coberturas.
+//  - COMISSÃO tem agenda PRÓPRIA por proposta (não espelha a grade do cliente).
+//    parcela_id em comissoes é só conciliação. REPASSE gerado por regra (snapshot
+//    na emissão) ou manual (co-produção). Gerente é atributo da CARTEIRA.
+//  - Grade/regra são MOLDES; comissoes/repasses são FATOS (mudar o molde depois
+//    não reescreve história). Mesmo padrão sustenta item_coberturas (D13).
+//  - PÓS-VENDA é MÓDULO (D14): 1 entidade_tipo + N pipelines.
+//  - CAMPOS PERSONALIZADOS (D16): EAV TIPADO, definido por módulo (entidade_tipo)
+//    em Configurações; preenchido na guia do registro.
+//  - TIMELINE (D15): atividades + audit_logs NÃO se fundem; vw_timeline une na
+//    leitura (default atividades; toggle mostra logs). Tudo visível.
+//  - pessoa_contato sempre pertence a uma PJ.
+//
+//  ADIADO POR DESIGN (não é buraco — é escopo de fases seguintes; tudo ADITIVO):
+//    novas especializações sinistro_auto/_vida; pos_venda_implantacao +
+//    pipelines de fábrica;
+//    de-para cotado×emitido + ingestão do documento que alimenta a proposta;
+//    FASE 2 inteira (RLS, re-desnormalização + travas filho==pai, triggers,
+//    FKs de auditoria, funções de escrita).
+// ============================================================================
+
+Project wassis_erp_esqueleto {
+  database_type: 'PostgreSQL'
+}
+
+// ============================================================================
+// PLATAFORMA
+//  tenant = GRUPO/ORGANIZAÇÃO (cliente do SaaS).
+//  filial = CORRETORA (CNPJ próprio). matriz_id agrupa corretoras por marca.
+// ============================================================================
+
+Table tenants {
+  id uuid [pk]
+  // o GRUPO / organização. Consolidações "de grupo" são views por cima das
+  // corretoras (ex.: clientes únicos = group by cpf_cnpj normalizado).
+  razao_social text
+  nome_fantasia text
+  cnpj_cpf text
+  slug text
+  email text
+  telefone text
+  celular text
+  home_page text
+  cep text
+  endereco text
+  numero text
+  complemento text
+  bairro text
+  cidade text
+  uf text
+  pais text
+  timezone text
+  moeda_padrao text
+  status text
+  ativo boolean
+  criado_em timestamptz
+  atualizado_em timestamptz
+}
+
+Table filiais {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]
+  matriz_id uuid [ref: > filiais.id] // matriz -> filial. INVARIANTE (v1.1, regra de
+                                     // negócio aplicada no front + esperada no backend):
+                                     // no máx. UMA matriz por tenant (matriz_id NULL); as
+                                     // demais filiais apontam para ela. Sem cadeias/ciclos
+                                     // (a 1ª corretora é a matriz; as demais, filiais dela).
+  // É a CORRETORA. Unidade de ISOLAMENTO (LGPD + carteira + produção).
+  // colunas de negócio (v1.1 — levantadas ao desenhar a tela Corretoras/Filiais):
+  razao_social text
+  fantasia text                  // marca exibida (rótulo do seletor de corretora ativa)
+  cnpj_cpf text                  // PF ou PJ: há corretores pessoa física. Normalizado
+                                 // (só dígitos). REFINA a D12 ("CNPJ próprio"): aceita CPF.
+  susep text                     // registro SUSEP da corretora
+  percentual_imposto numeric     // (5,2) imposto padrão da corretora
+  lgpd_aceito boolean            // aceite dos termos LGPD/contrato do SaaS PELA corretora
+  lgpd_aceito_em timestamptz     // data do aceite (≠ segurados.lgpd_autorizado, do cliente)
+  gerente text                   // legado/texto livre; compat para dados antigos
+  gerente_id uuid [ref: > produtores.id] // 0.2: gerente preferencial da corretora
+  contato text                   // pessoa de contato (texto livre por ora)
+  home_page text
+  email text
+  telefone text
+  celular text
+  telefone2 text
+  inscricao_estadual text
+  inscricao_municipal text
+  regime_tributario text
+  percentual_iss numeric
+  codigo_corretora text
+  codigo_externo text
+  municipio_ibge text
+  pais text
+  horario_atendimento text
+  observacoes text
+  cep text
+  endereco text
+  numero text
+  complemento text
+  bairro text
+  cidade text
+  uf text                        // CHAR(2)
+  ativo boolean                  // soft-disable
+  Indexes {
+    (tenant_id, cnpj_cpf) [unique] // a corretora não se repete no grupo; cnpj_cpf
+                                   // normalizado (CPF ou CNPJ).
+  }
+}
+
+Table profiles {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id] // usuário pertence ao GRUPO
+  // filial_id NÃO existe aqui (D12). As corretoras que o usuário acessa (e o papel
+  // em cada) ficam em profile_filiais (M:N). A "corretora casa" = .principal.
+  nome_completo text
+  email text
+  telefone text
+  celular text
+  cargo text
+  departamento text
+  avatar_url text
+  status text
+  ativo boolean
+  ultimo_acesso_em timestamptz
+  convite_status text
+  convite_enviado_em timestamptz
+}
+
+Table perfis {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id] // catálogo do GRUPO (R1)
+  // D18 (v1.1): perfil de ACESSO CADASTRÁVEL — substitui o enum app_role fixo.
+  nome text                    // rótulo exibido, ex.: Master, Gestor, Financeiro
+  descricao text
+  sistema boolean              // pré-configurado; não deletável; pode ser clonado
+  nivel_acesso text            // MASTER | GESTOR | OPERACIONAL | CONSULTA...
+  ordem integer
+  ativo boolean                // soft-disable
+}
+
+Table profile_filiais {
+  id uuid [pk]
+  profile_id uuid [not null, ref: > profiles.id] // tenant via profile (R1)
+  filial_id uuid [not null, ref: > filiais.id]   // corretora que o usuário acessa
+  perfil_id uuid [not null, ref: > perfis.id]    // D18 (v1.1): era enum `papel`;
+                                                 // agora FK -> perfis (PERFIL POR CORRETORA).
+  // colunas de negócio:
+  principal boolean            // corretora casa/default do usuário
+  ativo boolean
+  data_inicio date
+  data_fim date
+  // D12 (pendências 4 [MULTI] + 9): usuário em N corretoras, PERFIL POR CORRETORA.
+  // O master concede acesso corretora a corretora. UNIQUE(profile_id, filial_id).
+}
+
+Table role_permissions {
+  id uuid [pk]
+  perfil_id uuid [not null, ref: > perfis.id] // D18 (v1.1): era relação por enum
+                                              // app_role (sem FK); agora FK -> perfis.
+  // O QUE cada PERFIL pode fazer (por módulo). QUEM tem o perfil (e em qual
+  // corretora) está em profile_filiais.
+  modulo text                  // entidade_tipo/módulo
+  escopo text                  // GRUPO | CORRETORA | PROPRIO, regra de aplicação
+  can_read boolean
+  can_create boolean
+  can_update boolean
+  can_delete boolean
+  can_export boolean
+  can_manage boolean
+}
+
+// ============================================================================
+// CADASTROS
+//  Catálogos no nível do TENANT/GRUPO (compartilhados entre corretoras).
+//  Quem é POR CORRETORA: segurados (cadastro/carteira) e oportunidades (comercial).
+// ============================================================================
+
+Table produtores {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]
+  profile_id uuid [ref: > profiles.id] // preenchido = produtor é usuário interno;
+                                       // NULL = produtor EXTERNO (sem login).
+  // Realinha com o PRD de cadastro (tabela "produtor" exercendo ambos os papéis
+  // pelo contexto do vínculo). Catálogo do grupo: um produtor pode ser
+  // referenciado por registros de mais de uma corretora.
+  nome text
+  cpf_cnpj text                  // CPF/CNPJ normalizado; opcional para parceiro sem doc
+  tipo_pessoa text               // PF | PJ
+  nome_fantasia text
+  rg_ie text
+  susep text                     // registro/código SUSEP do produtor quando houver
+  categoria_operacional text     // produtor, preposto, vendedor, angariador, colaborador...
+                                 // não define papel no negócio; papel vem do vínculo/regra
+  data_nascimento date
+  email text
+  telefone text
+  celular text
+  telefone2 text
+  cep text
+  endereco text
+  numero text
+  complemento text
+  bairro text
+  cidade text
+  uf text
+  pais text
+  banco text
+  agencia text
+  conta text
+  tipo_conta text
+  chave_pix text
+  favorecido_nome text
+  favorecido_cpf_cnpj text
+  descontar_imposto boolean
+  percentual_imposto numeric
+  percentual_repasse_padrao numeric // default operacional; regras da fase 4 vencem
+  observacoes text
+  ativo boolean                  // soft-disable; histórico preserva FK
+  // UNIQUE(profile_id) quando profile_id IS NOT NULL.
+  // Gerente NÃO é coluna aqui: gerente é papel no vínculo (segurados.gerente_id)
+  // e na regra de repasse (papel = GERENTE).
+}
+
+Table segurados {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]
+  filial_id uuid [not null, ref: > filiais.id]  // CORRETORA dona do cadastro (R6).
+                                                 // A mesma pessoa em outra corretora
+                                                 // = OUTRO registro (cadastros
+                                                 // separados, isolamento LGPD).
+  produtor_id uuid [ref: > produtores.id] // dono da carteira nesta corretora
+  gerente_id uuid [ref: > produtores.id]  // gerente da carteira nesta corretora
+                                          // (atributo da carteira, nunca do negócio)
+  // Entidade unificada PF/PJ do PRD. status inclui Prospecto (ex-lead) ->
+  // Ativo -> Inativo, POR CORRETORA (a pessoa pode ser Ativo na A e Prospecto na B,
+  // pois são registros distintos).
+  // cpf_cnpj: armazenado NORMALIZADO (só dígitos); obrigatório quando
+  //   status != Prospecto.
+  // RECONCILIADO com o PRD (v1.1, 19/06/2026): unicidade POR CORRETORA (não global).
+  cpf_cnpj text // normalizado (só dígitos); obrigatório quando status != Prospecto.
+                // ESTRUTURAL: participa do UNIQUE da decisão 12 (não é só "de negócio").
+  // Campos já implementados no front/database.ts em 04/07/2026.
+  // Mantêm a nomenclatura atual do front para evitar falso retrabalho.
+  tipo text                      // PF | PJ
+  nome text
+  nome_fantasia text
+  status text                    // Prospecto | Ativo | Inativo
+  lgpd_autorizado boolean
+  email text
+  telefone text
+  chatwoot_id text
+  cep text
+  logradouro text                // endereço estruturado usado pelo front
+  endereco text                  // campo legado/compatível ainda presente em database.ts
+  numero text
+  complemento text
+  bairro text
+  cidade text
+  estado text                    // UF no front/database.ts
+  data_nascimento date
+  sexo text
+  estado_civil text
+  cnae text
+  porte text
+  site text
+  observacoes text
+  created_at timestamptz
+  updated_at timestamptz
+  // Adições propostas v2.0 ainda não implementadas no front/database.ts.
+  nome_social text
+  rg_ie text
+  inscricao_municipal text
+  atividade_economica text
+  profissao text
+  renda_mensal numeric
+  cnh_numero text
+  cnh_categoria text
+  cnh_vencimento date
+  celular text
+  telefone2 text
+  whatsapp text
+  pais text
+  lgpd_autorizado_em timestamptz
+  origem_importacao text
+  Indexes {
+    (filial_id, cpf_cnpj) [unique] // mesma pessoa NÃO se repete dentro da corretora;
+                                   // repete ENTRE corretoras (proposital).
+    cpf_cnpj                       // índice p/ o match da notificação cruzada
+                                   // (função de backend cruza por cpf normalizado
+                                   //  entre filiais do MESMO tenant; devolve só o
+                                   //  FATO do vínculo, nunca o conteúdo da outra
+                                   //  corretora — nível parametrizável, default mínimo).
+  }
+}
+
+Table pessoa_contato {
+  id uuid [pk]
+  pj_id uuid [not null, ref: > segurados.id] // âncora: contato pertence à PJ (R1/R6)
+  pf_id uuid [ref: > segurados.id]           // opcional: contato que também é cadastro PF
+  // PJ e PF são da MESMA corretora (cadastros são por corretora).
+  // Front atual implementa o vínculo essencial (pj_id, pf_id, cargo, principal)
+  // e resolve nome/contato por join com segurados. Os campos abaixo enriquecem
+  // o contato empresarial para operação futura; tenant_id deriva da PJ.
+  nome text
+  cargo text
+  departamento text
+  email text
+  telefone text
+  celular text
+  principal boolean
+  ativo boolean
+  observacoes text
+}
+
+Table seguradoras {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id] // compartilhada entre corretoras
+  nome text
+  nome_curto text
+  cnpj text
+  codigo_susep text
+  codigo_interno text
+  site text
+  portal_url text
+  telefone_sac text
+  telefone_assistencia text
+  email text
+  aceita_importacao_pdf boolean
+  aceita_busca_automatica boolean
+  ativo boolean
+  observacoes text
+}
+
+Table ramos {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id] // compartilhado entre corretoras
+  // carrega risk_type (enum fixo no código) -> define a especialização dos itens
+  // E da fase comercial (calc_*); e atributos operacionais (is_monthly p/ ramos
+  // faturáveis, grupo, etc.).
+  // Vida em Grupo = DOIS ramos: "Global" e "PME" (ambos risk_type VIDA;
+  // PME com is_monthly = true). A mecânica difere na granularidade do item.
+  nome text
+  codigo_susep text
+  risk_type text
+  grupo_operacional text
+  forma_calculo text             // AUTO | RESIDENCIA | CONDOMINIO | VIDA | EMPRESA | DIVERSOS
+  is_monthly boolean
+  renovavel boolean
+  permite_endosso boolean
+  exige_item boolean
+  exige_coberturas boolean
+  ordem integer
+  ativo boolean
+  observacoes text
+}
+
+Table endosso_subtipos {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]
+  filial_id uuid [ref: > filiais.id]
+  ramo_id uuid [ref: > ramos.id]
+  nome text
+  natureza_canonica text       // ALTERACAO_DADOS | INCLUSAO_ITEM | EXCLUSAO_ITEM |
+                               // SUBSTITUICAO_ITEM | ALTERACAO_COBERTURA |
+                               // ALTERACAO_IMPORTANCIA_SEGURADA | ALTERACAO_CLAUSULA
+  ordem integer
+  ativo boolean
+  observacoes text
+}
+
+Table cancelamento_motivos {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]
+  filial_id uuid [ref: > filiais.id]
+  ramo_id uuid [ref: > ramos.id]
+  nome text
+  ordem integer
+  ativo boolean
+  observacoes text
+}
+
+Table origens {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]
+  nome text
+  tipo text                      // indicação, campanha, site, renovação, importação...
+  ordem integer
+  ativo boolean
+}
+
+Table motivos_perda {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]
+  nome text
+  categoria text                 // preço, cobertura, concorrência, desistência...
+  ordem integer
+  ativo boolean
+}
+
+Table coberturas_catalogo {
+  id uuid [pk]
+  ramo_id uuid [not null, ref: > ramos.id] // tenant via ramo (R1)
+  // "o que EXISTE para vender" por ramo. Consumido tanto na cotação
+  // (calculo_coberturas) quanto no contrato (item_coberturas).
+  codigo text
+  codigo_susep text
+  nome text
+  descricao text
+  tipo_cobertura text            // basica | adicional | assistencia | servico
+  caracteristica text            // massificado | microsseguro | grandes_riscos
+  tipo_risco text                // pessoas | danos
+  modalidade text                // regular | intermitente | parametrica | capital_global
+  capital_lmi_padrao numeric
+  franquia_padrao numeric
+  carencia_dias integer
+  obrigatoria boolean
+  ordem integer
+  ativo boolean
+}
+
+// ============================================================================
+// KANBAN (processos)
+//  Stages usados por: oportunidades, propostas, sinistros, pos_vendas,
+//  financeiro_cobrancas.
+//  pipelines.filial_id NULLABLE (D12): preenchido = funil DAQUELA corretora;
+//  NULL = modelo padrão do grupo, reaproveitável.
+//  D14: pós-venda usa N pipelines distintos (1 por processo).
+// ============================================================================
+
+Table pipelines {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]
+  filial_id uuid [ref: > filiais.id] // NULL = modelo padrão do grupo;
+                                     // preenchido = funil próprio da corretora.
+  nome text
+  entidade_tipo text             // oportunidade | proposta | sinistro | pos_venda | cobranca...
+  descricao text
+  modelo_fabrica boolean
+  permite_customizacao boolean
+  ordem integer
+  ativo boolean
+}
+
+Table pipeline_stages {
+  id uuid [pk]
+  pipeline_id uuid [not null, ref: > pipelines.id] // tenant via pipeline (R1)
+  nome text
+  codigo text
+  tipo_stage text               // ABERTO | GANHO | PERDIDO | CONCLUIDO | CANCELADO
+  cor text
+  ordem integer
+  probabilidade numeric
+  sla_dias integer
+  finaliza_com_sucesso boolean
+  finaliza_com_perda boolean
+  ativo boolean
+}
+
+// ============================================================================
+// DOMÍNIO COMERCIAL — MULTI-CÁLCULO (D17 revisada por D23)
+//  oportunidade -> N calculos (PEDIDOS) -> N calculo_execucoes (TENTATIVAS) ->
+//  0..1 cotacao por execução (RESULTADO) -> N apresentações comerciais.
+//  calc_* ESPELHA o padrão de CTI do item (item_*), mas é FATO PRÓPRIO da fase
+//  comercial: tabelas SEPARADAS das item_* (cotado != emitido — preserva o de-para
+//  no ganho). Motor e referência externa pertencem à execução, nunca ao pedido.
+// ============================================================================
+
+Table oportunidades {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]   // RAIZ: lead pode nascer "solto" (R1)
+  filial_id uuid [not null, ref: > filiais.id]   // CORRETORA por onde o negócio entra (R6)
+  segurado_id uuid [ref: > segurados.id]         // NULL = lead (nome genérico + contato
+                                                 // mínimo); preenchido na qualificação.
+                                                 // É o CLIENTE da tentativa de venda.
+                                                 // "Cotar em nome de" (outro condutor/
+                                                 // titular) NÃO troca aqui — é por
+                                                 // CÁLCULO (calculos.segurado_id, D17).
+  ramo_id uuid [ref: > ramos.id]
+  origem_id uuid [ref: > origens.id]             // origem rastreada AQUI
+  apolice_origem_id uuid [ref: > apolices.id]    // renovação: qual contrato renova
+  responsavel_id uuid [ref: > profiles.id]
+  stage_id uuid [not null, ref: > pipeline_stages.id] // pipeline via stage (R2)
+  motivo_perda_id uuid [ref: > motivos_perda.id]
+  // Agenciamento visível só p/ ramo ∈ {saúde, vida...} = mecanismo (2) da árvore
+  // de três mecanismos (flag de visibilidade no front, não estrutura nova).
+  lead_nome text
+  lead_documento text
+  lead_email text
+  lead_telefone text
+  titulo text
+  descricao text
+  prioridade text
+  valor_premio_estimado numeric
+  valor_comissao_estimada numeric
+  comissao_estimada_pct numeric
+  agenciamento_pct numeric
+  data_abertura date
+  data_fechamento_prevista date
+  ganha_em timestamptz
+  perdida_em timestamptz
+  motivo_perda_observacao text
+  campanha text
+  observacoes text
+}
+
+Table calculos {
+  id uuid [pk]
+  oportunidade_id uuid [not null, ref: > oportunidades.id] // tenant+filial via oportunidade
+  ramo_id uuid [not null, ref: > ramos.id]   // risk_type + forma de cálculo -> escolhe a
+                                             // calc_* (forma = conjunto FIXO no código,
+                                             // espelha o CalculationType da Agger:
+                                             // Auto|Residência|Condomínio|Vida|Empresa|Diversos)
+  segurado_id uuid [ref: > segurados.id]     // QUEM está sendo cotado NESTA versão
+                                             // (João / Maria...); NULL = ainda lead.
+                                             // "Cotar em nome de" troca AQUI (D17) —
+                                             // vários cotados coexistem na mesma
+                                             // oportunidade.
+  seguradora_anterior_id uuid [ref: > seguradoras.id] // bloco "Seguro" (renovação)
+  // D23: snapshot do PEDIDO COMUM. Motor, referência externa, comissão aplicada,
+  // status, pendência e erro pertencem à execução por seguradora.
+  origem text                    // MANUAL | ASSISTIDA | IMPORTADA
+  comissao_sugerida_pct numeric
+  rotulo_versao text
+  tipo_seguro text               // NOVO | RENOVACAO_PROPRIA | RENOVACAO_OUTRA
+  bonus integer                  // 0..10; zero = sem bônus
+  qtd_sinistros integer
+  qtd_sinistros_perda_parcial integer
+  transferiu_titularidade boolean
+  vigencia_inicio date
+  vigencia_fim date
+  vigencia_fim_anterior date
+  numero_apolice_anterior text
+  codigo_identificacao_anterior text
+  status_apolice_anterior text
+  nota_interna text              // nunca transmitida à seguradora
+  criado_em timestamptz
+  // D17+D23: 1 linha por versão do pedido. Alterar risco, coberturas solicitadas,
+  // segurado, vigência ou comissão sugerida cria novo cálculo. Kanban não depende
+  // desta linha. Campos do ramo vivem em calc_* (CTI), nunca em JSON.
+}
+
+// ---- Especialização do risco COTADO (CTI, PK=FK) — objeto + questionário juntos ----
+//  Discriminador = forma de cálculo do ramo (mais fina que risk_type: Residência,
+//  Condomínio e Empresarial são formulários distintos NO CÁLCULO, ainda que o
+//  contrato os colapse em item_imovel/item_empresa). tenant+filial via calculo (R1).
+//  Campos codificados (combustível, profissão, franquia, atividade...) entram como
+//  "colunas de negócio" e viram FK p/ catálogo OU escalar NA IMPLEMENTAÇÃO
+//  (cargo do backend; não trava o esqueleto). Significado normalizado do W.Assis,
+//  nunca o código cru da Agger (D17).
+
+Table calc_auto {
+  calculo_id uuid [pk, ref: - calculos.id]
+  // veículo (FIPE: codigo/marca/modelo, placa, chassi, renavam, ano fab/modelo,
+  //   zero_km, combustivel, blindado, alienado, rastreador, antifurto, kit_gas,
+  //   cep_pernoite) + CONDUTOR principal (outro condutor = NOVA versão/cálculo) +
+  //   questionário (carro/moto/caminhão: uso, garagem, km mensal, profissão...).
+  codigo_fipe text
+  marca text
+  modelo text
+  versao text
+  ano_fabricacao integer
+  ano_modelo integer
+  placa text
+  chassi text
+  chassi_remarcado boolean // v3.1: desconhecido = NULL.
+  renavam text
+  zero_km boolean
+  combustivel text
+  cambio text
+  categoria text
+  tipo_veiculo text
+  uso text
+  cep_pernoite text
+  possui_garagem_residencia boolean
+  possui_garagem_trabalho boolean
+  possui_garagem_estudo boolean
+  km_mensal integer
+  blindado boolean
+  alienado boolean
+  rastreador boolean
+  antifurto boolean
+  kit_gas boolean
+  condutor_nome text
+  condutor_cpf text
+  condutor_data_nascimento date
+  condutor_sexo text
+  condutor_estado_civil text
+  condutor_profissao text
+  condutor_reside_com_segurado boolean
+  condutor_tempo_habilitacao integer
+}
+Table calc_residencia {
+  calculo_id uuid [pk, ref: - calculos.id]
+  // imóvel (endereço, tipo de ocupação/moradia/construção) + questionário
+  //   (proprietário, desocupado, área de risco, condomínio fechado...).
+  cep text
+  endereco text
+  numero text
+  complemento text
+  bairro text
+  cidade text
+  uf text
+  tipo_imovel text
+  tipo_ocupacao text
+  tipo_construcao text
+  area_m2 numeric
+  valor_imovel numeric
+  proprietario boolean
+  desocupado boolean
+  condominio_fechado boolean
+  area_de_risco boolean
+  possui_alarme boolean
+  possui_monitoramento boolean
+  possui_portao_eletronico boolean
+}
+Table calc_condominio {
+  calculo_id uuid [pk, ref: - calculos.id]
+  // endereço + questionário (ocupação, estrutura, área construída, blocos,
+  //   elevadores, pavimentos, unidades, equipamento de segurança...).
+  nome_condominio text
+  cep text
+  endereco text
+  numero text
+  complemento text
+  bairro text
+  cidade text
+  uf text
+  tipo_condominio text
+  area_total_m2 numeric
+  qtd_blocos integer
+  qtd_pavimentos integer
+  qtd_unidades integer
+  qtd_elevadores integer
+  possui_portaria_24h boolean
+  possui_sprinklers boolean
+  possui_extintores boolean
+  possui_para_raios boolean
+  possui_garagem boolean
+}
+Table calc_vida {
+  calculo_id uuid [pk, ref: - calculos.id]
+  // questionário (peso, altura, renda mensal, fumante, esporte, profissão).
+  sexo text
+  data_nascimento date
+  altura_cm integer
+  peso_kg numeric
+  renda_mensal numeric
+  profissao text
+  fumante boolean
+  pratica_esporte_risco boolean
+  possui_doenca_preexistente boolean
+  usa_medicamento_continuo boolean
+  capital_desejado numeric
+  beneficiarios_texto text
+}
+Table calc_empresa {
+  calculo_id uuid [pk, ref: - calculos.id]
+  // endereço + questionário (atividade, construção, localização, equipamentos
+  //   de segurança/incêndio, pavimento, depósito...).
+  cnpj text
+  razao_social text
+  atividade text
+  cnae text
+  faturamento_anual numeric
+  cep text
+  endereco text
+  numero text
+  complemento text
+  bairro text
+  cidade text
+  uf text
+  tipo_construcao text
+  area_m2 numeric
+  qtd_funcionarios integer
+  possui_extintores boolean
+  possui_alarme boolean
+  possui_sprinklers boolean
+  possui_inflamaveis boolean
+  valor_estoque numeric
+  valor_equipamentos numeric
+}
+Table calc_diversos {
+  calculo_id uuid [pk, ref: - calculos.id]
+  // mínimo (a forma "Diversos" da Agger só tem segurado) — placeholder p/ ramos
+  // genéricos sem formulário estruturado próprio.
+  categoria text
+  descricao_risco text
+  valor_declarado numeric
+  observacoes text
+}
+
+// ---- Preferências de cobertura do PEDIDO COMUM ----
+//  SEM incluido/excluido_por_proposta_id: não há proposta na fase de cotação; a
+//  "versão" de cobertura é um NOVO calculo, não soft-exclude na linha (≠ D13).
+
+Table calculo_coberturas {
+  id uuid [pk]
+  calculo_id uuid [not null, ref: > calculos.id]   // tenant+filial via calculo (R1)
+  cobertura_id uuid [not null, ref: > coberturas_catalogo.id]
+  selecionada boolean
+  limite_solicitado numeric
+  percentual_fipe_solicitado numeric
+  franquia_tipo_solicitado text
+  opcao_solicitada text
+  quantidade_solicitada integer
+  observacao_transmitida text
+
+  indexes {
+    (calculo_id, cobertura_id) [unique]
+  }
+}
+
+// ---- Execução por seguradora ----
+
+Table calculo_execucoes {
+  id uuid [pk]
+  calculo_id uuid [not null, ref: > calculos.id]
+  seguradora_id uuid [not null, ref: > seguradoras.id]
+  reexecucao_de_id uuid [ref: > calculo_execucoes.id]
+  tentativa integer [not null]
+  motor text [not null]                    // PROPRIO | AGGER | MANUAL
+  comissao_pct_aplicada numeric
+  comissao_origem text [not null]          // PADRAO_CALCULO | SOBRESCRITA
+  status text [not null]                   // AGUARDANDO | EM_EXECUCAO | CONCLUIDA |
+                                           // PENDENTE_DADOS | INDISPONIVEL | ERRO | CANCELADA
+  pendencia_codigo text
+  pendencia_mensagem text
+  erro_codigo text
+  erro_mensagem_segura text
+  referencia_externa text
+  iniciada_em timestamptz
+  concluida_em timestamptz
+  criada_em timestamptz [not null]
+
+  indexes {
+    (calculo_id, seguradora_id, tentativa) [unique]
+    reexecucao_de_id
+  }
+}
+
+// ---- Resultado devolvido por execução ----
+
+Table cotacoes {
+  id uuid [pk]
+  execucao_id uuid [not null, unique, ref: > calculo_execucoes.id]
+  numero_cotacao_seguradora text
+  premio_total numeric
+  premio_liquido numeric
+  iof numeric
+  adicional_fracionamento numeric
+  comissao_valor numeric
+  validade date
+  status text                    // APRESENTADA | APROVADA | DESCARTADA | EXPIRADA | RECUSADA
+  link_proposta text
+  mensagem_seguradora text
+  restricoes text
+  recebida_em timestamptz
+  aprovada_em timestamptz
+  descartada_motivo text
+  observacao_interna text
+  // D23: não duplica calculo_id nem seguradora_id. Ambos são obtidos pela execução.
+  // PONTE D4: propostas.cotacao_id (UNIQUE) aponta à cotação APROVADA escolhida.
+}
+
+Table cotacao_coberturas {
+  id uuid [pk]
+  cotacao_id uuid [not null, ref: > cotacoes.id]
+  cobertura_id uuid [ref: > coberturas_catalogo.id]
+  chave_resultado text [not null]            // identidade estável dentro da cotação
+  codigo_externo text
+  nome_informado text
+  incluida boolean
+  limite_aceito numeric
+  percentual_fipe_aceito numeric
+  franquia_tipo text
+  franquia_valor numeric
+  premio numeric
+  carencia_dias integer
+  participacao_obrigatoria_pct numeric
+  clausula_texto text
+  observacao_seguradora text
+  ordem integer
+
+  indexes {
+    (cotacao_id, chave_resultado) [unique]
+  }
+}
+
+Table cotacao_parcelamentos {
+  id uuid [pk]
+  cotacao_id uuid [not null, ref: > cotacoes.id]
+  codigo_opcao text [not null]
+  forma_pagamento text [not null]
+  quantidade_parcelas integer [not null]
+  valor_entrada numeric
+  valor_parcela numeric
+  valor_total numeric
+  juros_pct numeric
+  adicional_fracionamento numeric
+  primeiro_vencimento date
+  principal boolean
+  ordem integer
+
+  indexes {
+    (cotacao_id, codigo_opcao) [unique]
+  }
+}
+
+// ---- Apresentação comercial normalizada ----
+
+Table apresentacoes_comerciais {
+  id uuid [pk]
+  oportunidade_id uuid [not null, ref: > oportunidades.id]
+  criado_por_id uuid [ref: > profiles.id]
+  cotacao_escolhida_id uuid [ref: > cotacoes.id]
+  titulo text
+  layout text                              // VERTICAL | HORIZONTAL
+  criterio_ordenacao text                  // RECOMENDACAO | PREMIO | FRANQUIA | MANUAL
+  exibir_percentual_fipe boolean
+  exibir_vantagens boolean
+  exibir_legenda boolean
+  exibir_observacoes boolean
+  exibir_comissao boolean
+  observacoes_comerciais text
+  status text                              // RASCUNHO | GERADA
+  criado_em timestamptz
+  atualizado_em timestamptz
+  gerada_em timestamptz
+  escolhida_em timestamptz
+  // Invariante backend: cotação escolhida e itens devem pertencer à mesma oportunidade.
+}
+
+Table apresentacao_cotacoes {
+  id uuid [pk]
+  apresentacao_id uuid [not null, ref: > apresentacoes_comerciais.id]
+  cotacao_id uuid [not null, ref: > cotacoes.id]
+  parcelamento_id uuid [ref: > cotacao_parcelamentos.id]
+  ordem integer [not null]
+  recomendada boolean
+  titulo_comercial text
+  vantagens_texto text
+  observacao_comercial text
+
+  indexes {
+    (apresentacao_id, cotacao_id) [unique]
+    (apresentacao_id, ordem) [unique]
+  }
+  // Invariantes backend: parcelamento pertence à cotação; itens pertencem à
+  // oportunidade da apresentação. O comparativo limita a seleção a cinco no app (decisão de 10/09/2026).
+}
+
+// ============================================================================
+// DOMÍNIO CONTRATUAL  (Apólice = contrato; Propostas = documentos; Itens = risco)
+// ============================================================================
+
+Table apolices {
+  id uuid [pk]
+  segurado_id uuid [not null, ref: > segurados.id] // tenant+filial via segurado (R1/R6).
+                                                   // A CORRETORA da apólice = a do segurado
+                                                   // (venda cruzada não existe: cada
+                                                   // corretora tem seu próprio cadastro).
+  seguradora_id uuid [ref: > seguradoras.id]
+  ramo_id uuid [ref: > ramos.id]            // mantido: apólice pode existir sem cotação (importação)
+  status text                               // EM_EMISSAO | VIGENTE | RENOVADA |
+                                            // NAO_RENOVADA | CANCELADA | RECUSADA
+  renovada_de_id uuid [ref: > apolices.id]  // cadeia de renovação (FK real, não nº solto)
+  produtor_id uuid [ref: > produtores.id]   // quem vendeu (histórico ≠ carteira atual).
+                                            // Co-produção NÃO altera esta FK (singular):
+                                            // o 2º produtor entra como repasse MANUAL.
+  // colunas de negócio: numero_apolice (NULL até emitir), vigencia_inicio,
+  // vigencia_fim (estado ATUAL do contrato), premio_total
+  numero_apolice text
+  numero_controle_documento text
+  tipo_contratacao text        // INDIVIDUAL | COLETIVA
+  tipo_apolice text            // NORMAL | ABERTA | AVERBACAO
+  certificado_individual text
+  processo_susep text
+  estipulante_nome text
+  estipulante_cpf_cnpj text
+  subestipulante_nome text
+  subestipulante_cpf_cnpj text
+  vigencia_inicio date
+  vigencia_fim date
+  vigencia_inicio_hora text
+  vigencia_fim_hora text
+  data_emissao date
+  data_recebimento_documento date
+  premio_total numeric
+  premio_liquido numeric
+  iof numeric
+  adicional_fracionamento numeric
+  lmg_total numeric
+  moeda text
+  periodicidade_pagamento text
+  motivo_status text
+  canal_emissao text
+  observacoes text
+}
+
+Table propostas {
+  id uuid [pk]
+  apolice_id uuid [not null, ref: > apolices.id] // tenant+filial via apólice (R1/R6/R7)
+  tipo text                                      // NOVA | RENOVACAO | ENDOSSO |
+                                                 // CANCELAMENTO | FATURA
+  cotacao_id uuid [unique, ref: > cotacoes.id]   // PONTE comercial -> contratual
+                                                 // (aponta p/ a cotação APROVADA;
+                                                 // NULL p/ endosso, fatura, cancelamento)
+  stage_id uuid [not null, ref: > pipeline_stages.id] // TRAMITAÇÃO do documento (R2):
+                                                      // Em análise -> Pendente -> Emitida | Recusada
+  responsavel_id uuid [ref: > profiles.id]
+  recebimento_grade_id uuid [ref: > recebimento_grades.id] // molde aplicado por
+                                                           // gerar_comissoes() — rastro;
+                                                           // NULL = agenda manual
+  endosso_subtipo_id uuid [ref: > endosso_subtipos.id] // obrigatório na aplicação para ENDOSSO
+  cancelamento_motivo_id uuid [ref: > cancelamento_motivos.id] // obrigatório na aplicação para CANCELAMENTO
+  // colunas de negócio: numero_proposta, numero_endosso, vigencia_inicio,
+  // premio do documento (e prêmio LÍQUIDO — base de repasse), forma_pagamento,
+  // qtd_parcelas, comissao_pct e agenciamento_pct
+  numero_proposta text
+  numero_endosso text
+  numero_controle_documento text
+  protocolo_seguradora text
+  tipo_movimento_endosso text  // natureza canônica derivada do subtipo; efeito financeiro
+                               // é derivado do sinal de premio_total/premio_liquido
+  data_transmissao date
+  data_recebimento_seguradora date
+  data_aceitacao date
+  data_recusa date
+  motivo_recusa text
+  data_emissao date
+  vigencia_inicio date
+  vigencia_fim date
+  premio_total numeric
+  premio_liquido numeric
+  iof numeric
+  adicional_fracionamento numeric
+  forma_pagamento text
+  periodicidade_pagamento text
+  qtd_parcelas integer
+  primeira_parcela_vencimento date
+  primeira_parcela_valor numeric
+  comissao_pct numeric
+  agenciamento_pct numeric          // separado da comissão normal/vitalícia;
+                                    // aplicável principalmente a Saúde/Vida
+  numero_fatura text
+  competencia_inicio date
+  competencia_fim date
+  observacoes text
+}
+
+Table apolice_itens {
+  id uuid [pk]
+  apolice_id uuid [not null, ref: > apolices.id] // tenant+filial via apólice (R1/R6)
+  risk_type text                                 // enum FIXO no código -> decide a
+                                                 // tabela de especialização (1:1)
+  incluido_por_proposta_id uuid [ref: > propostas.id] // qual documento incluiu o item
+                                                      // (NULL em dados migrados)
+  excluido_por_proposta_id uuid [ref: > propostas.id] // qual documento excluiu/substituiu
+  // estado do item derivável: excluido_por_proposta_id IS NULL = vigente.
+  // D13 (pendência 7 RESOLVIDA): o item fica ANCORADO NA APÓLICE — identidade
+  // estável do risco. proposta_itens NÃO existe. Substituição de objeto (Ká -> Fox)
+  // = excluir + incluir item (ESTE par de FKs). ALTERAÇÃO DE VALOR (capital/LMI/
+  // franquia) versiona na COBERTURA (item_coberturas), não no item.
+  numero_item integer
+  descricao text
+  identificador_externo text
+  valor_risco numeric
+  endereco_risco_resumo text
+  status text                    // vigente derivável; coluna operacional opcional
+  observacoes text
+}
+
+// ---- Especializações do risco EMITIDO (Class Table Inheritance, PK = FK do item) ----
+//  Espelhadas pelas calc_* da fase comercial, mas SEPARADAS (cotado != emitido, D17).
+
+Table item_veiculo {
+  apolice_item_id uuid [pk, ref: - apolice_itens.id] // tenant+filial via item (R1)
+  codigo_fipe text
+  marca text
+  modelo text
+  versao text
+  ano_fabricacao integer
+  ano_modelo integer
+  placa text
+  chassi text
+  renavam text
+  zero_km boolean
+  combustivel text
+  cambio text
+  categoria text
+  uso text
+  cep_pernoite text
+  classe_bonus integer
+  blindado boolean
+  alienado boolean
+  rastreador boolean
+  antifurto boolean
+  kit_gas boolean
+  condutor_principal_nome text
+  condutor_principal_cpf text
+  condutor_principal_data_nascimento date
+}
+
+Table item_imovel {
+  apolice_item_id uuid [pk, ref: - apolice_itens.id]
+  cep text
+  endereco text
+  numero text
+  complemento text
+  bairro text
+  cidade text
+  uf text
+  tipo_imovel text
+  tipo_ocupacao text
+  tipo_construcao text
+  area_m2 numeric
+  valor_imovel numeric
+  condominio_fechado boolean
+  desocupado boolean
+}
+
+Table item_empresa {
+  apolice_item_id uuid [pk, ref: - apolice_itens.id]
+  cnpj_risco text
+  razao_social_risco text
+  atividade text
+  cnae text
+  faturamento_anual numeric
+  cep text
+  endereco text
+  numero text
+  complemento text
+  bairro text
+  cidade text
+  uf text
+  tipo_construcao text
+  area_m2 numeric
+  qtd_funcionarios integer
+  valor_estoque numeric
+  valor_equipamentos numeric
+  protecao_incendio text
+}
+
+Table item_vida {
+  apolice_item_id uuid [pk, ref: - apolice_itens.id]
+  pessoa_id uuid [ref: > segurados.id] // preenchido = a vida segurada (PME /
+                                       // Vida Individual). NULL = item-GRUPO
+                                       // (Vida em Grupo Global): o risco é o grupo.
+  // colunas de negócio: nome_grupo (Global: "Diretoria", "Funcionários"),
+  // n_vidas (Global: qtd de vidas do grupo), capital/parentesco (individual).
+  nome_grupo text
+  n_vidas integer
+  certificado_individual text
+  parentesco text
+  data_nascimento date
+  sexo text
+  profissao text
+  salario numeric
+  capital_individual numeric
+  data_inclusao date
+  data_exclusao date
+  beneficiarios_texto text
+  // CHECK: pessoa_id IS NOT NULL OR n_vidas IS NOT NULL.
+  // Planos diferenciados (ex.: diretoria) = outro item-grupo no Global,
+  // ou coberturas próprias da vida no PME — sem estrutura nova.
+}
+
+// ---- Coberturas / Sinistros / Pós-venda ----
+
+Table item_coberturas {
+  id uuid [pk]
+  apolice_item_id uuid [not null, ref: > apolice_itens.id] // tenant+filial via item (R1)
+  cobertura_id uuid [ref: > coberturas_catalogo.id]
+  incluido_por_proposta_id uuid [ref: > propostas.id] // documento que DEFINIU o valor
+  excluido_por_proposta_id uuid [ref: > propostas.id] // documento que o SUBSTITUIU
+                                                       // (NULL = vigente)
+  // D10: UM nível só, em todos os ramos — cobertura é do risco (R7), inclusive no
+  // Vida em Grupo. No Global, o capital da cobertura é o capital GLOBAL do
+  // item-grupo; no PME, o capital da vida. apolice_coberturas REJEITADA.
+  // VERSIONAMENTO (D13): alteração de capital/LMI/franquia = EXCLUIR a linha antiga
+  // (carimba excluido_por) + INCLUIR a nova; NUNCA UPDATE destrutivo. A antiga vira
+  // histórico. Vigente = excluido_por IS NULL. "Capital na data do sinistro" = a
+  // linha de cobertura cuja vigência (via vigencia_inicio das propostas) contém a data
+  // de ocorrência. Mesmo padrão MOLDE × FATO de comissoes/repasses.
+  // colunas de negócio: capital_lmi, franquia, premio + nullable por cobertura
+  //   (ex.: carencia em Doenças Graves).
+  capital_lmi numeric
+  franquia_valor numeric
+  franquia_tipo text
+  premio numeric
+  premio_liquido numeric
+  carencia_dias integer
+  participacao_obrigatoria_pct numeric
+  vigencia_inicio date
+  vigencia_fim date
+  observacoes text
+}
+
+Table sinistros {
+  id uuid [pk]
+  apolice_id uuid [not null, ref: > apolices.id]      // contrato (R7); tenant+filial via apólice
+  stage_id uuid [not null, ref: > pipeline_stages.id] // pipeline via stage (R2)
+  responsavel_id uuid [ref: > profiles.id]
+  // vistoria do sinistro = etapa/pendência deste kanban (tabela vistorias removida)
+  // VARIAÇÃO auto × vida = mecanismo (1) da árvore de três mecanismos: se o
+  // cabeçalho do evento for rico/estável, especializar (sinistro_auto/_vida,
+  // PK=FK aqui). O OBJETO já vem via sinistro_envolvidos.apolice_item_id; a
+  // especialização carrega só o que é do EVENTO. Detalhamento próprio (ADIADO,
+  // aditivo -> MINOR).
+  numero_sinistro text
+  numero_aviso text
+  protocolo_seguradora text
+  cobertura_codigo text
+  cobertura_nome text
+  data_ocorrencia date
+  data_aviso date
+  data_registro_aviso date
+  data_documentacao_completa date
+  data_liquidacao_financeira date
+  data_conclusao date
+  tipo_sinistro text            // administrativo | judicial
+  causa text
+  descricao text
+  local_ocorrencia text
+  status text                   // aberto | encerrado_sem_indenizacao | encerrado_com_indenizacao | reaberto | cancelado
+  valor_estimado numeric
+  valor_indenizado numeric
+  valor_pendente numeric
+  valor_despesas_regulacao numeric
+  valor_salvado numeric
+  data_salvado date
+  valor_ressarcimento numeric
+  data_ressarcimento date
+  negativa_motivo text
+  regulador_nome text
+  oficina_nome text
+  observacoes text
+}
+
+Table sinistro_envolvidos {
+  id uuid [pk]
+  sinistro_id uuid [not null, ref: > sinistros.id] // tenant+filial via sinistro (R1)
+  apolice_item_id uuid [ref: > apolice_itens.id]   // preenchido = item NOSSO;
+                                                   // NULL = terceiro
+  tipo text                                        // SEGURADO | TERCEIRO
+  // terceiro carrega campos descritivos próprios (nome, contato, placa,
+  // seguradora do terceiro) — NÃO entra no cadastro de pessoas.
+  nome text
+  cpf_cnpj text
+  email text
+  telefone text
+  placa text
+  seguradora_terceiro text
+  apolice_terceiro text
+  tipo_dano text
+  valor_reclamado numeric
+  valor_indenizado numeric
+  responsavel_pelo_evento boolean
+  observacoes text
+  // Vida Global (D10): funcionário sinistrado = envolvido SEGURADO apontando para
+  // o item-grupo, dados do funcionário nos campos descritivos (fora do cadastro).
+}
+
+Table pos_vendas {
+  id uuid [pk]
+  apolice_id uuid [not null, ref: > apolices.id]      // tenant+filial via apólice
+  stage_id uuid [not null, ref: > pipeline_stages.id] // pipeline via stage (R2):
+                                                      // o pipeline diz QUAL processo
+                                                      // (onboarding, implantação, régua...)
+  responsavel_id uuid [ref: > profiles.id]
+  // D14 (pendência 6 RESOLVIDA): pós-venda É MÓDULO. Passou nos três filtros
+  // (não gera documento, não é renovação, não é follow-up simples). Forma:
+  // 1 entidade_tipo + N PIPELINES (cada processo = um funil) — mesma mecânica de
+  // oportunidades/sinistros. VARIAÇÃO de dado por processo = árvore de três
+  // mecanismos: dado magro vive em atividades (+ campos personalizados); só dado
+  // estruturado PESADO (ex.: implantação de saúde) vira especialização
+  // pos_venda_implantacao (PK=FK). Pipelines de fábrica + implantação-saúde =
+  // DETALHE NÃO-BLOQUEANTE (aditivo -> MINOR).
+  // colunas de negócio: tipo_processo (opcional, derivável do pipeline), status,
+  //   datas (abertura, conclusão).
+  tipo_processo text
+  status text
+  prioridade text
+  assunto text
+  descricao text
+  data_abertura date
+  data_conclusao_prevista date
+  data_conclusao date
+  motivo_pendencia text
+  resultado text
+  observacoes text
+}
+
+// ============================================================================
+// FINANCEIRO — CONFIGURAÇÃO (moldes, nível do catálogo)
+//  D11. Grade/regra são MOLDES: a geração materializa FATOS (snapshot) em
+//  comissoes/repasses. Mudar o molde depois NÃO reescreve história.
+//  Rejeitado: hierarquia genérica níveis/divisões (benchmark Quiver) e
+//  armazenamento de regras como grafo/fluxo — isto é TABELA DE DECISÃO
+//  (a mais específica vence); o front pode renderizá-la como árvore + simulador.
+// ============================================================================
+
+Table recebimento_grades {
+  id uuid [pk]
+  seguradora_id uuid [not null, ref: > seguradoras.id] // tenant via seguradora (R1)
+  ramo_id uuid [not null, ref: > ramos.id]
+  // colunas de negócio: nome, tipo (ANTECIPADO_N | ESGOTAMENTO | NA_PARCELA |
+  //   VITALICIO_PCT_PROPOSTA | VITALICIO_PCT_DEFINIDO), qtd_parcelas.
+  nome text
+  tipo text                      // ANTECIPADO_N | ESGOTAMENTO | NA_PARCELA |
+                                 // VITALICIO_PCT_PROPOSTA | VITALICIO_PCT_DEFINIDO
+  qtd_parcelas integer
+  base_calculo text              // PREMIO_LIQUIDO | PREMIO_TOTAL | PARCELA_LIQUIDA
+  percentual_default numeric
+  considera_iof boolean
+  considera_adicional_fracionamento boolean
+  vitalicio boolean
+  ativo boolean
+  observacoes text
+  // Vitalício na prática = consequência das propostas FATURA mensais
+  // (cada FATURA gera sua comissão) — a grade só guarda o % default.
+}
+
+Table recebimento_grade_parcelas {
+  id uuid [pk]
+  grade_id uuid [not null, ref: > recebimento_grades.id] // tenant via grade (R1)
+  // colunas de negócio: numero, tipo_comissao, percentual.
+  numero integer
+  tipo_comissao text             // NORMAL | AGENCIAMENTO | VITALICIA |
+                                  // ADICIONAL | RESTITUICAO
+  percentual numeric
+  percentual_sobre text          // COMISSAO_TOTAL | PARCELA | PREMIO
+  dias_apos_vencimento integer
+  ativo boolean
+  // percentual NULL = usar o % da proposta — substitui o "-1 mágico" do
+  // legado por semântica explícita (nota de migração na fase 2).
+}
+
+Table repasse_regras {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]
+  filial_id uuid [ref: > filiais.id]       // NULL = vale p/ o grupo inteiro;
+                                           // preenchido = regra DAQUELA corretora
+  produtor_id uuid [ref: > produtores.id]  // NULL = regra PADRÃO; preenchido =
+                                           // override individual (vale p/ papel
+                                           // GERENTE também)
+  ramo_id uuid [ref: > ramos.id]           // NULL = todos os ramos
+  // colunas de negócio:
+  //   papel (PRODUTOR | GERENTE),
+  //   tipo_documento (NOVA | RENOVACAO | NULL = ambos),
+  //   base (COMISSAO | PREMIO_LIQUIDO | VALOR_FIXO),
+  //   percentual, valor_fixo,
+  //   gatilho (NA_EMISSAO | PRIMEIRA_COMISSAO | CONFORME_RECEBIMENTO | PARCELADO),
+  //   qtd_parcelas (NOT NULL quando gatilho = PARCELADO),
+  //   limite_parcelas (ex.: saúde "agenciamento + 1º ano").
+  papel text                     // PRODUTOR | GERENTE
+  tipo_documento text            // NOVA | RENOVACAO | NULL = ambos
+  base text                      // COMISSAO | PREMIO_LIQUIDO | VALOR_FIXO
+  percentual numeric
+  valor_fixo numeric
+  gatilho text                   // NA_EMISSAO | PRIMEIRA_COMISSAO | CONFORME_RECEBIMENTO | PARCELADO
+  qtd_parcelas integer
+  limite_parcelas integer
+  prioridade integer
+  inicio_vigencia date
+  fim_vigencia date
+  ativo boolean
+  observacoes text
+  // Resolução: a regra MAIS ESPECÍFICA vence (produtor > padrão; ramo > todos;
+  // tipo_documento definido > ambos; filial > grupo).
+}
+
+// ============================================================================
+// FINANCEIRO — FATOS (pendurados no DOCUMENTO — R7)
+//  parcelas  = cobrança do CLIENTE (grade do segurado).
+//  comissoes = RECEITA da corretora (agenda PRÓPRIA — não espelha as parcelas).
+//  repasses  = DESPESA com produtores/gerentes (agenda própria).
+//  Três agendas, três ciclos de vida — nunca fundir.
+// ============================================================================
+
+Table parcelas {
+  id uuid [pk]
+  proposta_id uuid [not null, ref: > propostas.id] // vínculo ÚNICO; apólice derivável
+                                                   // via proposta (R3); tenant+filial idem
+  // colunas de negócio: numero, vencimento, valor, status de pagamento
+  numero integer
+  vencimento date
+  valor numeric
+  valor_liquido numeric
+  iof numeric
+  adicional_fracionamento numeric
+  status text                    // em_aberto | paga | vencida | cancelada | estornada
+  forma_pagamento text
+  nosso_numero text
+  linha_digitavel text
+  codigo_barras text
+  data_pagamento date
+  valor_pago numeric
+  data_baixa date
+  numero_fatura text
+  competencia_inicio date
+  competencia_fim date
+  observacoes text
+}
+
+Table financeiro_cobrancas {
+  id uuid [pk]
+  parcela_id uuid [not null, ref: > parcelas.id]      // tenant+filial via parcela->proposta->apólice
+  stage_id uuid [not null, ref: > pipeline_stages.id] // pipeline via stage (R2)
+  responsavel_id uuid [ref: > profiles.id]
+  data_abertura date
+  vencimento_followup date
+  status text                 // ATIVA | QUITADA | CANCELADA
+  prioridade text             // BAIXA | MEDIA | ALTA | URGENTE
+  ultima_cobranca_em timestamptz
+  proxima_cobranca_em timestamptz
+  canal_preferencial text     // TELEFONE | WHATSAPP | EMAIL | OUTRO
+  observacoes text
+  encerrada_em timestamptz
+  motivo_encerramento text
+
+  Indexes {
+    parcela_id
+  }
+
+  Note: 'D22: origem em parcela VENCIDA. O backend deve garantir UNIQUE parcial por parcela_id WHERE status = ATIVA. QUITADA exige parcela paga; CANCELADA exige motivo.'
+}
+
+Table comissoes {
+  id uuid [pk]
+  proposta_id uuid [not null, ref: > propostas.id] // ÂNCORA (D11). Relatório por
+                                                   // proposta = SUM direto; por
+                                                   // apólice = 1 JOIN.
+  parcela_id uuid [ref: > parcelas.id]   // conciliação OPCIONAL: só quando o
+                                         // demonstrativo da seguradora cita a
+                                         // parcela. CHECK: parcela da MESMA proposta.
+  // colunas de negócio: numero, tipo_comissao, percentual (varia por evento:
+  //   agenciamento 100% -> 20%; saúde 200–300%), valor_previsto, valor_recebido,
+  //   status (PREVISTA | RECEBIDA | DIVERGENTE), recebida_em.
+  numero integer
+  tipo_comissao text             // NORMAL | AGENCIAMENTO | VITALICIA |
+                                  // ADICIONAL | RESTITUICAO
+  percentual numeric
+  base_calculo numeric
+  valor_previsto numeric
+  valor_recebido numeric
+  valor_diferenca numeric
+  status text                    // PREVISTA | PARCIAL | RECEBIDA | DIVERGENTE |
+                                 // CANCELADA
+  prevista_em date
+  recebida_em date
+  competencia_inicio date
+  competencia_fim date
+  observacoes text
+  // Gerada por gerar_comissoes(proposta, grade) na emissão — snapshot editável.
+}
+
+// ============================================================================
+// EXTRATOS E CONCILIAÇÃO SECURITÁRIA (D19)
+//  O extrato é um demonstrativo da SEGURADORA, não conta bancária. Receber ou
+//  normalizar o arquivo NÃO confirma recebimento e NÃO baixa comissoes.
+//  Item × comissão é N:N: casos 1:1 são o subconjunto comum; a associativa
+//  preserva recebimentos parciais e itens agregados sem fundir os fatos.
+// ============================================================================
+
+Table comissao_extratos {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]
+  filial_id uuid [not null, ref: > filiais.id]
+  seguradora_id uuid [not null, ref: > seguradoras.id]
+  identificacao_externa text
+  competencia date
+  periodo_inicio date
+  periodo_fim date
+  data_emissao date
+  data_recebimento date
+  arquivo_nome text
+  arquivo_referencia text
+  origem_tipo text [not null]    // MANUAL | ARQUIVO | INTEGRACAO
+  origem_formato text             // PDF | XLS | XLSX | CSV | TXT | XML | OUTRO
+  arquivo_mime_type text
+  arquivo_hash_sha256 text
+  chave_idempotencia text [not null]
+  parser_identificador text       // preenchido somente no recorte futuro 3.4
+  parser_versao text
+  tentativa_processamento integer [not null]
+  status_processamento text [not null] // RECEBIDO | NORMALIZANDO | NORMALIZADO |
+                                  // ERRO | CANCELADO
+  status_conciliacao text [not null] // NAO_INICIADA | EM_ANALISE | PARCIAL |
+                                  // CONCILIADO | COM_OCORRENCIAS
+  quantidade_itens integer
+  valor_bruto_total numeric
+  valor_liquido_total numeric
+  valor_descontos_total numeric
+  moeda text
+  erro_codigo text                // LAYOUT_NAO_SUPORTADO | ERRO_DE_LEITURA |
+                                  // ARQUIVO_CORROMPIDO | ARQUIVO_PROTEGIDO |
+                                  // FORMATO_NAO_SUPORTADO
+  erro_mensagem_segura text
+  recebido_por_id uuid [ref: > profiles.id]
+  processado_por_id uuid [ref: > profiles.id]
+  recebido_em timestamptz
+  processamento_iniciado_em timestamptz
+  processamento_concluido_em timestamptz
+  criado_em timestamptz [not null]
+  atualizado_em timestamptz [not null]
+  observacoes text
+  Indexes {
+    (filial_id, chave_idempotencia) [unique]
+    (filial_id, seguradora_id, arquivo_hash_sha256) [unique]
+    (filial_id, seguradora_id, identificacao_externa) [unique]
+  }
+  // Backend valida tenant/filial/seguradora do mesmo grupo. Hash e identificacao
+  // externa podem ser NULL; a semantica UNIQUE do PostgreSQL admite esses casos.
+}
+
+Table comissao_extrato_itens {
+  id uuid [pk]
+  extrato_id uuid [not null, ref: > comissao_extratos.id]
+  identificacao_externa text
+  sequencia_externa text
+  chave_idempotencia text [not null]
+  produtor_id uuid [ref: > produtores.id]
+  ramo_id uuid [ref: > ramos.id]
+  produtor_beneficiario_informado text
+  proposta_numero_informado text
+  apolice_numero_informado text
+  endosso_numero_informado text
+  documento_numero_informado text
+  parcela_numero_informado text
+  segurado_nome_informado text
+  competencia date
+  data_credito date
+  data_recebimento_informada date
+  valor_bruto_informado numeric
+  valor_liquido_informado numeric
+  valor_descontos_informado numeric
+  percentual_informado numeric
+  tipo_comissao text             // NORMAL | AGENCIAMENTO | VITALICIA |
+                                  // ADICIONAL | RESTITUICAO
+  seguradora_lote_informado text
+  seguradora_referencia_informada text
+  descricao_original text
+  status_conciliacao text [not null] // PENDENTE | SUGERIDO | CONCILIADO |
+                                  // PRONTO_PARA_BAIXAR | PARCIAL | AMBIGUO |
+                                  // NAO_ENCONTRADO | DIVERGENTE | IGNORADO
+  normalizado_em timestamptz
+  criado_em timestamptz [not null]
+  atualizado_em timestamptz [not null]
+  Indexes {
+    (extrato_id, chave_idempotencia) [unique]
+    (extrato_id, identificacao_externa) [unique]
+    (extrato_id, sequencia_externa) [unique]
+  }
+}
+
+Table comissao_conciliacoes {
+  id uuid [pk]
+  item_id uuid [not null, ref: > comissao_extrato_itens.id]
+  comissao_id uuid [not null, ref: > comissoes.id]
+  chave_idempotencia text [not null]
+  tipo_associacao text [not null] // EXATA | PARCIAL | SUGERIDA | MANUAL
+  status text [not null]          // SUGERIDA | CONFIRMADA | REJEITADA | CANCELADA
+  confianca_pct numeric
+  valor_previsto_snapshot numeric
+  valor_informado_alocado numeric
+  valor_conciliado numeric
+  valor_diferenca numeric
+  percentual_previsto_snapshot numeric
+  percentual_informado_snapshot numeric
+  percentual_diferenca numeric
+  competencia_prevista_inicio date
+  competencia_prevista_fim date
+  competencia_informada date
+  motivo text
+  associado_por_id uuid [ref: > profiles.id]
+  confirmado_por_id uuid [ref: > profiles.id]
+  criado_em timestamptz [not null]
+  confirmado_em timestamptz
+  atualizado_em timestamptz [not null]
+  Indexes {
+    (item_id, comissao_id) [unique]
+    (item_id, chave_idempotencia) [unique]
+  }
+  // Backend soma apenas associações CONFIRMADAS, impede sobrealocação do item e
+  // da comissão e aplica concorrência. Conciliar não cria baixa.
+}
+
+Table comissao_conciliacao_ocorrencias {
+  id uuid [pk]
+  item_id uuid [not null, ref: > comissao_extrato_itens.id]
+  conciliacao_id uuid [ref: > comissao_conciliacoes.id]
+  tipo text [not null]            // COMISSAO_NAO_ENCONTRADA |
+                                  // DOCUMENTO_NAO_ENCONTRADO | MULTIPLAS_COMISSOES |
+                                  // VALOR_DIVERGENTE | PERCENTUAL_DIVERGENTE |
+                                  // COMPETENCIA_DIVERGENTE | PARCELA_DIVERGENTE |
+                                  // PROPOSTA_DIVERGENTE | APOLICE_DIVERGENTE |
+                                  // SEGURADO_DIVERGENTE | ITEM_DUPLICADO |
+                                  // COMISSAO_JA_CONCILIADA | COMISSAO_JA_RECEBIDA |
+                                  // IDENTIFICACAO_INSUFICIENTE
+  status text [not null]          // ABERTA | EM_ANALISE | RESOLVIDA | IGNORADA
+  motivo text
+  valor_esperado numeric
+  valor_encontrado numeric
+  percentual_esperado numeric
+  percentual_encontrado numeric
+  competencia_esperada_inicio date
+  competencia_esperada_fim date
+  competencia_encontrada date
+  resolucao_tipo text             // VINCULO_CORRIGIDO | DADO_CORRIGIDO |
+                                  // DIVERGENCIA_ACEITA | ITEM_DESCARTADO |
+                                  // REPROCESSADO
+  resolucao_observacao text
+  identificada_por_id uuid [ref: > profiles.id]
+  resolvida_por_id uuid [ref: > profiles.id]
+  identificada_em timestamptz [not null]
+  resolvida_em timestamptz
+  atualizado_em timestamptz [not null]
+}
+
+// ============================================================================
+// BAIXA MANUAL DE COMISSÃO (D20)
+//  A baixa é um evento operacional imutável. O saldo atual é derivado da soma
+//  assinada dos eventos BAIXA e ESTORNO; valor_previsto permanece histórico.
+//  Sem item associado, o frontend cria extrato/item/conciliação de origem
+//  MANUAL. O backend valida concorrência e idempotência de forma transacional.
+// ============================================================================
+
+Table comissao_baixas {
+  id uuid [pk]
+  comissao_id uuid [not null, ref: > comissoes.id]
+  tipo text [not null]           // BAIXA | ESTORNO
+  baixa_origem_id uuid [ref: > comissao_baixas.id] // obrigatório em ESTORNO
+  origem_tipo text [not null]    // MANUAL | ARQUIVO | INTEGRACAO
+  data_efetiva date [not null]
+  valor_efetivo numeric [not null] // assinado; ESTORNO compensa a BAIXA
+  motivo_tipo text [not null]    // EXATA | PARCIAL | DIVERGENCIA_ACEITA |
+                                  // CORRECAO | ESTORNO | OUTRO
+  justificativa text
+  chave_idempotencia text [not null]
+  saldo_apos numeric [not null]  // snapshot operacional, não fonte exclusiva
+  status_resultante text [not null] // PREVISTA | PARCIAL | RECEBIDA | DIVERGENTE
+  criado_por_id uuid [not null, ref: > profiles.id]
+  criado_em timestamptz [not null]
+  Indexes {
+    (comissao_id, chave_idempotencia) [unique]
+    baixa_origem_id
+  }
+  // BAIXA exige valor não zero. ESTORNO exige origem BAIXA da mesma comissão.
+  // Justificativa é obrigatória para PARCIAL, DIVERGENCIA_ACEITA, CORRECAO,
+  // ESTORNO e OUTRO. O backend impede baixar além do saldo sem divergência
+  // aceita e impede estornar acima do valor ativo da baixa de origem.
+}
+
+Table comissao_baixa_conciliacoes {
+  id uuid [pk]
+  baixa_id uuid [not null, ref: > comissao_baixas.id]
+  conciliacao_id uuid [not null, ref: > comissao_conciliacoes.id]
+  valor_aplicado numeric [not null] // assinado e limitado ao evento da baixa
+  criado_em timestamptz [not null]
+  Indexes {
+    (baixa_id, conciliacao_id) [unique]
+  }
+  // A conciliação precisa estar CONFIRMADA e apontar para a mesma comissão.
+  // A soma das pontes deve respeitar o valor_efetivo do evento.
+}
+
+Table repasses {
+  id uuid [pk]
+  proposta_id uuid [not null, ref: > propostas.id] // âncora sempre presente
+  comissao_id uuid [ref: > comissoes.id]   // preenchido quando o gatilho é o
+                                           // recebimento (CONFORME_RECEBIMENTO /
+                                           // PRIMEIRA_COMISSAO): status LIBERADO
+                                           // na baixa da comissão.
+                                           // CHECK: comissão da MESMA proposta.
+  beneficiario_id uuid [not null, ref: > produtores.id] // SNAPSHOT na geração:
+                                           // papel PRODUTOR -> apolices.produtor_id;
+                                           // papel GERENTE -> segurados.gerente_id
+                                           // do momento (troca não retroage; sem
+                                           // gerente = regra não gera linha).
+  regra_id uuid [ref: > repasse_regras.id] // NULL = lançamento MANUAL
+                                           // (co-produção: o 2º produtor entra
+                                           // aqui, sem tocar apolices.produtor_id)
+  // colunas de negócio: numero, base, percentual, valor_previsto, valor_pago,
+  //   status (PREVISTO | LIBERADO | PAGO), pago_em.
+  numero integer
+  papel_beneficiario text
+  base text
+  percentual numeric
+  valor_previsto numeric
+  valor_pago numeric
+  valor_diferenca numeric
+  status text                    // PREVISTO | LIBERADO | PAGO | CANCELADO
+  previsto_em date
+  liberado_em date
+  pago_em date
+  forma_pagamento text
+  comprovante_referencia text
+  observacoes text
+  // Split produtor × gerente = duas linhas (beneficiários distintos) — sem
+  // coluna especial, sem tabela de "split".
+}
+
+// ============================================================================
+// RECIBOS DE REPASSE (D21)
+//  A emissão do recibo é a única operação que reconhece pagamento no MVP.
+//  Relatórios comuns, consulta e reemissão são somente leitura. Cabeçalho,
+//  itens e projeção em repasses são gravados atomicamente por recibo.
+// ============================================================================
+
+Table repasse_recibos {
+  id uuid [pk]
+  filial_id uuid [not null, ref: > filiais.id]
+  beneficiario_id uuid [not null, ref: > produtores.id]
+  numero text [not null]
+  sentido text [not null]             // CREDITO | DEBITO
+  status text [not null]              // EMITIDO | CANCELADO
+  data_pagamento date [not null]
+  forma_pagamento text [not null]     // TRANSFERENCIA_BANCARIA | DINHEIRO |
+                                      // CHEQUE | OUTRO; não executa pagamento
+  comprovante_referencia text
+  observacoes text
+  chave_idempotencia text [not null]
+  chave_cancelamento text
+  filial_nome_snapshot text [not null]
+  beneficiario_nome_snapshot text [not null]
+  emitido_por_id uuid [not null, ref: > profiles.id]
+  emitido_em timestamptz [not null]
+  cancelado_por_id uuid [ref: > profiles.id]
+  cancelado_em timestamptz
+  motivo_cancelamento text
+  atualizado_em timestamptz [not null]
+  Indexes {
+    (filial_id, numero) [unique]
+    (filial_id, chave_idempotencia) [unique]
+    beneficiario_id
+    status
+  }
+  // CANCELADO exige chave_cancelamento, autor, data e motivo. Recibo emitido
+  // não preenche esses campos. Retry de cancelamento com a mesma chave devolve
+  // o resultado original; a mesma chave com conteúdo diferente é conflito.
+}
+
+Table repasse_recibo_itens {
+  id uuid [pk]
+  recibo_id uuid [not null, ref: > repasse_recibos.id]
+  repasse_id uuid [not null, ref: > repasses.id]
+  numero_repasse_snapshot integer
+  documento_referencia_snapshot text [not null]
+  segurado_nome_snapshot text [not null]
+  seguradora_nome_snapshot text [not null]
+  ramo_nome_snapshot text [not null]
+  papel_beneficiario_snapshot text
+  valor_previsto_snapshot numeric [not null]
+  valor_pago_snapshot numeric [not null]
+  criado_em timestamptz [not null]
+  Indexes {
+    (recibo_id, repasse_id) [unique]
+    repasse_id
+  }
+  // valor_pago_snapshot = valor_previsto_snapshot. Positivos e negativos não
+  // se misturam. O backend deve manter índice parcial único por repasse para
+  // itens cujo recibo pai esteja EMITIDO; recibos CANCELADOS preservam histórico
+  // e permitem nova emissão futura sem apagar o item anterior.
+}
+
+// ============================================================================
+// SUPORTE TRANSVERSAL
+//  Polimórficas: sem caminho garantido até o pai -> carregam tenant_id (e
+//  filial_id opcional) direto (R1/R5/R6).
+//  entidade_tipo = REGISTRO OFICIAL DE MÓDULOS (conjunto FIXO no código, como
+//  risk_type), compartilhado por atividades, anexos e campo_definicoes.
+//  CONGELADO (D14 incluiu pos_venda; D17/D23 não acrescentaram cálculo, execução
+//  nem apresentação como módulos polimórficos — mudança futura exige novo contrato):
+//    segurado | oportunidade | cotacao | apolice | proposta | apolice_item |
+//    sinistro | cobranca | pos_venda
+// ============================================================================
+
+Table atividades {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]
+  filial_id uuid [ref: > filiais.id]       // escopo de corretora (NULL = grupo)
+  responsavel_id uuid [ref: > profiles.id] // quem fez ou fará
+  entidade_tipo text                       // MÓDULO (conjunto FIXO — ver cabeçalho)
+  entidade_id uuid                         // referência polimórfica, sem FK (R5)
+  // UNIFICA tarefas + linha do tempo (padrão CRM clássico):
+  //   pendente + vencimento = tarefa; concluida_em preenchido = histórico.
+  // Fonte HUMANA da timeline (guia "Observações" = tipo nota).
+  // colunas de negócio: tipo (ligacao|whatsapp|email|nota|followup),
+  // vencimento, concluida_em, descricao, fixada_em.
+  tipo text                      // ligacao | whatsapp | email | nota | followup | tarefa
+  titulo text
+  descricao text
+  status text                    // pendente | concluida | cancelada
+  prioridade text
+  vencimento timestamptz
+  concluida_em timestamptz
+  fixada_em timestamptz
+  canal text
+  origem text
+  lembrete_em timestamptz
+  recorrente boolean
+  observacoes text
+  // D15: audit_logs NÃO entra aqui (forense técnico, outro consumidor). A guia
+  //   "Anexos e logs" UNE as duas via vw_timeline (não no armazenamento).
+}
+
+Table atividade_mencoes {
+  id uuid [pk]
+  atividade_id uuid [not null, ref: > atividades.id] // tenant via atividade (R1)
+  profile_id uuid [not null, ref: > profiles.id]     // quem foi mencionado
+  // colunas de negócio: lida_em (timestamptz NULL = não lida).
+  lida_em timestamptz
+  notificada_em timestamptz
+  // Fonte da verdade da menção @usuário (zero parse de string, zero JSON).
+}
+
+Table anexos {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]
+  filial_id uuid [ref: > filiais.id]
+  entidade_tipo text   // MÓDULO (mesmo conjunto FIXO de atividades — ver cabeçalho)
+  entidade_id uuid // referência polimórfica, sem FK (R5)
+  nome_arquivo text
+  mime_type text
+  tamanho_bytes integer
+  url_armazenamento text
+  categoria text
+  descricao text
+  origem text
+  status text
+  hash_sha256 text
+  anexado_em timestamptz
+}
+
+Table audit_logs {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id] // escopo de tenant (admin/compliance)
+  user_id uuid [ref: > profiles.id]            // NULL p/ eventos de sistema
+  // D15: forense técnico, campo a campo, IMUTÁVEL, gravado por TRIGGER.
+  //   NUNCA fundir com atividades. Exposto ao usuário SÓ via vw_timeline (curada,
+  //   read-only) — nunca a tabela crua.
+  // colunas de negócio: entidade_tipo, entidade_id, campo, valor_antigo,
+  //   valor_novo, acao (INSERT|UPDATE|DELETE), ocorrido_em.
+  entidade_tipo text             // módulos oficiais acima; D19 também admite os
+                                  // tipos técnicos comissao_extrato,
+                                  // comissao_extrato_item, comissao_conciliacao
+                                  // e comissao_ocorrencia, sem criar guias
+  entidade_id uuid
+  campo text
+  valor_antigo text
+  valor_novo text
+  acao text                     // INSERT | UPDATE | DELETE
+  ocorrido_em timestamptz
+  origem text
+  ip text
+  user_agent text
+}
+
+Table integracao_logs {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]
+  // payload cru de integrações como TEXT puro (princípio zero-JSON do projeto).
+  // É AQUI que mora a requisição/resposta crua da Agger/seguradora (D17/D23): o
+  // dado útil vai normalizado para pedido, execução, cotação e tabelas-filhas; o
+  // bruto fica como trilha de auditoria.
+  sistema text                  // AGGER | SEGURADORA | WHATSAPP | EMAIL | OUTRO
+  direcao text                  // ENTRADA | SAIDA
+  entidade_tipo text
+  entidade_id uuid
+  operacao text
+  status text                   // pendente | sucesso | erro | ignorado
+  chave_externa text
+  correlation_id text
+  payload_text text             // TEXT cru; nunca JSONB como dado de negócio
+  resposta_text text
+  erro_text text
+  iniciado_em timestamptz
+  concluido_em timestamptz
+}
+
+// ============================================================================
+// CAMPOS PERSONALIZADOS — EAV TIPADO (D16 — pendência 10 RESOLVIDA)
+//  A ÚNICA exceção controlada ao veto a EAV. Zero array / zero JSON.
+//  9 tipos lógicos -> 6 colunas físicas + 1 ponte:
+//   TEXTO_CURTO / TEXTO_LONGO ......... valor_texto
+//   INTEIRO / DECIMAL ................. valor_numero  (+ flag formato)
+//   BOOLEANO .......................... valor_booleano
+//   DATA .............................. valor_data
+//   DATA_HORA ......................... valor_datahora
+//   LISTA_UNICA ....................... valor_opcao_id (FK -> campo_opcoes)
+//   LISTA_MULTIPLA .................... campo_valor_opcoes (N:N)
+// ============================================================================
+
+Table campo_definicoes {
+  id uuid [pk]
+  tenant_id uuid [not null, ref: > tenants.id]   // catálogo do GRUPO (R1)
+  filial_id uuid [ref: > filiais.id]              // NULL = campo do grupo (todas as
+                                                  // corretoras); preenchido = campo
+                                                  // exclusivo daquela corretora.
+  entidade_tipo text [not null]   // MÓDULO ao qual o campo pertence (conjunto FIXO —
+                                  // ver cabeçalho do SUPORTE TRANSVERSAL).
+  chave text [not null]           // slug ESTÁVEL p/ código/integração (≠ nome/rótulo;
+                                  // o rótulo muda à vontade, a chave não).
+                                  // ESTRUTURAL: participa do UNIQUE da decisão 16.
+  // colunas de negócio:
+  //   nome  (rótulo exibido, "Nº da carteirinha"),
+  //   tipo_dado (TEXTO_CURTO | TEXTO_LONGO | INTEIRO | DECIMAL | BOOLEANO |
+  //              DATA | DATA_HORA | LISTA_UNICA | LISTA_MULTIPLA),
+  //   formato (só INTEIRO/DECIMAL: NUMERO | PERCENTUAL | MOEDA; NULL nos demais —
+  //            é só apresentação; o valor mora cru em valor_numero),
+  //   obrigatorio (regra de APLICAÇÃO, não NOT NULL retroativo — ver notas),
+  //   ativo (soft-disable: some da tela; valores antigos permanecem),
+  //   ordem, ajuda, min_valor, max_valor, tamanho_max (validação opcional).
+  nome text
+  tipo_dado text
+  formato text
+  obrigatorio boolean
+  ativo boolean
+  ordem integer
+  ajuda text
+  min_valor numeric
+  max_valor numeric
+  tamanho_max integer
+  mascara text
+  placeholder text
+  agrupamento text
+  visivel_em_listagem boolean
+  Indexes {
+    (tenant_id, entidade_tipo, chave) [unique] // chave única por módulo no grupo
+  }
+}
+
+Table campo_opcoes {
+  id uuid [pk]
+  campo_definicao_id uuid [not null, ref: > campo_definicoes.id] // tenant via def (R1)
+  // colunas de negócio: rotulo (exibido), valor (canônico p/ integração), ordem,
+  //   ativo (opção desativada não aparece p/ novas escolhas; valores que já a
+  //   referenciam continuam válidos — histórico).
+  rotulo text
+  valor text
+  ordem integer
+  ativo boolean
+  // Catálogo de opções de LISTA_UNICA e LISTA_MULTIPLA (mesma tabela).
+}
+
+Table campo_valores {
+  id uuid [pk]
+  campo_definicao_id uuid [not null, ref: > campo_definicoes.id] // tenant+módulo+tipo via def
+  entidade_id uuid [not null]   // qual registro do módulo (POLIMÓRFICO, sem FK — R5;
+                                // o módulo é o campo_definicoes.entidade_tipo)
+
+  // --- colunas físicas: EXATAMENTE UMA preenchida, coerente com o tipo_dado ---
+  valor_texto text            // TEXTO_CURTO | TEXTO_LONGO
+  valor_numero numeric        // INTEIRO | DECIMAL
+  valor_booleano boolean      // BOOLEANO
+  valor_data date             // DATA
+  valor_datahora timestamptz  // DATA_HORA
+  valor_opcao_id uuid [ref: > campo_opcoes.id] // LISTA_UNICA
+  // LISTA_MULTIPLA: NÃO usa coluna aqui — as marcações ficam em campo_valor_opcoes.
+  preenchido_em timestamptz
+  origem text
+  validado_em timestamptz
+
+  Indexes {
+    (campo_definicao_id, entidade_id) [unique] // 1 valor por campo por registro
+    entidade_id                                // leitura "todos os campos deste registro"
+  }
+  // CONSTRAINTS (fase 2): TRIGGER valida que a coluna preenchida corresponde ao
+  //   tipo_dado da definição e que é EXATAMENTE UMA (ou ZERO p/ LISTA_MULTIPLA,
+  //   cujo valor vive na ponte). CHECK de linha complementar: no máx. uma coluna
+  //   valor_* não nula.
+}
+
+Table campo_valor_opcoes {
+  id uuid [pk]
+  campo_valor_id uuid [not null, ref: > campo_valores.id] // a "célula" multi-seleção
+  campo_opcao_id uuid [not null, ref: > campo_opcoes.id]  // cada opção marcada
+  ordem integer
+  Indexes {
+    (campo_valor_id, campo_opcao_id) [unique] // não marca a mesma opção duas vezes
+  }
+  // Substitui array/JSON por relacional puro (LISTA_MULTIPLA).
+}
+
+// ============================================================================
+// AGRUPAMENTO VISUAL
+// ============================================================================
+
+TableGroup plataforma {
+  tenants
+  filiais
+  profiles
+  perfis
+  profile_filiais
+  role_permissions
+}
+
+TableGroup cadastros {
+  produtores
+  segurados
+  pessoa_contato
+  seguradoras
+  ramos
+  endosso_subtipos
+  cancelamento_motivos
+  origens
+  motivos_perda
+  coberturas_catalogo
+}
+
+TableGroup kanban {
+  pipelines
+  pipeline_stages
+}
+
+TableGroup comercial {
+  oportunidades
+  calculos
+  calc_auto
+  calc_residencia
+  calc_condominio
+  calc_vida
+  calc_empresa
+  calc_diversos
+  calculo_coberturas
+  calculo_execucoes
+  cotacoes
+  cotacao_coberturas
+  cotacao_parcelamentos
+  apresentacoes_comerciais
+  apresentacao_cotacoes
+}
+
+TableGroup contratual {
+  apolices
+  propostas
+  apolice_itens
+  item_veiculo
+  item_imovel
+  item_empresa
+  item_vida
+  item_coberturas
+  sinistros
+  sinistro_envolvidos
+  pos_vendas
+}
+
+TableGroup financeiro_config {
+  recebimento_grades
+  recebimento_grade_parcelas
+  repasse_regras
+}
+
+TableGroup financeiro {
+  parcelas
+  financeiro_cobrancas
+  comissoes
+  comissao_extratos
+  comissao_extrato_itens
+  comissao_conciliacoes
+  comissao_conciliacao_ocorrencias
+  comissao_baixas
+  comissao_baixa_conciliacoes
+  repasses
+  repasse_recibos
+  repasse_recibo_itens
+}
+
+TableGroup suporte {
+  atividades
+  atividade_mencoes
+  anexos
+  audit_logs
+  integracao_logs
+}
+
+TableGroup campos_personalizados {
+  campo_definicoes
+  campo_opcoes
+  campo_valores
+  campo_valor_opcoes
+}
+
+// ============================================================================
+// NOTAS PARA A FASE 2 (segurança / implementação)
+//  1. RLS por tenant E corretora (filial): re-desnormalizar tenant_id/filial_id
+//     nas filhas e travar consistência filho==pai (FK composta (id, tenant_id)
+//     ou trigger). Política típica: filial_id = ANY (filiais_do_usuario()),
+//     derivada de profile_filiais. O isolamento entre corretoras (LGPD) é a
+//     espinha dorsal: a corretora B nunca lê dados da A.
+//  2. Notificação de cliente cruzado (sem tabela nova): função privilegiada que,
+//     no cadastro/cotação, cruza o cpf_cnpj normalizado entre as filiais do MESMO
+//     tenant e devolve só o FATO do vínculo. Nível de exposição (mínimo | médio |
+//     detalhado) é parâmetro do GRUPO (master), default mínimo.
+//  3. Funções de escrita encapsulando as transações do fluxo:
+//     emitir(cotacao) -> INSERT apolices(EM_EMISSAO) + propostas(NOVA) + itens;
+//     registrar_emissao() -> UPDATE apólice + gerar_comissoes(proposta, grade)
+//     + gerar_repasses(proposta); endossar(), cancelar(), renovar();
+//     baixar_comissao() -> status RECEBIDA + libera repasses vinculados
+//     (comissao_id) com gatilho por recebimento.
+//  4. MULTI-CÁLCULO (D17/D23), trabalho de fase 6:
+//     - ADAPTADOR Agger: GET /{Ramo}/Data (combos) -> catálogos/enums próprios;
+//       POST de validação por bloco; POST /{Ramo} (salvar) materializa o pedido,
+//       as execuções por seguradora, seus resultados, coberturas e parcelamentos.
+//       Payload cru -> integracao_logs. CalculationType <-> ramo/
+//       risk_type: Auto->VEICULO, Residência/Condomínio->IMOVEL, Vida->VIDA,
+//       Empresarial->EMPRESA, Diversos->(a definir).
+//     - DE-PARA cotado × emitido: no GANHO, a proposta/apólice é alimentada pelo
+//       DOCUMENTO emitido (anexado, lido pelo sistema); mapear calc_* -> item_*
+//       (cotacao escolhida -> proposta via cotacao_id). Reconciliar divergência.
+//     - MOTOR PRÓPRIO: motor PROPRIO nas execuções; Agger como FALLBACK. Ramos
+//       fora da Agger (Vida em Grupo, Saúde, grandes riscos, frota como frota) =
+//       execução MANUAL — caminho de primeira classe, sem referência externa.
+//  5. Views de leitura:
+//     vw_producao: JOIN apolices × propostas no formato do relatório/tela atual.
+//     vw_comissoes_proposta / vw_comissoes_apolice: previsto × recebido × diferença.
+//     vw_clientes_grupo (opcional): clientes únicos por cpf_cnpj normalizado entre
+//       corretoras — visão de grupo SEM quebrar o isolamento do detalhe.
+//     vw_timeline (D15): UNION de atividades + audit_logs por (entidade_tipo,
+//       entidade_id), com coluna ORIGEM/tipo (nota|atividade|log), read-only sobre
+//       audit_logs. A guia "Anexos e logs" filtra (default atividades; toggle logs).
+//  6. Validações: stage pertence ao pipeline do módulo certo; proposta
+//     CANCELAMENTO atualiza apolices.status; COTAÇÃO APROVADA única por
+//     oportunidade (a que vira proposta); cálculo, execução, cotação, cobertura,
+//     parcelamento e apresentação pertencem à mesma oportunidade; parcelamento
+//     escolhido pertence à cotação; produtor/gerente/responsável da corretora
+//     do registro; dedup por telefone/e-mail ao converter lead em segurado;
+//     comissoes.parcela_id e repasses.comissao_id da MESMA proposta; repasse_regras:
+//     qtd_parcelas NOT NULL quando gatilho = PARCELADO; unicidade da combinação
+//     (filial, produtor, ramo, papel, tipo_documento); profile_filiais
+//     UNIQUE(profile_id, filial_id); item_coberturas.incluido/excluido_por da MESMA
+//     apólice do item (filho==pai) e excluido_por != incluido_por (D13);
+//     calculos/calc_*/calculo_coberturas: filho==pai pela cadeia do cálculo;
+//     CAMPOS PERSONALIZADOS (D16): TRIGGER de coerência valor×tipo + CHECK de linha;
+//     obrigatoriedade é regra de aplicação (sem NOT NULL retroativo) + painel de
+//     pendências.
+//  7. Reintroduzir created_by / uploaded_by e atalhos de leitura conforme
+//     auditoria/relatório pedirem.
+//  8. Reconciliações de migração do front legado:
+//     - emissoes.metadata / pos_vendas.metadata em JSONB contrariam o princípio
+//       zero-JSON — migrar para colunas relacionais (e p/ campos personalizados
+//       o que for campo dinâmico de corretora).
+//     - PRD prd-cadastro-pessoa: cpf_cnpj RECONCILIADO na v1.1 ("único por filial").
+//     - Front atual cria campo personalizado de DENTRO do segurado -> refatorar:
+//       DEFINIÇÃO em Configurações; PREENCHIMENTO na guia do registro (D16).
+//  9. Migração do legado (comissões): "-1" no percentual da grade vira percentual
+//     NULL (= % da proposta); telas que misturam cobrança do cliente e recebimento
+//     da corretora se separam em parcelas × comissoes (UI pode exibir lado a lado).
+// 10. UI das regras de repasse: visão cascata (árvore renderizada a partir da
+//     tabela de decisão) + simulador "qual regra venceu e por quê".
+// ============================================================================

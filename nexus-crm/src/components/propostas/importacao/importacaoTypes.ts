@@ -3,6 +3,7 @@ export type ImportProposalType = 'NOVA' | 'RENOVACAO' | 'ENDOSSO'
 export type ImportFileStatus = 'LIDO' | 'REVISAO' | 'NAO_SUPORTADO' | 'IMPORTADO' | 'ERRO'
 
 export interface ImportFileDraft {
+  quoteId?: string
   id: string
   fileName: string
   size: number

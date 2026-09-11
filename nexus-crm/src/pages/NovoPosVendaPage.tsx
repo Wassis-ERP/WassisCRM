@@ -265,7 +265,7 @@ export default function NovoPosVendaPage() {
                 <UserRound size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                 <select value={responsavelId} onChange={(event) => setResponsavelId(event.target.value)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 py-2.5 pl-9 pr-3 text-sm font-semibold text-fg-1">
                   <option value="">Usuário da sessão</option>
-                  {(responsaveis.data ?? []).map((responsavel) => <option key={responsavel.id} value={responsavel.id}>{responsavel.full_name ?? responsavel.email ?? responsavel.id}</option>)}
+                  {(responsaveis.data ?? []).map((responsavel) => <option key={responsavel.id} value={responsavel.id}>{responsavel.nome_completo ?? responsavel.email ?? responsavel.id}</option>)}
                 </select>
               </div>
             </label>

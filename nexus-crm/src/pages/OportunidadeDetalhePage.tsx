@@ -1,632 +1,492 @@
-import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { usesBackendDomainData } from '../lib/backendDomainApi'
+import { opportunityPermissionContext } from '../modules/plataforma/platformDomain'
+import { useState, type ReactNode } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
-  Briefcase,
+  CalendarDays,
   Check,
-  DollarSign,
-  Download,
-  ExternalLink,
-  FileText,
-  History,
-  LayoutGrid,
+  ChevronRight,
+  CircleDollarSign,
+  Edit3,
   Mail,
-  MessageSquare,
   Phone,
-  Plus,
-  Shield,
+  Save,
   Send,
-  TrendingUp,
-  Users,
+  Target,
+  UserRoundCheck,
   X,
-} from 'lucide-react';
-import DateField from '../components/DateField';
-import ConcludeCardModal from '../components/kanban/ConcludeCardModal';
-import { getDateStatus } from '../utils/date';
-import { useOportunidade, useUpdateOportunidade } from '../hooks/useOportunidades';
-import { useOrigens, useRamos, useSeguradoras } from '../hooks/useLookups';
-import { usePipelineStages } from '../hooks/usePipelineStages';
-import type { CardStatus, KanbanCard } from '../modules/types';
-import type { Database } from '../types/database';
-import { usePropostas } from '../contexts/usePropostas';
-import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext';
+} from 'lucide-react'
+import { EntityTabsBar, type EntityTab } from '../components/detail/EntityTabsBar'
+import { DetailCard, DetailField, GhostButton, StatusBadge } from '../components/detail/primitives'
+import AnexosLogsTab from '../components/detail/tabs/AnexosLogsTab'
+import CamposPersonalizadosTab from '../components/detail/tabs/CamposPersonalizadosTab'
+import ObservacoesTab from '../components/detail/tabs/ObservacoesTab'
+import TarefasTab from '../components/detail/tabs/TarefasTab'
+import { useEntityTabsState } from '../components/detail/useEntityTabsState'
+import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
+import ConcludeCardModal from '../components/kanban/ConcludeCardModal'
+import LeadQualificationPanel from '../components/oportunidades/LeadQualificationPanel'
+import CalculationsTab from '../components/oportunidades/CalculationsTab'
+import {
+  useOportunidade,
+  useOpportunityProfiles,
+  useUpdateOportunidade,
+  type OpportunityDetail,
+} from '../hooks/useOportunidades'
+import { useOrigens, useRamos } from '../hooks/useLookups'
+import { usePermission } from '../hooks/usePermission'
+import { usePropostas } from '../contexts/usePropostas'
+import {
+  deriveOpportunityStatus,
+  buildOpportunityQualificationPatch,
+  mapOpportunityToKanbanCard,
+  opportunityCustomerLabel,
+  opportunityTitle,
+  type OpportunityUpdate,
+} from '../modules/comercial/opportunityDomain'
+import { normalizePipelineStageRow, type CardStatus } from '../modules/types'
+import { fmtDate } from '../utils/date'
+import { formatCpfCnpj, onlyDigits } from '../utils/documento'
 
-type TipoNegocio = Database['public']['Enums']['tipo_negocio'];
+type TabId = 'visao' | 'calculos' | 'tarefas' | 'personalizados' | 'anexos' | 'observacoes'
+const VALID_TABS: TabId[] = ['visao', 'calculos', 'tarefas', 'personalizados', 'anexos', 'observacoes']
 
-interface JoinRecord {
-  id: string;
-  nome?: string | null;
+interface OpportunityDraft {
+  titulo: string
+  descricao: string
+  ramoId: string
+  origemId: string
+  responsavelId: string
+  prioridade: string
+  premioEstimado: string
+  comissaoEstimada: string
+  comissaoPercentual: string
+  agenciamentoPercentual: string
+  dataAbertura: string
+  fechamentoPrevisto: string
+  campanha: string
+  observacoes: string
 }
 
-interface JoinSegurado {
-  id: string;
-  nome: string;
-  cpf_cnpj: string | null;
-  telefone: string | null;
-  email: string | null;
-}
+const inputClass =
+  'w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1 placeholder:text-fg-4 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30'
 
-interface JoinProfile {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-}
+const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 
-interface OpportunityFormData {
-  ramoId: string;
-  tipoNegocio: TipoNegocio | '';
-  seguradoraId: string;
-  vigenciaInicio: string;
-  vigenciaFim: string;
-  origemId: string;
-  proximoFollowup: string;
-  stageId: string;
-  premioLiquido: number;
-  comissaoPercent: number;
-  observacoes: string;
-}
-
-function opportunityForm(row?: Record<string, unknown>): OpportunityFormData {
+function toDraft(row: OpportunityDetail): OpportunityDraft {
   return {
-    ramoId: (row?.ramo_id as string | null) ?? '',
-    tipoNegocio: (row?.tipo_negocio as TipoNegocio | null) ?? '',
-    seguradoraId: (row?.seguradora_id as string | null) ?? '',
-    vigenciaInicio: (row?.vigencia_inicio as string | null) ?? '',
-    vigenciaFim: (row?.vigencia_fim as string | null) ?? '',
-    origemId: (row?.origem_id as string | null) ?? '',
-    proximoFollowup: (row?.proximo_followup as string | null) ?? '',
-    stageId: (row?.stage_id as string | null) ?? '',
-    premioLiquido: (row?.premio_liquido as number | null) ?? 0,
-    comissaoPercent: (row?.comissao_percentual as number | null) ?? 15,
-    observacoes: (row?.observacoes as string | null) ?? '',
-  };
+    titulo: row.titulo ?? '',
+    descricao: row.descricao ?? '',
+    ramoId: row.ramo_id ?? '',
+    origemId: row.origem_id ?? '',
+    responsavelId: row.responsavel_id ?? '',
+    prioridade: row.prioridade ?? '',
+    premioEstimado: row.valor_premio_estimado?.toString() ?? '',
+    comissaoEstimada: row.valor_comissao_estimada?.toString() ?? '',
+    comissaoPercentual: row.comissao_estimada_pct?.toString() ?? '',
+    agenciamentoPercentual: row.agenciamento_pct?.toString() ?? '',
+    dataAbertura: row.data_abertura ?? '',
+    fechamentoPrevisto: row.data_fechamento_prevista ?? '',
+    campanha: row.campanha ?? '',
+    observacoes: row.observacoes ?? '',
+  }
 }
 
-/**
- * Pagina de detalhe de Oportunidade (modulo Comercial).
- * Le dados de `oportunidades` + joins (segurados, ramos, origens, seguradoras,
- * profiles) no Supabase. Salva alteracoes via `useUpdateOportunidade`.
- */
+function numberOrNull(value: string): number | null {
+  const normalized = value.trim().replace(',', '.')
+  if (!normalized) return null
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function draftToPatch(draft: OpportunityDraft): OpportunityUpdate {
+  const text = (value: string) => value.trim() || null
+  return {
+    titulo: text(draft.titulo),
+    descricao: text(draft.descricao),
+    ramo_id: draft.ramoId || null,
+    origem_id: draft.origemId || null,
+    responsavel_id: draft.responsavelId || null,
+    prioridade: text(draft.prioridade),
+    valor_premio_estimado: numberOrNull(draft.premioEstimado),
+    valor_comissao_estimada: numberOrNull(draft.comissaoEstimada),
+    comissao_estimada_pct: numberOrNull(draft.comissaoPercentual),
+    agenciamento_pct: numberOrNull(draft.agenciamentoPercentual),
+    data_abertura: draft.dataAbertura || null,
+    data_fechamento_prevista: draft.fechamentoPrevisto || null,
+    campanha: text(draft.campanha),
+    observacoes: text(draft.observacoes),
+  }
+}
+
 export default function OportunidadeDetalhePage() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const opportunityId = String(id ?? '');
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const detail = useOportunidade(id)
+  const update = useUpdateOportunidade()
+  const profiles = useOpportunityProfiles()
+  const ramos = useRamos()
+  const origens = useOrigens()
+  const { can } = usePermission('comercial', opportunityPermissionContext(detail.data))
+  const confirm = useConfirm()
+  const { notify } = useSystemFeedback()
+  const { transmitRenewalOpportunity } = usePropostas()
+  const [draft, setDraft] = useState<OpportunityDraft | null>(null)
+  const [qualifying, setQualifying] = useState(false)
+  const [concludeMode, setConcludeMode] = useState<Exclude<CardStatus, 'pending'> | null>(null)
 
-  const detail = useOportunidade(opportunityId);
-  const ramos = useRamos();
-  const origens = useOrigens();
-  const seguradoras = useSeguradoras();
-  const update = useUpdateOportunidade();
-  const { transmitRenewalOpportunity } = usePropostas();
-  const confirm = useConfirm();
-  const { notify } = useSystemFeedback();
+  const row = detail.data
+  const pipelineId = row?.pipeline_stage?.pipeline_id
+  const tabsState = useEntityTabsState('oportunidade', id, { filialId: row?.filial_id })
+  const requestedTab = searchParams.get('tab')
+  const activeTab: TabId = VALID_TABS.includes(requestedTab as TabId) ? requestedTab as TabId : 'visao'
 
-  const rawRow = detail.data as (Record<string, unknown> | undefined) ?? undefined;
-  const renewalOriginId = (rawRow?.apolice_origem_id as string | null | undefined) ?? null;
-  const pipelineId = (rawRow?.pipeline_id as string | null | undefined) ?? undefined;
-  const stagesQuery = usePipelineStages(pipelineId);
-
-  const segurado = (rawRow?.segurados ?? null) as JoinSegurado | null;
-  const responsavel = (rawRow?.profiles ?? null) as JoinProfile | null;
-  const ramoJoin = (rawRow?.ramos ?? null) as JoinRecord | null;
-  const seguradoraJoin = (rawRow?.seguradoras ?? null) as JoinRecord | null;
-  const origemJoin = (rawRow?.origens ?? null) as JoinRecord | null;
-
-  const [activeTab, setActiveTab] = useState('orcamento');
-  const initialFormData = useMemo(() => opportunityForm(rawRow), [rawRow]);
-  const [formDraft, setFormData] = useState<OpportunityFormData | null>(null);
-  const formData = formDraft ?? initialFormData;
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [concludeMode, setConcludeMode] = useState<Exclude<CardStatus, 'pending'> | null>(null);
-
-  const funnelSteps = useMemo(() => stagesQuery.data ?? [], [stagesQuery.data]);
-  const currentIdx = useMemo(
-    () => funnelSteps.findIndex((s) => s.id === formData.stageId),
-    [funnelSteps, formData.stageId],
-  );
-  const safeCurrentIdx = currentIdx === -1 ? 0 : currentIdx;
-  const currentStage = funnelSteps.find((s) => s.id === formData.stageId);
-  const canWin = !!currentStage?.is_win_eligible;
-  const isConcluded = (rawRow?.status as CardStatus | undefined) !== 'pending' && !!rawRow?.status;
-
-  // KanbanCard minimo para alimentar o ConcludeCardModal a partir da pagina de detalhe.
-  const cardForConclude: KanbanCard | null = rawRow
-    ? {
-        id: opportunityId,
-        pipelineId: (rawRow.pipeline_id as string | null) ?? null,
-        stageId: (rawRow.stage_id as string | null) ?? null,
-        status: (rawRow.status as CardStatus) ?? 'pending',
-        title: (rawRow.nome as string) ?? '',
-        responsavelId: (rawRow.responsavel_id as string | null) ?? null,
-        raw: rawRow,
-      }
-    : null;
-
-  const comissaoValor = (formData.premioLiquido * formData.comissaoPercent) / 100;
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-
-  const followUpStatus = getDateStatus(formData.proximoFollowup);
-  const followUpBorderClass =
-    followUpStatus === 'today' ? 'border-accent-primary/50'
-    : followUpStatus === 'overdue' ? 'border-signal-danger/60'
-    : 'border-accent-primary/20';
-
-  const tabs = [
-    { id: 'orcamento', label: 'Orcamento', icon: FileText },
-    { id: 'produtores', label: 'Produtores', icon: Users },
-    { id: 'anexos_logs', label: 'Anexos e logs', icon: Download },
-    { id: 'comentarios', label: 'Comentarios', icon: MessageSquare },
-    { id: 'oportunidades', label: 'Oportunidades', icon: LayoutGrid },
-  ];
-
-  const handleDiscard = () => {
-    if (!rawRow) return;
-    setFormData(null);
-    setSaveStatus('idle');
-    setSaveError(null);
-  };
-
-  const handleSave = async () => {
-    setSaveStatus('saving');
-    setSaveError(null);
-    try {
-      await update.mutateAsync({
-        id: opportunityId,
-        patch: {
-          ramo_id: formData.ramoId || null,
-          tipo_negocio: formData.tipoNegocio || null,
-          seguradora_id: formData.seguradoraId || null,
-          vigencia_inicio: formData.vigenciaInicio || null,
-          vigencia_fim: formData.vigenciaFim || null,
-          origem_id: formData.origemId || null,
-          proximo_followup: formData.proximoFollowup || null,
-          stage_id: formData.stageId || null,
-          premio_liquido: formData.premioLiquido || null,
-          comissao_percentual: formData.comissaoPercent || null,
-          observacoes: formData.observacoes || null,
+  const normalizedStage = row?.pipeline_stage ? normalizePipelineStageRow(row.pipeline_stage) : undefined
+  const card = row
+    ? mapOpportunityToKanbanCard(
+        row,
+        {
+          segurado: row.segurados,
+          ramo: row.ramos,
+          origem: row.origens,
+          motivoPerda: row.motivos_perda,
+          responsavel: row.profiles,
         },
-      });
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 1800);
-    } catch (err) {
-      setSaveStatus('error');
-      setSaveError(err instanceof Error ? err.message : 'Erro ao salvar');
-    }
-  };
+        normalizedStage,
+      )
+    : null
+  const status = row ? deriveOpportunityStatus(row) : 'pending'
+  const isEditing = draft !== null || qualifying
+  const canUpdate = can('update')
+  const canDelete = can('delete')
+  const canCreate = can('create')
 
-  const handleTransmitRenewal = async () => {
+  const handleTabChange = (nextTab: TabId) => {
+    if (isEditing) {
+      notify({
+        title: 'Conclua ou cancele a edição',
+        description: 'A oportunidade permanece no bloco atual para evitar perda de alterações.',
+        tone: 'warning',
+      })
+      return
+    }
+    const next = new URLSearchParams(searchParams)
+    if (nextTab === 'visao') next.delete('tab')
+    else next.set('tab', nextTab)
+    setSearchParams(next, { replace: true })
+  }
+
+  const goBack = async () => {
+    if (isEditing) {
+      const discard = await confirm({
+        title: 'Descartar alterações?',
+        description: 'As informações ainda não salvas serão perdidas.',
+        confirmLabel: 'Descartar',
+        tone: 'warning',
+      })
+      if (!discard) return
+    }
+    navigate('/oportunidades')
+  }
+
+  const saveOverview = async () => {
+    if (!id || !draft) return
+    try {
+      await update.mutateAsync({ id, patch: draftToPatch(draft) })
+      setDraft(null)
+      notify({ title: 'Oportunidade atualizada', description: 'As alterações da Visão geral foram salvas.', tone: 'success' })
+    } catch (cause) {
+      notify({ title: 'Não foi possível salvar', description: cause instanceof Error ? cause.message : 'Revise os campos informados.', tone: 'danger' })
+    }
+  }
+
+  const qualifyLead = async (seguradoId: string) => {
+    if (!id) return
+    await update.mutateAsync({ id, patch: buildOpportunityQualificationPatch(seguradoId) })
+    setQualifying(false)
+    notify({ title: 'Lead qualificado', description: 'O segurado foi vinculado sem alterar a identidade da oportunidade.', tone: 'success' })
+  }
+
+  const runTabAction = async (operation: () => Promise<void>, success: string) => {
+    try {
+      await operation()
+      notify({ title: success, tone: 'success' })
+    } catch (cause) {
+      notify({ title: 'Não foi possível concluir', description: cause instanceof Error ? cause.message : 'Tente novamente.', tone: 'danger' })
+    }
+  }
+
+  const confirmRemove = (title: string, description: string) => confirm({ title, description, confirmLabel: 'Remover', tone: 'danger' })
+
+  const transmitRenewal = async () => {
+    if (!id) return
     const accepted = await confirm({
       title: 'Transmitir renovação',
-      description: 'Será criada uma nova apólice em emissão, ligada ao contrato anterior. A apólice anterior continuará vigente até a emissão da sucessora.',
+      description: 'Será criada uma nova apólice em emissão vinculada ao contrato anterior.',
       confirmLabel: 'Transmitir',
       tone: 'warning',
-    });
-    if (!accepted) return;
+    })
+    if (!accepted) return
     try {
-      const result = transmitRenewalOpportunity(opportunityId);
-      notify({ title: 'Renovação transmitida', description: 'A sucessora foi criada em emissão para revisão documental.', tone: 'success' });
-      navigate(`/apolices/${result.policyId}?documento=${result.documentId}`);
-    } catch (error) {
-      notify({ title: 'Não foi possível transmitir', description: error instanceof Error ? error.message : 'Revise a oportunidade.', tone: 'danger' });
+      const result = transmitRenewalOpportunity(id)
+      notify({ title: 'Renovação transmitida', description: 'A sucessora foi criada em emissão.', tone: 'success' })
+      navigate(`/apolices/${result.policyId}?documento=${result.documentId}`)
+    } catch (cause) {
+      notify({ title: 'Não foi possível transmitir', description: cause instanceof Error ? cause.message : 'Revise a oportunidade.', tone: 'danger' })
     }
-  };
-
-  if (detail.isLoading) {
-    return (
-      <div className="animate-fade-in flex items-center justify-center py-24">
-        <p className="text-fg-4 font-bold uppercase tracking-widest text-xs">Carregando oportunidade…</p>
-      </div>
-    );
   }
 
-  if (detail.isError || !rawRow) {
-    return (
-      <div className="animate-fade-in flex flex-col items-center justify-center py-24 gap-4">
-        <p className="text-signal-danger font-bold uppercase tracking-widest text-xs">Oportunidade nao encontrada</p>
-        <button
-          onClick={() => navigate(-1)}
-          className="px-5 py-2 bg-bg-surface-2 text-fg-1 rounded-[6px] text-sm font-bold"
-        >
-          Voltar
-        </button>
-      </div>
-    );
-  }
+  if (!id) return <PageMessage message="Identificador de oportunidade inválido." onBack={() => navigate('/oportunidades')} />
+  if (detail.isLoading) return <OpportunitySkeleton />
+  if (detail.isError || !row) return <PageMessage message="Oportunidade não encontrada ou sem permissão de acesso." onBack={() => navigate('/oportunidades')} onRetry={() => void detail.refetch()} />
 
-  const clienteNome = segurado?.nome ?? (rawRow.nome as string);
-  const email = segurado?.email ?? '';
-  const telefone = segurado?.telefone ?? '';
-  const origemLabel = origemJoin?.nome ?? '-';
-  const criadoPor = responsavel?.full_name ?? '-';
-  const shortId = opportunityId.slice(0, 8).toUpperCase();
+  const pendingTasks = tabsState.tarefas.filter((task) => task.status !== 'Concluída').length
+  const tabs: EntityTab<TabId>[] = [
+    { id: 'visao', label: 'Visão geral' },
+    { id: 'calculos', label: 'Cálculos' },
+    { id: 'tarefas', label: 'Tarefas', badge: pendingTasks || undefined },
+    { id: 'personalizados', label: 'Campos personalizados' },
+    { id: 'anexos', label: 'Anexos e logs', badge: tabsState.anexos.length || undefined },
+    { id: 'observacoes', label: 'Observações', badge: tabsState.observacoes.length || undefined },
+  ]
+
+  const title = opportunityTitle(row, { segurado: row.segurados })
+  const customer = opportunityCustomerLabel(row, { segurado: row.segurados })
+  const statusLabel = status === 'won' ? 'Ganha' : status === 'lost' ? 'Perdida' : 'Em andamento'
+  const statusTone = status === 'won' ? 'success' : status === 'lost' ? 'danger' : 'info'
 
   return (
-    <div className="animate-fade-in max-w-7xl mx-auto pb-12">
-      <div className="relative z-0 bg-bg-surface backdrop-blur-md border-b border-border-1 -mx-4 px-4 md:-mx-8 md:px-8 mb-8 shadow-[var(--shadow-1)]">
-        <div className="max-w-[1440px] mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2.5 hover:bg-bg-surface-2 rounded-[6px] text-fg-3 transition-colors border border-transparent hover:border-border-1"
-              >
-                <ArrowLeft size={18} />
-              </button>
-              <div>
-                <h1 className="text-xl font-black tracking-tight text-fg-1 flex items-center gap-2">
-                  #{shortId}
-                  <span className="text-fg-3 text-base font-medium">| {clienteNome}</span>
-                </h1>
-                <p className="text-[10px] text-fg-4 font-bold uppercase tracking-wider">
-                  Originado via {origemLabel} - Por {criadoPor}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="hidden lg:flex flex-col items-end mr-4">
-                <span className="text-[10px] font-bold text-fg-4 uppercase tracking-widest text-right whitespace-nowrap">Comissao Estimada</span>
-                <span className="text-sm font-black text-signal-success">{formatCurrency(comissaoValor)}</span>
-              </div>
-
-              {!isConcluded && (
-                <>
-                  {renewalOriginId && (
-                    <button
-                      type="button"
-                      onClick={() => void handleTransmitRenewal()}
-                      className="flex items-center gap-2 rounded-full border border-accent-primary/30 bg-accent-primary-soft px-4 py-2.5 text-xs font-black uppercase tracking-widest text-accent-primary transition-colors hover:bg-accent-primary/15"
-                    >
-                      <Send size={14} /> Transmitir renovação
-                    </button>
-                  )}
-                  {canWin && (
-                    <button
-                      onClick={() => setConcludeMode('won')}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-signal-success/10 hover:bg-signal-success/20 border border-signal-success/20 text-signal-success rounded-full text-xs font-black uppercase tracking-widest transition-all"
-                    >
-                      <Check size={14} /> Ganho
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setConcludeMode('lost')}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-signal-danger/10 hover:bg-signal-danger/20 border border-signal-danger/20 text-signal-danger rounded-full text-xs font-black uppercase tracking-widest transition-all"
-                  >
-                    <X size={14} /> Perdido
-                  </button>
-                </>
-              )}
-
-              {isConcluded && (
-                <span className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest ${
-                  (rawRow.status as CardStatus) === 'won'
-                    ? 'bg-signal-success/10 text-signal-success border border-signal-success/20'
-                    : 'bg-signal-danger/10 text-signal-danger border border-signal-danger/20'
-                }`}>
-                  {(rawRow.status as CardStatus) === 'won' ? 'Ganha' : 'Perdida'}
-                </span>
-              )}
-
-              <button
-                onClick={handleDiscard}
-                className="px-5 py-2.5 text-sm font-bold text-fg-3 hover:text-signal-danger hover:bg-signal-danger/10 rounded-[6px] transition-all"
-              >
-                Descartar
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saveStatus === 'saving'}
-                className="bg-accent-primary hover:bg-accent-primary-hover active:scale-95 text-fg-on-brand px-8 py-2.5 rounded-full text-sm font-black shadow-[var(--shadow-brand)] transition-all flex items-center gap-2 disabled:opacity-60"
-              >
-                {saveStatus === 'saving' ? 'Salvando...' : saveStatus === 'saved' ? 'Salvo!' : 'Salvar Alteracoes'}
-              </button>
-            </div>
-          </div>
-
-          <div className="py-3 border-t border-border-1 flex items-center gap-1 overflow-x-auto no-scrollbar">
-            {funnelSteps.map((step, idx) => {
-              const isActive = step.id === formData.stageId;
-              const isPast = idx < safeCurrentIdx;
-              return (
-                <div key={step.id} className="flex items-center gap-1">
-                  <button
-                    onClick={() => setFormData({ ...formData, stageId: step.id })}
-                    className={`relative h-8 px-4 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap ${
-                      isActive ? 'bg-accent-primary text-fg-on-brand border-accent-primary shadow-[var(--shadow-brand)]'
-                      : isPast ? 'bg-signal-success/10 text-signal-success border-signal-success/20 hover:bg-signal-success/20'
-                      : 'bg-bg-surface-2 text-fg-4 border-border-1 hover:border-border-2'
-                    }`}
-                  >
-                    {isPast && <div className="w-1.5 h-1.5 rounded-full bg-signal-success" />}
-                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-fg-on-brand" />}
-                    {step.name}
-                  </button>
-                  {idx < funnelSteps.length - 1 && (
-                    <div className={`h-[2px] w-4 ${isPast ? 'bg-signal-success/40' : 'bg-border-1'}`} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {saveError && (
-            <div className="pb-3 text-[11px] font-bold text-signal-danger">{saveError}</div>
-          )}
-        </div>
+    <div className="animate-fade-in pb-10">
+      <div className="mb-5 flex items-center gap-2 text-sm text-fg-3">
+        <button type="button" onClick={() => void goBack()} className="inline-flex items-center gap-1.5 hover:text-accent-primary"><ArrowLeft size={15} /> Oportunidades</button>
+        <ChevronRight size={14} className="text-fg-4" />
+        <span className="truncate font-medium text-fg-1">{title}</span>
       </div>
 
-      <div className="bg-accent-primary-soft border border-accent-primary/10 rounded-[8px] p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[var(--shadow-1)]">
-        <div className="flex items-center gap-5">
-          <div className="w-16 h-16 rounded-[8px] bg-gradient-to-br from-accent-primary to-brand-primary-deep flex items-center justify-center text-fg-on-brand text-2xl font-bold shadow-[var(--shadow-2)]">
-            {clienteNome.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-          </div>
-          <div>
-            <h2 className="text-xl font-black text-fg-1 uppercase tracking-tight">{clienteNome}</h2>
-            <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-fg-3 font-bold">
-              <span className="flex items-center gap-1.5 bg-bg-surface px-3 py-1 rounded-full shadow-[var(--shadow-1)]">
-                <Mail size={14} className="text-accent-primary" /> {email || '-'}
-              </span>
-              <span className="flex items-center gap-1.5 bg-bg-surface px-3 py-1 rounded-full shadow-[var(--shadow-1)]">
-                <Phone size={14} className="text-accent-primary" /> {telefone || '-'}
+      <section className="mb-6 border-b border-border-1 pb-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-black tracking-tight text-fg-1">{title}</h1>
+              <StatusBadge status={statusLabel} tone={statusTone} />
+              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${row.segurado_id ? 'bg-signal-success/15 text-signal-success' : 'bg-signal-warning/15 text-signal-warning'}`}>
+                {row.segurado_id ? 'Segurado' : 'Lead'}
               </span>
             </div>
+            <p className="mt-1 text-sm font-semibold text-fg-3">{customer}{row.ramos?.nome ? ` · ${row.ramos.nome}` : ''}{normalizedStage?.name ? ` · ${normalizedStage.name}` : ''}</p>
+            <p className="mt-2 font-mono text-xs text-fg-4">#{row.id.slice(0, 8).toUpperCase()}</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {row.apolice_origem_id && status === 'pending' && (
+              <button type="button" onClick={() => void transmitRenewal()} className="inline-flex items-center gap-2 rounded-full border border-accent-primary/30 bg-accent-primary-soft px-4 py-2.5 text-xs font-black text-accent-primary hover:bg-accent-primary/15"><Send size={14} /> Transmitir renovação</button>
+            )}
+            {status === 'pending' && normalizedStage?.is_win_eligible && (
+              <button type="button" onClick={() => setConcludeMode('won')} className="inline-flex items-center gap-2 rounded-full bg-signal-success/15 px-4 py-2.5 text-xs font-black text-signal-success hover:bg-signal-success/25"><Check size={14} /> Marcar como ganha</button>
+            )}
+            {status === 'pending' && (
+              <button type="button" onClick={() => setConcludeMode('lost')} className="inline-flex items-center gap-2 rounded-full bg-signal-danger/10 px-4 py-2.5 text-xs font-black text-signal-danger hover:bg-signal-danger/20"><X size={14} /> Marcar como perdida</button>
+            )}
           </div>
         </div>
-        <button
-          onClick={() => segurado?.id && navigate(`/segurados/${segurado.id}`)}
-          className="px-6 py-2.5 bg-bg-surface text-accent-primary border border-accent-primary/20 rounded-full text-sm font-black shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] hover:-translate-y-0.5 transition-all flex items-center gap-2"
-        >
-          <ExternalLink size={16} /> Detalhes do Segurado
-        </button>
-      </div>
+      </section>
 
-      <div className="mb-8 border-b border-border-1">
-        <nav className="flex gap-8 overflow-x-auto custom-scrollbar">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`pb-4 px-1 text-sm font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-                activeTab === tab.id ? 'border-accent-primary text-accent-primary' : 'border-transparent text-fg-3 hover:text-fg-1'
-              }`}
-            >
-              <tab.icon size={18} /> {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
+      <EntityTabsBar tabs={tabs} active={activeTab} onChange={handleTabChange} wrap />
 
-      {activeTab === 'orcamento' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12 animate-fade-in">
-          <div className="lg:col-span-7 space-y-6">
-            <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-              <div className="flex items-center gap-2 mb-6 text-fg-4">
-                <Shield size={18} className="text-accent-primary" />
-                <h3 className="text-xs font-bold uppercase tracking-widest">Resumo do Orcamento</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-fg-3 uppercase">Ramo do Seguro</label>
-                  <select
-                    value={formData.ramoId}
-                    onChange={(e) => setFormData({ ...formData, ramoId: e.target.value })}
-                    className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                  >
-                    <option value="">Selecione</option>
-                    {(ramos.data ?? []).map((r) => (
-                      <option key={r.id} value={r.id}>{r.nome}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-fg-3 uppercase">Tipo de Seguro</label>
-                  <div className="flex p-1 bg-bg-surface-2 rounded-xl">
-                    {(['novo', 'renovacao', 'endosso'] as const).map((tipo) => (
-                      <button
-                        key={tipo}
-                        onClick={() => setFormData({ ...formData, tipoNegocio: tipo })}
-                        className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all capitalize ${
-                          formData.tipoNegocio === tipo ? 'bg-bg-surface shadow-[var(--shadow-1)] text-accent-primary' : 'text-fg-3 hover:text-fg-1'
-                        }`}
-                      >
-                        {tipo}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <label className="text-[10px] font-bold text-fg-3 uppercase">Seguradora</label>
-                  <div className="relative">
-                    <Briefcase size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
-                    <select
-                      value={formData.seguradoraId}
-                      onChange={(e) => setFormData({ ...formData, seguradoraId: e.target.value })}
-                      className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                    >
-                      <option value="">Selecione</option>
-                      {(seguradoras.data ?? []).map((s) => (
-                        <option key={s.id} value={s.id}>{s.nome}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-fg-3 uppercase">Inicio de Vigencia</label>
-                  <DateField
-                    value={formData.vigenciaInicio}
-                    onChange={(v) => setFormData({ ...formData, vigenciaInicio: v })}
-                    inputClassName="bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-fg-3 uppercase">Termino de Vigencia</label>
-                  <DateField
-                    value={formData.vigenciaFim}
-                    onChange={(v) => setFormData({ ...formData, vigenciaFim: v })}
-                    inputClassName="bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-              <div className="flex items-center gap-2 mb-6 text-fg-4">
-                <TrendingUp size={18} className="text-accent-primary" />
-                <h3 className="text-xs font-bold uppercase tracking-widest">Origem e Agendamento</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-fg-3 uppercase">Origem do Lead</label>
-                  <select
-                    value={formData.origemId}
-                    onChange={(e) => setFormData({ ...formData, origemId: e.target.value })}
-                    className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl py-2.5 px-4 text-sm focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                  >
-                    <option value="">Selecione</option>
-                    {(origens.data ?? []).map((o) => (
-                      <option key={o.id} value={o.id}>{o.nome}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-fg-3 uppercase">Proximo Follow-up</label>
-                  <DateField
-                    value={formData.proximoFollowup}
-                    onChange={(v) => setFormData({ ...formData, proximoFollowup: v })}
-                    inputClassName={`bg-accent-primary-soft text-accent-primary border ${followUpBorderClass}`}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-5 space-y-6">
-            <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-              <div className="flex items-center gap-2 mb-8 text-fg-4">
-                <DollarSign size={18} className="text-signal-success" />
-                <h3 className="text-xs font-bold uppercase tracking-widest">Projecao Financeira</h3>
-              </div>
-              <div className="space-y-8">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-fg-3 uppercase">Premio Liquido (R$)</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-4 font-bold">R$</span>
-                    <input
-                      type="number"
-                      value={formData.premioLiquido}
-                      onChange={(e) => setFormData({ ...formData, premioLiquido: Number(e.target.value) })}
-                      className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-2xl py-5 pl-12 pr-6 text-3xl font-black text-fg-1 focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none transition-all shadow-inner"
-                    />
-                  </div>
-                  <p className="text-[10px] text-fg-4 mt-1">Valor base para o calculo da comissao.</p>
-                </div>
-
-                <div className="p-6 bg-bg-surface-2 rounded-[8px] border border-border-1 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-fg-3 uppercase">Comissao (%)</label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          value={formData.comissaoPercent}
-                          onChange={(e) => setFormData({ ...formData, comissaoPercent: Number(e.target.value) })}
-                          className="w-16 bg-bg-surface text-fg-1 border-border-1 rounded-xl py-2 px-3 text-lg font-bold focus:ring-2 focus:ring-accent-primary/30 focus:outline-none"
-                        />
-                        <span className="text-fg-4 font-bold">%</span>
-                      </div>
-                    </div>
-                    <div className="h-10 w-px bg-border-1"></div>
-                    <div className="space-y-1 text-right">
-                      <label className="text-[10px] font-bold text-fg-3 uppercase">Valor Comissao</label>
-                      <div className="text-2xl font-black text-signal-success">
-                        {formatCurrency(comissaoValor)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="h-1.5 w-full bg-bg-surface-3 rounded-full overflow-hidden">
-                    <div className="h-full bg-signal-success transition-all duration-500" style={{ width: `${formData.comissaoPercent}%` }} />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-fg-4 mb-4">Notas da Oportunidade</h3>
-              <textarea
-                value={formData.observacoes}
-                onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                className="w-full bg-bg-surface-2 text-fg-1 border-border-1 rounded-xl p-4 text-sm h-32 resize-none focus:ring-2 focus:ring-accent-primary/30 focus:border-accent-primary focus:outline-none"
-                placeholder="Adicione observacoes importantes sobre a negociacao..."
+      <div role="tabpanel">
+        {activeTab === 'visao' && (
+          <div className="space-y-5">
+            {!row.segurado_id && qualifying && (
+              <LeadQualificationPanel opportunity={row} onCancel={() => setQualifying(false)} onQualify={qualifyLead} />
+            )}
+            {draft ? (
+              <OpportunityOverviewEditor
+                draft={draft}
+                onChange={setDraft}
+                onCancel={() => setDraft(null)}
+                onSave={() => void saveOverview()}
+                isSaving={update.isPending}
+                ramos={ramos.data ?? []}
+                origens={origens.data ?? []}
+                profiles={profiles.data ?? []}
+                showAgenciamento={row.ramos?.risk_type === 'VIDA' || row.ramos?.risk_type === 'SAUDE'}
               />
-            </div>
+            ) : (
+              <OpportunityOverview
+                row={row}
+                onEdit={canUpdate && !qualifying ? () => setDraft(toDraft(row)) : undefined}
+                onQualify={!row.segurado_id && canUpdate && !qualifying ? () => setQualifying(true) : undefined}
+              />
+            )}
           </div>
-        </div>
+        )}
+        {activeTab === 'calculos' && <CalculationsTab opportunity={row} canCreate={canCreate} />}
+        {activeTab === 'tarefas' && (
+          <TarefasTab
+            tarefas={tabsState.tarefas}
+            onAdd={(task) => void runTabAction(() => tabsState.addTarefa(task), 'Tarefa criada')}
+            onEdit={canUpdate ? (taskId, task) => void runTabAction(() => tabsState.updateTarefa(taskId, task), 'Tarefa atualizada') : undefined}
+            onToggle={(taskId) => void runTabAction(() => tabsState.toggleTarefa(taskId), 'Tarefa atualizada')}
+            onRemove={canDelete ? (taskId) => void (async () => { if (await confirmRemove('Remover tarefa?', 'A tarefa será removida desta oportunidade.')) await runTabAction(() => tabsState.removeTarefa(taskId), 'Tarefa removida') })() : undefined}
+            readOnly={!canUpdate}
+          />
+        )}
+        {activeTab === 'personalizados' && <CamposPersonalizadosTab entidadeTipo="oportunidade" entidadeId={row.id} readOnly={!canUpdate} />}
+        {activeTab === 'anexos' && (
+          <AnexosLogsTab
+            anexos={tabsState.anexos}
+            logs={tabsState.logs}
+            onAddAnexo={tabsState.addAnexo}
+            onEditAnexo={canUpdate ? (anexoId, anexo) => void runTabAction(() => tabsState.updateAnexo(anexoId, anexo), 'Metadados atualizados') : undefined}
+            onRemoveAnexo={canDelete ? (anexoId) => void (async () => { if (await confirmRemove('Remover anexo?', 'Somente os metadados mantidos no mock serão removidos.')) await runTabAction(() => tabsState.removeAnexo(anexoId), 'Metadado removido') })() : undefined}
+            autorPadrao="Usuário da sessão"
+            showAuditLogs={tabsState.showAuditLogs}
+            onToggleAuditLogs={tabsState.setShowAuditLogs}
+            metadataOnly
+            readOnly={!canUpdate}
+          />
+        )}
+        {activeTab === 'observacoes' && (
+          <ObservacoesTab observacoes={tabsState.observacoes} onAdd={tabsState.addObservacao} onTogglePin={tabsState.togglePin} mentionCandidates={tabsState.mentionCandidates} readOnly={!canUpdate} />
+        )}
+      </div>
+
+      {card && pipelineId && (
+        <ConcludeCardModal
+          isOpen={concludeMode !== null}
+          onClose={() => setConcludeMode(null)}
+          card={card}
+          module="comercial"
+          pipelineId={pipelineId}
+          mode={concludeMode ?? 'won'}
+          onDone={() => void detail.refetch()}
+        />
       )}
-
-      {activeTab === 'produtores' && (
-        <div className="animate-fade-in space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-bg-surface p-6 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)] flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-bg-surface-2 flex items-center justify-center text-accent-primary font-bold text-lg">
-                {(responsavel?.full_name ?? '?').split(' ').map((n) => n[0]).join('').slice(0, 2)}
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-fg-4 uppercase tracking-wider">Responsavel</p>
-                <h4 className="font-bold text-fg-1 leading-tight">{responsavel?.full_name ?? '-'}</h4>
-              </div>
-            </div>
-          </div>
-          <button className="flex items-center gap-2 text-accent-primary font-bold text-sm hover:opacity-80 mx-2 transition-all">
-            <Plus size={16} /> Vincular Outro Produtor
-          </button>
-        </div>
-      )}
-
-      {activeTab === 'anexos_logs' && (
-        <div className="animate-fade-in bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-          <div className="flex items-center gap-2 mb-6 text-fg-4">
-            <History size={18} className="text-accent-primary" />
-            <h3 className="text-xs font-bold uppercase tracking-widest">Anexos e Logs</h3>
-          </div>
-          <p className="text-xs text-fg-4 italic">Modulo em construcao.</p>
-        </div>
-      )}
-
-      {activeTab === 'comentarios' && (
-        <div className="animate-fade-in bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-          <div className="flex items-center gap-2 mb-6 text-fg-4">
-            <MessageSquare size={18} className="text-accent-primary" />
-            <h3 className="text-xs font-bold uppercase tracking-widest">Comentarios Internos</h3>
-          </div>
-          <p className="text-xs text-fg-4 italic">Modulo em construcao.</p>
-        </div>
-      )}
-
-      {activeTab === 'oportunidades' && (
-        <div className="animate-fade-in bg-bg-surface p-8 rounded-[8px] border border-border-1 shadow-[var(--shadow-1)]">
-          <div className="flex items-center gap-2 mb-6 text-fg-4">
-            <LayoutGrid size={18} className="text-accent-primary" />
-            <h3 className="text-xs font-bold uppercase tracking-widest">Historico de Oportunidades do Cliente</h3>
-          </div>
-          <p className="text-xs text-fg-4 italic">Modulo em construcao.</p>
-        </div>
-      )}
-
-      {/* ramoJoin/seguradoraJoin referenciados para futuras melhorias (ex.: exibicao read-only do valor atual) */}
-      <span className="hidden">{ramoJoin?.nome} {seguradoraJoin?.nome}</span>
-
-      <ConcludeCardModal
-        isOpen={!!concludeMode}
-        card={cardForConclude}
-        mode={concludeMode ?? 'won'}
-        module="comercial"
-        pipelineId={(rawRow.pipeline_id as string | null) ?? ''}
-        onClose={() => setConcludeMode(null)}
-        onDone={() => detail.refetch()}
-      />
     </div>
-  );
+  )
+}
+
+function OpportunityOverview({
+  row,
+  onEdit,
+  onQualify,
+}: {
+  row: OpportunityDetail
+  onEdit?: () => void
+  onQualify?: () => void
+}) {
+  const phone = row.segurados?.telefone ?? row.lead_telefone
+  const email = row.segurados?.email ?? row.lead_email
+  const document = row.segurados?.cpf_cnpj ?? row.lead_documento
+  return (
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+      <div className="space-y-5">
+        <DetailCard title="Identidade comercial" icon={Target} action={onEdit ? <GhostButton icon={Edit3} onClick={onEdit}>Editar</GhostButton> : undefined}>
+          <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2 md:grid-cols-3">
+            <DetailField label="Título">{row.titulo}</DetailField>
+            <DetailField label={row.segurado_id ? 'Segurado' : 'Lead'}>{row.segurados?.nome ?? row.lead_nome}</DetailField>
+            <DetailField label="Documento" mono>{document ? formatCpfCnpj(document) : null}</DetailField>
+            <DetailField label="Ramo">{row.ramos?.nome}</DetailField>
+            <DetailField label="Origem">{row.origens?.nome}</DetailField>
+            <DetailField label="Prioridade">{row.prioridade}</DetailField>
+            <DetailField label="Responsável">{row.profiles?.nome_completo}</DetailField>
+            <DetailField label="Etapa">{row.pipeline_stage?.nome}</DetailField>
+            <DetailField label="Campanha">{row.campanha}</DetailField>
+            <DetailField label="Descrição" full>{row.descricao}</DetailField>
+          </div>
+        </DetailCard>
+
+        <DetailCard title="Estimativas e datas" icon={CircleDollarSign}>
+          <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2 md:grid-cols-3">
+            <DetailField label="Prêmio estimado">{row.valor_premio_estimado != null ? money.format(row.valor_premio_estimado) : null}</DetailField>
+            <DetailField label="Comissão estimada">{row.valor_comissao_estimada != null ? money.format(row.valor_comissao_estimada) : null}</DetailField>
+            <DetailField label="Comissão estimada (%)">{row.comissao_estimada_pct != null ? `${row.comissao_estimada_pct}%` : null}</DetailField>
+            {(row.ramos?.risk_type === 'VIDA' || row.ramos?.risk_type === 'SAUDE') && <DetailField label="Agenciamento (%)">{row.agenciamento_pct != null ? `${row.agenciamento_pct}%` : null}</DetailField>}
+            <DetailField label="Data de abertura">{row.data_abertura ? fmtDate(row.data_abertura) : null}</DetailField>
+            <DetailField label="Fechamento previsto">{row.data_fechamento_prevista ? fmtDate(row.data_fechamento_prevista) : null}</DetailField>
+          </div>
+        </DetailCard>
+      </div>
+
+      <div className="space-y-5">
+        <DetailCard title="Contato" icon={UserRoundCheck} action={onQualify ? <GhostButton icon={UserRoundCheck} onClick={onQualify}>Qualificar lead</GhostButton> : undefined}>
+          <div className="space-y-4">
+            <DetailField label="Nome">{row.segurados?.nome ?? row.lead_nome}</DetailField>
+            <DetailField label="Telefone">{phone ? <a href={`tel:${onlyDigits(phone)}`} className="inline-flex items-center gap-2 text-accent-primary hover:underline"><Phone size={14} /> {phone}</a> : null}</DetailField>
+            <DetailField label="E-mail">{email ? <a href={`mailto:${email}`} className="inline-flex items-center gap-2 text-accent-primary hover:underline"><Mail size={14} /> {email}</a> : null}</DetailField>
+          </div>
+        </DetailCard>
+
+        <DetailCard title="Registro" icon={CalendarDays}>
+          <div className="space-y-4">
+            <DetailField label="Observações internas">{row.observacoes}</DetailField>
+            {row.perdida_em && <DetailField label="Motivo da perda">{row.motivos_perda?.nome}</DetailField>}
+            {row.motivo_perda_observacao && <DetailField label="Contexto da perda">{row.motivo_perda_observacao}</DetailField>}
+          </div>
+        </DetailCard>
+      </div>
+    </div>
+  )
+}
+
+function OpportunityOverviewEditor({
+  draft,
+  onChange,
+  onCancel,
+  onSave,
+  isSaving,
+  ramos,
+  origens,
+  profiles,
+  showAgenciamento,
+}: {
+  draft: OpportunityDraft
+  onChange: (draft: OpportunityDraft) => void
+  onCancel: () => void
+  onSave: () => void
+  isSaving: boolean
+  ramos: Array<{ id: string; nome: string }>
+  origens: Array<{ id: string; nome: string }>
+  profiles: Array<{ id: string; nome_completo: string | null }>
+  showAgenciamento: boolean
+}) {
+  const change = <K extends keyof OpportunityDraft>(key: K, value: OpportunityDraft[K]) => onChange({ ...draft, [key]: value })
+  return (
+    <DetailCard
+      title="Editar Visão geral"
+      icon={Edit3}
+      action={<div className="flex items-center gap-2"><button type="button" onClick={onCancel} disabled={isSaving} className="rounded-[6px] px-3 py-2 text-xs font-black text-fg-3 hover:bg-bg-surface-2 disabled:opacity-40"><X size={14} className="inline" /> Cancelar</button><button type="button" onClick={onSave} disabled={isSaving} className="inline-flex items-center gap-2 rounded-full bg-accent-primary px-4 py-2 text-xs font-black text-fg-on-brand shadow-[var(--shadow-brand)] disabled:opacity-40"><Save size={14} /> {isSaving ? 'Salvando…' : 'Salvar alterações'}</button></div>}
+    >
+      <p className="mb-4 text-sm text-fg-3" hidden={!usesBackendDomainData}>Os campos desabilitados aguardam suporte da integração. A data de abertura é definida no cadastro.</p><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Field label="Título" span="lg:col-span-2"><input value={draft.titulo} onChange={(event) => change('titulo', event.target.value)} className={inputClass} /></Field>
+        <Field label="Prioridade"><select disabled={usesBackendDomainData} value={draft.prioridade} onChange={(event) => change('prioridade', event.target.value)} className={inputClass}><option value="">Não informada</option><option value="baixa">Baixa</option><option value="media">Média</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></Field>
+        <Field label="Ramo"><select value={draft.ramoId} onChange={(event) => change('ramoId', event.target.value)} className={inputClass}><option value="">Não informado</option>{ramos.map((row) => <option key={row.id} value={row.id}>{row.nome}</option>)}</select></Field>
+        <Field label="Origem"><select value={draft.origemId} onChange={(event) => change('origemId', event.target.value)} className={inputClass}><option value="">Não informada</option>{origens.map((row) => <option key={row.id} value={row.id}>{row.nome}</option>)}</select></Field>
+        <Field label="Responsável"><select value={draft.responsavelId} onChange={(event) => change('responsavelId', event.target.value)} className={inputClass}><option value="">Não atribuído</option>{profiles.map((row) => <option key={row.id} value={row.id}>{row.nome_completo ?? 'Usuário sem nome'}</option>)}</select></Field>
+        <Field label="Prêmio estimado"><input inputMode="decimal" value={draft.premioEstimado} onChange={(event) => change('premioEstimado', event.target.value)} className={`${inputClass} font-mono`} /></Field>
+        <Field label="Comissão estimada"><input inputMode="decimal" disabled={usesBackendDomainData} value={draft.comissaoEstimada} onChange={(event) => change('comissaoEstimada', event.target.value)} className={`${inputClass} font-mono`} /></Field>
+        <Field label="Comissão estimada (%)"><input inputMode="decimal" value={draft.comissaoPercentual} onChange={(event) => change('comissaoPercentual', event.target.value)} className={`${inputClass} font-mono`} /></Field>
+        {showAgenciamento && <Field label="Agenciamento (%)"><input inputMode="decimal" value={draft.agenciamentoPercentual} onChange={(event) => change('agenciamentoPercentual', event.target.value)} className={`${inputClass} font-mono`} /></Field>}
+        <Field label="Data de abertura"><input type="date" disabled={usesBackendDomainData} value={draft.dataAbertura} onChange={(event) => change('dataAbertura', event.target.value)} className={inputClass} /></Field>
+        <Field label="Fechamento previsto"><input type="date" disabled={usesBackendDomainData} value={draft.fechamentoPrevisto} onChange={(event) => change('fechamentoPrevisto', event.target.value)} className={inputClass} /></Field>
+        <Field label="Campanha"><input disabled={usesBackendDomainData} value={draft.campanha} onChange={(event) => change('campanha', event.target.value)} className={inputClass} /></Field>
+        <Field label="Descrição" span="sm:col-span-2 lg:col-span-3"><textarea rows={3} value={draft.descricao} onChange={(event) => change('descricao', event.target.value)} className={`${inputClass} resize-none`} /></Field>
+        <Field label="Observações internas" span="sm:col-span-2 lg:col-span-3"><textarea rows={3} disabled={usesBackendDomainData} value={draft.observacoes} onChange={(event) => change('observacoes', event.target.value)} className={`${inputClass} resize-none`} /></Field>
+      </div>
+    </DetailCard>
+  )
+}
+
+function Field({ label, span = '', children }: { label: string; span?: string; children: ReactNode }) {
+  return <label className={`space-y-1.5 ${span}`}><span className="text-[10px] font-black uppercase tracking-widest text-fg-4">{label}</span>{children}</label>
+}
+
+function OpportunitySkeleton() {
+  return <div className="animate-pulse space-y-6"><div className="h-6 w-52 rounded bg-bg-surface-2" /><div className="h-24 rounded-[8px] bg-bg-surface-2" /><div className="h-10 rounded bg-bg-surface-2" /><div className="grid gap-5 lg:grid-cols-2"><div className="h-72 rounded-[8px] bg-bg-surface-2" /><div className="h-72 rounded-[8px] bg-bg-surface-2" /></div></div>
+}
+
+function PageMessage({ message, onBack, onRetry }: { message: string; onBack: () => void; onRetry?: () => void }) {
+  return <div className="flex min-h-[45vh] flex-col items-center justify-center gap-3 text-center"><p className="text-sm font-semibold text-fg-3">{message}</p>{onRetry && <button type="button" onClick={onRetry} className="text-sm font-bold text-accent-primary">Tentar novamente</button>}<button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-full bg-accent-primary px-4 py-2 text-sm font-bold text-fg-on-brand"><ArrowLeft size={15} /> Voltar para Oportunidades</button></div>
 }

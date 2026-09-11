@@ -11,6 +11,7 @@ import {
 } from '../lib/backendApi';
 import { queryClient } from '../lib/queryClient';
 import { getTable } from '../lib/inMemoryDb';
+import { activeProfileLinks } from '../modules/plataforma/platformCommands';
 import { AuthContext } from './authCore';
 
 const REQUIRE_BACKEND_AUTH = import.meta.env.VITE_AUTH_MODE === 'backend';
@@ -83,11 +84,7 @@ function getAvailableBranchIds(user: UserProfile | null) {
   // (D12/D18) — editar o acesso na Equipe reflete no seletor. No backend real,
   // o mesmo conjunto viria do token (branchIds).
   if (!REQUIRE_BACKEND_AUTH) {
-    const vinculos = getTable('profile_filiais').filter((v) => v.profile_id === user.id);
-    const ids = Array.from(
-      new Set(vinculos.map((v) => v.filial_id).filter((x): x is string => Boolean(x))),
-    );
-    if (ids.length > 0) return ids;
+    return activeProfileLinks(user.id).map(v => v.filial_id);
   }
 
   return Array.from(
@@ -113,7 +110,7 @@ function resolveInitialActiveBranchId(user: UserProfile | null) {
     return savedBranchId;
   }
 
-  return user.branchId ?? availableBranchIds[0] ?? null;
+  return (user.branchId && availableBranchIds.includes(user.branchId) ? user.branchId : availableBranchIds[0]) ?? null;
 }
 
 function applyActiveBranch(user: UserProfile | null, activeBranchId: string | null): UserProfile | null {
@@ -279,6 +276,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  useEffect(() => {
+    if (REQUIRE_BACKEND_AUTH) return;
+    const updateAccess = () => setAuthState(current => {
+      if (!current.user) return current;
+      const ids = getAvailableBranchIds(current.user);
+      const activeBranchId = current.activeBranchId === null && current.user.hasAllBranchesAccess ? null : current.activeBranchId && ids.includes(current.activeBranchId) ? current.activeBranchId : ids[0] ?? null;
+      return {...current, activeBranchId, user: {...current.user, branchIds: ids, branchId: activeBranchId}};
+    });
+    window.addEventListener('wassis:access-changed', updateAccess);
+    const timer = window.setInterval(updateAccess, 60_000);
+    return () => { window.removeEventListener('wassis:access-changed', updateAccess); window.clearInterval(timer); };
+  }, []);
+
   const updateProfile = useCallback((patch: ProfilePatch) => {
     setAuthState((current) => {
       if (!current.user) return current;
@@ -292,7 +302,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const profile = getTable('profiles').find((row) => row.id === current.user?.id);
         if (profile) {
-          profile.full_name = nextUser.fullName ?? null;
+          profile.nome_completo = nextUser.fullName ?? null;
           profile.avatar_url = nextUser.avatarUrl ?? null;
         }
       }

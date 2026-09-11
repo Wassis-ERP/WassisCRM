@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import QuoteOriginField from '../../oportunidades/QuoteOriginField'
 import {
   AlertTriangle,
   Check,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react'
 import {
   createImportDraft,
+  applyQuoteToImportDraft,
   getImportLookups,
   getInsuredDefaults,
   getPolicyDefaults,
@@ -76,6 +78,7 @@ const controlClass = 'w-full rounded-[6px] border border-border-1 bg-bg-surface 
 
 export default function ImportacaoDocumentosWizard({ onImported }: ImportacaoDocumentosWizardProps) {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [step, setStep] = useState(0)
   const [drafts, setDrafts] = useState<ImportFileDraft[]>([])
@@ -103,6 +106,12 @@ export default function ImportacaoDocumentosWizard({ onImported }: ImportacaoDoc
     const additions = files
       .filter((file) => !drafts.some((draft) => draft.fileName === file.name && draft.size === file.size))
       .map(createImportDraft)
+    const originQuoteId = searchParams.get('cotacao')
+    const firstProposal = additions.find((draft) => draft.kind === 'PROPOSTA')
+    if (originQuoteId && firstProposal && !drafts.some((draft) => draft.quoteId === originQuoteId)) {
+      try { Object.assign(firstProposal, applyQuoteToImportDraft(firstProposal, originQuoteId)) }
+      catch { firstProposal.quoteId = originQuoteId }
+    }
     if (!additions.length) return
     setDrafts((current) => [...current, ...additions])
     setSelectedId((current) => current || additions[0].id)
@@ -286,6 +295,7 @@ function LinksStep({ draft, lookups, update, selectInsured, selectPolicy }: Step
   if (!draft.proposalType) return <Unsupported draft={draft} />
   return (
     <div>
+      {draft.kind === 'PROPOSTA' && <QuoteOriginField value={draft.quoteId} onChange={(quoteId) => update(applyQuoteToImportDraft(draft, quoteId))} />}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><h3 className="text-lg font-extrabold text-fg-1">Vínculos encontrados</h3><p className="mt-1 text-sm text-fg-3">Confirme os cadastros usados pelo contrato. A corretora é derivada do segurado.</p></div>
         <span className="rounded-full bg-signal-success-soft px-3 py-1 text-xs font-bold text-signal-success">Leitura simulada concluída</span>
@@ -325,7 +335,7 @@ function FinanceStep({ draft, lookups, update, confirmed, setConfirmed }: StepPr
         <Field label="Prêmio líquido"><input inputMode="decimal" value={draft.netPremium} onChange={(event) => update({ netPremium: event.target.value })} className={`${controlClass} font-mono`} /></Field>
         <Field label="Quantidade de parcelas"><input type="number" min="1" value={draft.installmentCount} onChange={(event) => update({ installmentCount: event.target.value })} className={`${controlClass} font-mono`} /></Field>
         <Field label="Primeiro vencimento"><input type="date" value={draft.firstDueDate} onChange={(event) => update({ firstDueDate: event.target.value })} className={`${controlClass} font-mono`} /></Field>
-        <Field label="Forma de pagamento"><select value={draft.paymentMethod} onChange={(event) => update({ paymentMethod: event.target.value })} className={controlClass}><option value="BOLETO">Boleto</option><option value="CARTAO">Cartão</option><option value="DEBITO">Débito em conta</option><option value="PIX">Pix</option></select></Field>
+        <Field label="Forma de pagamento"><select value={draft.paymentMethod} onChange={(event) => update({ paymentMethod: event.target.value })} className={controlClass}><option value="BOLETO">Boleto</option><option value="CARTAO">Cartão</option><option value="CARTAO_CREDITO">Cartão de crédito</option><option value="DEBITO">Débito em conta</option><option value="DEBITO_CONTA">Débito em conta (cotação)</option><option value="PIX">Pix</option></select></Field>
       </div>
       <div className="mt-6 overflow-hidden rounded-[8px] border border-border-1">
         <div className="border-b border-border-1 bg-bg-surface-2 px-4 py-3"><p className="text-sm font-extrabold text-fg-1">Prévia de materialização</p><p className="text-xs text-fg-4">Leitura separada; nenhuma baixa ou pagamento é executado.</p></div>

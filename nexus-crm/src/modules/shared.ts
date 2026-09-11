@@ -1,3 +1,4 @@
+import { buildOpportunityConclusionPatch, buildOpportunityReopenPatch } from './comercial/opportunityDomain';
 import { supabase } from '../lib/supabase';
 import type { CardStatus, ConcludePayload, PipelineModule } from './types';
 import {
@@ -58,11 +59,7 @@ export async function genericConclude(
   if (module === 'comercial' && usesBackendDomainData) {
     await updateBackendOpportunity(
       cardId,
-      {
-        status: payload.status,
-        concluded_at: new Date().toISOString(),
-        motivo_perda_id: payload.status === 'lost' ? payload.motivoPerdaId ?? null : null,
-      },
+      buildOpportunityConclusionPatch(payload.status, new Date().toISOString(), payload.motivoPerdaId, payload.observacao),
       null,
     );
     return;
@@ -90,7 +87,7 @@ export async function genericConclude(
  */
 export async function genericReopen(module: PipelineModule, cardId: string): Promise<void> {
   if (module === 'comercial' && usesBackendDomainData) {
-    await updateBackendOpportunity(cardId, { status: 'pending', concluded_at: null }, null);
+    await updateBackendOpportunity(cardId, buildOpportunityReopenPatch(), null);
     return;
   }
 

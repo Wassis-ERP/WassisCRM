@@ -1,6 +1,6 @@
 import { BadgeDollarSign, Edit, Link2, Plus, Search, Trash2, UserPlus } from 'lucide-react'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useMemo, useState, type FormEvent } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useFiliais } from '../hooks/useFiliais'
 import { useRamos } from '../hooks/useLookups'
 import {
@@ -17,9 +17,11 @@ import type { Produtor, ProdutorInput } from '../types/platform'
 import { formatCpfCnpj } from '../utils/documento'
 import { formatTelefone } from '../utils/masks'
 import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
-import AppModal from '../components/modals/AppModal'
+import { platformDefaults } from '../types/platformRows'
+import './ProdutoresPage.css'
 
 const EMPTY: ProdutorInput = {
+  ...platformDefaults.produtores,
   profile_id: null,
   nome: '',
   cpf_cnpj: '',
@@ -36,11 +38,9 @@ const EMPTY: ProdutorInput = {
 
 function toForm(produtor: Produtor | null): ProdutorInput {
   if (!produtor) return { ...EMPTY }
-  const { id, tenant_id, created_at, updated_at, ...rest } = produtor
+  const { id, tenant_id, ...rest } = produtor
   void id
   void tenant_id
-  void created_at
-  void updated_at
   return { ...EMPTY, ...rest }
 }
 
@@ -81,8 +81,7 @@ const repasseValorText = (regra: RepasseRegraRow) =>
     ? moedaFormatter.format(regra.valor_fixo ?? 0)
     : `${regra.percentual ?? 0}%`
 
-function ProdutorModal({
-  isOpen,
+function ProdutorForm({
   onClose,
   produtor,
   onSave,
@@ -93,7 +92,6 @@ function ProdutorModal({
   ramoMap,
   onCreateRegra,
 }: {
-  isOpen: boolean
   onClose: () => void
   produtor: Produtor | null
   onSave: (values: ProdutorInput) => Promise<void>
@@ -107,11 +105,13 @@ function ProdutorModal({
   const [form, setForm] = useState<ProdutorInput>(() => toForm(produtor))
   const { members } = useTeamAdmin()
 
-  useEffect(() => {
-    if (isOpen) setForm(toForm(produtor))
-  }, [isOpen, produtor])
-
-  if (!isOpen) return null
+  const confirm = useConfirm()
+  const leave = async (destination: () => void) => {
+    const dirty=JSON.stringify(form)!==JSON.stringify(toForm(produtor))
+    if(dirty && !await confirm({title:'Descartar alterações?',description:'Os dados não salvos do produtor serão descartados.',confirmLabel:'Descartar',tone:'warning'}))return
+    destination()
+  }
+  const close = () => leave(onClose)
 
   const set = <K extends keyof ProdutorInput,>(key: K, value: ProdutorInput[K]) =>
     setForm((current) => ({ ...current, [key]: value }))
@@ -123,7 +123,7 @@ function ProdutorModal({
       setForm((current) => ({
         ...current,
         profile_id: profileId,
-        nome: member.full_name || current.nome,
+        nome: member.nome_completo || current.nome,
         email: member.email || current.email,
       }))
     }
@@ -142,16 +142,10 @@ function ProdutorModal({
   }
 
   return (
-    <AppModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={produtor ? 'Editar Produtor' : 'Novo Produtor'}
-      icon={produtor ? <Edit size={20} /> : <UserPlus size={20} />}
-      size="lg"
-      isDismissDisabled={isSaving}
-    >
+    <section className="producer-form p-6 md:p-8">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6"><h1 className="text-2xl font-bold text-fg-1">{produtor ? 'Editar produtor' : 'Novo produtor'}</h1><button type="button" disabled={isSaving} onClick={()=>void close()} className="px-4 py-2 rounded-md border border-border-1 text-fg-2">Voltar aos produtores</button></div>
       <form onSubmit={handleSubmit}>
-          <div className="p-8 overflow-y-auto max-h-[70vh] custom-scrollbar grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
+          <div className="p-6 bg-bg-surface border border-border-1 rounded-lg grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
             <h3 className="text-[11px] font-black text-fg-3 uppercase tracking-widest md:col-span-3">Vínculo</h3>
             <label className="space-y-1.5 md:col-span-3">
               <span className="text-[10px] font-black text-fg-4 uppercase tracking-widest ml-1">Membro interno</span>
@@ -163,7 +157,7 @@ function ProdutorModal({
                 <option value="">Produtor externo sem login</option>
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.full_name || m.email} ({m.email})
+                    {m.nome_completo || m.email} ({m.email})
                   </option>
                 ))}
               </select>
@@ -172,7 +166,7 @@ function ProdutorModal({
             <h3 className="text-[11px] font-black text-fg-3 uppercase tracking-widest md:col-span-3">Cadastro</h3>
             <label className="space-y-1.5 md:col-span-2">
               <span className="text-[10px] font-black text-fg-4 uppercase tracking-widest ml-1">Nome</span>
-              <input className={inputClass} value={form.nome} onChange={(e) => set('nome', e.target.value)} required />
+              <input className={inputClass} value={form.nome ?? ''} onChange={(e) => set('nome', e.target.value)} required />
             </label>
             <label className="space-y-1.5">
               <span className="text-[10px] font-black text-fg-4 uppercase tracking-widest ml-1">CPF/CNPJ</span>
@@ -191,6 +185,9 @@ function ProdutorModal({
               <input className={inputClass} value={formatTelefone(form.celular ?? '')} onChange={(e) => set('celular', e.target.value)} />
             </label>
 
+            <label className="space-y-1.5"><span className="text-xs font-bold text-fg-3">Tipo de pessoa</span><select aria-label="Tipo de pessoa" value={form.tipo_pessoa??''} onChange={e=>set('tipo_pessoa',e.target.value==='PF'?'PF':e.target.value==='PJ'?'PJ':null)} className={inputClass}><option value="">Não informado</option><option value="PF">Pessoa física</option><option value="PJ">Pessoa jurídica</option></select></label>
+            {([['nome_fantasia','Nome fantasia'],['rg_ie','RG / Inscrição estadual'],['susep','SUSEP'],['categoria_operacional','Categoria operacional']] as const).map(([key,label])=><label key={key} className="space-y-1.5"><span className="text-xs font-bold text-fg-3">{label}</span><input className={inputClass} value={form[key]??''} onChange={e=>set(key,e.target.value||null)}/></label>)}
+            {form.tipo_pessoa==='PF'&&<label className="space-y-1.5"><span className="text-xs font-bold text-fg-3">Data de nascimento</span><input type="date" className={inputClass} value={form.data_nascimento??''} onChange={e=>set('data_nascimento',e.target.value||null)}/></label>}
             <h3 className="text-[11px] font-black text-fg-3 uppercase tracking-widest md:col-span-3">Pagamento e regras de repasse</h3>
             <div className="md:col-span-3 rounded-[8px] border border-border-1 bg-bg-surface-2 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -203,7 +200,7 @@ function ProdutorModal({
                 {produtor && (
                   <button
                     type="button"
-                    onClick={() => onCreateRegra(produtor.id)}
+                    onClick={() => void leave(() => onCreateRegra(produtor.id))}
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-accent-primary px-4 py-2 text-xs font-black text-fg-on-brand shadow-[var(--shadow-brand)] transition-colors hover:bg-accent-primary-hover"
                   >
                     <Plus size={14} /> Nova regra para este produtor
@@ -263,18 +260,25 @@ function ProdutorModal({
               <span className="text-[10px] font-black text-fg-4 uppercase tracking-widest ml-1">Chave Pix</span>
               <input className={inputClass} value={form.chave_pix ?? ''} onChange={(e) => set('chave_pix', e.target.value)} />
             </label>
+            <label className="space-y-1.5"><span className="text-xs font-bold text-fg-3">Tipo de conta</span><select aria-label="Tipo de conta" className={inputClass} value={form.tipo_conta??''} onChange={e=>set('tipo_conta',e.target.value||null)}><option value="">Não informado</option><option value="CORRENTE">Corrente</option><option value="POUPANCA">Poupança</option><option value="PAGAMENTO">Pagamento</option></select></label>
+            {([['favorecido_nome','Nome do favorecido'],['favorecido_cpf_cnpj','CPF/CNPJ do favorecido']] as const).map(([key,label])=><label key={key} className="space-y-1.5"><span className="text-xs font-bold text-fg-3">{label}</span><input className={inputClass} value={form[key]??''} onChange={e=>set(key,e.target.value||null)}/></label>)}
+            <label className="flex gap-2 items-center text-sm text-fg-2"><input type="checkbox" checked={form.descontar_imposto===true} onChange={e=>set('descontar_imposto',e.target.checked)}/>Descontar imposto</label>
+            <label className="space-y-1.5"><span className="text-xs font-bold text-fg-3">Imposto (%)</span><input type="number" min="0" max="100" step="0.01" className={inputClass} value={form.percentual_imposto??''} onChange={e=>set('percentual_imposto',e.target.value===''?null:Number(e.target.value))}/></label>
+            <p className="md:col-span-3 text-xs text-fg-3">Dados fiscais de referência do cadastro. As regras de repasse continuam sendo configuradas na área financeira.</p>
+            <h3 className="text-[11px] font-black text-fg-3 uppercase tracking-widest md:col-span-3">Endereço e informações adicionais</h3>
+            {([['telefone2','Telefone adicional'],['cep','CEP'],['endereco','Endereço'],['numero','Número'],['complemento','Complemento'],['bairro','Bairro'],['cidade','Cidade'],['uf','UF'],['pais','País'],['observacoes','Observações']] as const).map(([key,label])=><label key={key} className="space-y-1.5"><span className="text-xs font-bold text-fg-3">{label}</span><input className={inputClass} value={form[key]??''} onChange={e=>set(key,e.target.value||null)}/></label>)}
           </div>
 
           <div className="px-8 py-6 border-t border-border-1 bg-bg-surface-2 flex justify-end gap-3">
-            <button type="button" onClick={onClose} disabled={isSaving} className="px-6 py-2.5 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[6px] transition-all disabled:opacity-50">
+            <button type="button" onClick={()=>void close()} disabled={isSaving} className="px-6 py-2.5 text-sm font-bold text-fg-3 hover:text-fg-1 hover:bg-bg-surface-3 rounded-[6px] transition-all disabled:opacity-50">
               Cancelar
             </button>
-            <button type="submit" disabled={isSaving || !form.nome.trim()} className="px-8 py-2.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black hover:bg-accent-primary-hover transition-all shadow-[var(--shadow-brand)] disabled:opacity-50">
+            <button type="submit" disabled={isSaving || !form.nome?.trim()} className="px-8 py-2.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black hover:bg-accent-primary-hover transition-all shadow-[var(--shadow-brand)] disabled:opacity-50">
               {isSaving ? 'Salvando...' : produtor ? 'Atualizar' : 'Criar Produtor'}
             </button>
           </div>
       </form>
-    </AppModal>
+    </section>
   )
 }
 
@@ -287,8 +291,8 @@ export default function ProdutoresPage() {
   const { notify } = useSystemFeedback()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
-  const [selected, setSelected] = useState<Produtor | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const { produtorId } = useParams<{produtorId:string}>()
+  const selected = produtores.find(p=>p.id===produtorId) ?? null
 
   const filialMap = useMemo(() => new Map((filiais ?? []).map((item) => [item.id, item.label])), [filiais])
   const ramoMap = useMemo(() => new Map((ramos ?? []).map((item) => [item.id, item.nome])), [ramos])
@@ -301,7 +305,7 @@ export default function ProdutoresPage() {
         map.set(produtorId, [...(map.get(produtorId) ?? []), regra])
       })
     map.forEach((items, produtorId) => {
-      map.set(produtorId, [...items].sort((a, b) => b.prioridade - a.prioridade))
+      map.set(produtorId, [...items].sort((a, b) => (b.prioridade ?? -Infinity) - (a.prioridade ?? -Infinity)))
     })
     return map
   }, [regras])
@@ -315,13 +319,10 @@ export default function ProdutoresPage() {
   }, [produtores, search])
 
   const openModal = (produtor?: Produtor) => {
-    setSelected(produtor ?? null)
-    setIsModalOpen(true)
+    navigate('/produtores/'+(produtor?.id??'novo'))
   }
 
   const openRepasseRulesForProdutor = (produtorId: string) => {
-    setIsModalOpen(false)
-    setSelected(null)
     navigate(`/configuracoes?tab=financeiro_regras_repasse&produtorId=${encodeURIComponent(produtorId)}`)
   }
 
@@ -329,8 +330,7 @@ export default function ProdutoresPage() {
     try {
       if (selected) await update({ id: selected.id, patch: values })
       else await create(values)
-      setIsModalOpen(false)
-      setSelected(null)
+      navigate('/configuracoes?tab=produtores')
     } catch (error) {
       notify({
         title: 'Erro ao salvar produtor',
@@ -358,6 +358,21 @@ export default function ProdutoresPage() {
       })
     }
   }
+
+  if(produtorId && isLoading) return <p className="p-8 text-fg-3">Carregando produtor…</p>
+  if(produtorId && produtorId!=='novo' && !selected) return <p className="p-8 text-fg-3">Produtor não encontrado.</p>
+  if(produtorId) return (<ProdutorForm
+        onClose={() => navigate('/configuracoes?tab=produtores')}
+        key={selected?.id??'novo'}
+        produtor={selected}
+        onSave={handleSave}
+        isSaving={isSaving}
+        regras={selected ? regrasAtivasPorProdutor.get(selected.id) ?? [] : []}
+        isLoadingRegras={isLoadingRegras}
+        filialMap={filialMap}
+        ramoMap={ramoMap}
+        onCreateRegra={openRepasseRulesForProdutor}
+      />)
 
   return (
     <div className="animate-fade-in flex flex-col h-full">
@@ -452,18 +467,7 @@ export default function ProdutoresPage() {
         </div>
       </div>
 
-      <ProdutorModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        produtor={selected}
-        onSave={handleSave}
-        isSaving={isSaving}
-        regras={selected ? regrasAtivasPorProdutor.get(selected.id) ?? [] : []}
-        isLoadingRegras={isLoadingRegras}
-        filialMap={filialMap}
-        ramoMap={ramoMap}
-        onCreateRegra={openRepasseRulesForProdutor}
-      />
+
     </div>
   )
 }

@@ -146,7 +146,7 @@
         "section": "elevation"
       }
     ],
-    "dos": ["Do usar nexus-crm/src/design-system/colors_and_type.css como fonte visual normativa.", "Do consultar .agents/skills/wassis-design-uiux antes de desenhar ou alterar telas.", "Do usar lucide-react para icones.", "Do validar contraste, foco, modais e estados.", "Do manter copy em portugues do Brasil."],
+    "dos": ["Do usar nexus-crm/src/design-system/colors_and_type.css como fonte visual normativa.", "Do consultar a skill global wassis-design antes de desenhar ou alterar telas.", "Do usar lucide-react para icones.", "Do validar contraste, foco, modais e estados.", "Do manter copy em portugues do Brasil."],
     "donts": ["Don't usar landing page SaaS generica.", "Don't usar gradiente decorativo, glassmorphism, bokeh, fundo ilustrativo, grid decorativo ou textura sem funcao.", "Don't usar emoji ou icones fora de lucide.", "Don't usar dialogos nativos do navegador.", "Don't usar cor de ramo como status.", "Don't criar cards operacionais com raio maior que 12px.", "Don't combinar borda fina e sombra larga como decoracao."]
   }
 }

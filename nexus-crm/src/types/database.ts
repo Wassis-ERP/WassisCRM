@@ -1,3 +1,5 @@
+import type { TenantRow, FilialRow, ProfileRow, PerfilRow, ProfileFilialRow, RolePermissionRow, ProdutorRow, SeguradoRow, PessoaContatoRow } from './platformRows'
+
 export type Json =
   | string
   | number
@@ -101,6 +103,307 @@ type OportunidadeContractFields = {
   perdida_em: string | null
   motivo_perda_observacao: string | null
   campanha: string | null
+  observacoes: string | null
+}
+
+export type CalculoOrigem = 'MANUAL' | 'ASSISTIDA' | 'IMPORTADA'
+export type CalculoForma = 'AUTO' | 'RESIDENCIA' | 'CONDOMINIO' | 'VIDA' | 'EMPRESA' | 'DIVERSOS'
+export type CalculoTipoSeguro = 'NOVO' | 'RENOVACAO_PROPRIA' | 'RENOVACAO_OUTRA'
+
+export type CalculoRow = {
+  id: string
+  oportunidade_id: string
+  ramo_id: string
+  segurado_id: string | null
+  seguradora_anterior_id: string | null
+  origem: CalculoOrigem | null
+  comissao_sugerida_pct: number | null
+  rotulo_versao: string | null
+  tipo_seguro: CalculoTipoSeguro | null
+  bonus: number | null
+  qtd_sinistros: number | null
+  qtd_sinistros_perda_parcial: number | null
+  transferiu_titularidade: boolean | null
+  vigencia_inicio: string | null
+  vigencia_fim: string | null
+  vigencia_fim_anterior: string | null
+  numero_apolice_anterior: string | null
+  codigo_identificacao_anterior: string | null
+  status_apolice_anterior: string | null
+  nota_interna: string | null
+  criado_em: string | null
+}
+
+export type CalcAutoRow = {
+  calculo_id: string
+  codigo_fipe: string | null
+  marca: string | null
+  modelo: string | null
+  versao: string | null
+  ano_fabricacao: number | null
+  ano_modelo: number | null
+  placa: string | null
+  chassi: string | null
+  chassi_remarcado: boolean | null
+  renavam: string | null
+  zero_km: boolean | null
+  combustivel: string | null
+  cambio: string | null
+  categoria: string | null
+  tipo_veiculo: string | null
+  uso: string | null
+  cep_pernoite: string | null
+  possui_garagem_residencia: boolean | null
+  possui_garagem_trabalho: boolean | null
+  possui_garagem_estudo: boolean | null
+  km_mensal: number | null
+  blindado: boolean | null
+  alienado: boolean | null
+  rastreador: boolean | null
+  antifurto: boolean | null
+  kit_gas: boolean | null
+  condutor_nome: string | null
+  condutor_cpf: string | null
+  condutor_data_nascimento: string | null
+  condutor_sexo: string | null
+  condutor_estado_civil: string | null
+  condutor_profissao: string | null
+  condutor_reside_com_segurado: boolean | null
+  condutor_tempo_habilitacao: number | null
+}
+
+export type CalcResidenciaRow = {
+  calculo_id: string
+  cep: string | null
+  endereco: string | null
+  numero: string | null
+  complemento: string | null
+  bairro: string | null
+  cidade: string | null
+  uf: string | null
+  tipo_imovel: string | null
+  tipo_ocupacao: string | null
+  tipo_construcao: string | null
+  area_m2: number | null
+  valor_imovel: number | null
+  proprietario: boolean | null
+  desocupado: boolean | null
+  condominio_fechado: boolean | null
+  area_de_risco: boolean | null
+  possui_alarme: boolean | null
+  possui_monitoramento: boolean | null
+  possui_portao_eletronico: boolean | null
+}
+
+export type CalcCondominioRow = {
+  calculo_id: string
+  nome_condominio: string | null
+  cep: string | null
+  endereco: string | null
+  numero: string | null
+  complemento: string | null
+  bairro: string | null
+  cidade: string | null
+  uf: string | null
+  tipo_condominio: string | null
+  area_total_m2: number | null
+  qtd_blocos: number | null
+  qtd_pavimentos: number | null
+  qtd_unidades: number | null
+  qtd_elevadores: number | null
+  possui_portaria_24h: boolean | null
+  possui_sprinklers: boolean | null
+  possui_extintores: boolean | null
+  possui_para_raios: boolean | null
+  possui_garagem: boolean | null
+}
+
+export type CalcVidaRow = {
+  calculo_id: string
+  sexo: string | null
+  data_nascimento: string | null
+  altura_cm: number | null
+  peso_kg: number | null
+  renda_mensal: number | null
+  profissao: string | null
+  fumante: boolean | null
+  pratica_esporte_risco: boolean | null
+  possui_doenca_preexistente: boolean | null
+  usa_medicamento_continuo: boolean | null
+  capital_desejado: number | null
+  beneficiarios_texto: string | null
+}
+
+export type CalcEmpresaRow = {
+  calculo_id: string
+  cnpj: string | null
+  razao_social: string | null
+  atividade: string | null
+  cnae: string | null
+  faturamento_anual: number | null
+  cep: string | null
+  endereco: string | null
+  numero: string | null
+  complemento: string | null
+  bairro: string | null
+  cidade: string | null
+  uf: string | null
+  tipo_construcao: string | null
+  area_m2: number | null
+  qtd_funcionarios: number | null
+  possui_extintores: boolean | null
+  possui_alarme: boolean | null
+  possui_sprinklers: boolean | null
+  possui_inflamaveis: boolean | null
+  valor_estoque: number | null
+  valor_equipamentos: number | null
+}
+
+export type CalcDiversosRow = {
+  calculo_id: string
+  categoria: string | null
+  descricao_risco: string | null
+  valor_declarado: number | null
+  observacoes: string | null
+}
+
+export type CalculoCoberturaRow = {
+  id: string
+  calculo_id: string
+  cobertura_id: string
+  selecionada: boolean | null
+  limite_solicitado: number | null
+  percentual_fipe_solicitado: number | null
+  franquia_tipo_solicitado: string | null
+  opcao_solicitada: string | null
+  quantidade_solicitada: number | null
+  observacao_transmitida: string | null
+}
+
+export type CalculoExecucaoMotor = 'PROPRIO' | 'AGGER' | 'MANUAL'
+export type CalculoExecucaoComissaoOrigem = 'PADRAO_CALCULO' | 'SOBRESCRITA'
+export type CalculoExecucaoStatus =
+  | 'AGUARDANDO'
+  | 'EM_EXECUCAO'
+  | 'CONCLUIDA'
+  | 'PENDENTE_DADOS'
+  | 'INDISPONIVEL'
+  | 'ERRO'
+  | 'CANCELADA'
+
+export type CalculoExecucaoRow = {
+  id: string
+  calculo_id: string
+  seguradora_id: string
+  reexecucao_de_id: string | null
+  tentativa: number
+  motor: CalculoExecucaoMotor
+  comissao_pct_aplicada: number | null
+  comissao_origem: CalculoExecucaoComissaoOrigem
+  status: CalculoExecucaoStatus
+  pendencia_codigo: string | null
+  pendencia_mensagem: string | null
+  erro_codigo: string | null
+  erro_mensagem_segura: string | null
+  referencia_externa: string | null
+  iniciada_em: string | null
+  concluida_em: string | null
+  criada_em: string
+}
+
+export type CotacaoStatus = 'APRESENTADA' | 'APROVADA' | 'DESCARTADA' | 'EXPIRADA' | 'RECUSADA'
+
+export type CotacaoRow = {
+  id: string
+  execucao_id: string
+  numero_cotacao_seguradora: string | null
+  premio_total: number | null
+  premio_liquido: number | null
+  iof: number | null
+  adicional_fracionamento: number | null
+  comissao_valor: number | null
+  validade: string | null
+  status: CotacaoStatus | null
+  link_proposta: string | null
+  mensagem_seguradora: string | null
+  restricoes: string | null
+  recebida_em: string | null
+  aprovada_em: string | null
+  descartada_motivo: string | null
+  observacao_interna: string | null
+}
+
+export type CotacaoCoberturaRow = {
+  id: string
+  cotacao_id: string
+  cobertura_id: string | null
+  chave_resultado: string
+  codigo_externo: string | null
+  nome_informado: string | null
+  incluida: boolean | null
+  limite_aceito: number | null
+  percentual_fipe_aceito: number | null
+  franquia_tipo: string | null
+  franquia_valor: number | null
+  premio: number | null
+  carencia_dias: number | null
+  participacao_obrigatoria_pct: number | null
+  clausula_texto: string | null
+  observacao_seguradora: string | null
+  ordem: number | null
+}
+
+export type CotacaoParcelamentoRow = {
+  id: string
+  cotacao_id: string
+  codigo_opcao: string
+  forma_pagamento: string
+  quantidade_parcelas: number
+  valor_entrada: number | null
+  valor_parcela: number | null
+  valor_total: number | null
+  juros_pct: number | null
+  adicional_fracionamento: number | null
+  primeiro_vencimento: string | null
+  principal: boolean | null
+  ordem: number | null
+}
+
+export type ApresentacaoLayout = 'VERTICAL' | 'HORIZONTAL'
+export type ApresentacaoCriterioOrdenacao = 'RECOMENDACAO' | 'PREMIO' | 'FRANQUIA' | 'MANUAL'
+export type ApresentacaoStatus = 'RASCUNHO' | 'GERADA'
+
+export type ApresentacaoComercialRow = {
+  id: string
+  oportunidade_id: string
+  criado_por_id: string | null
+  cotacao_escolhida_id: string | null
+  titulo: string | null
+  layout: ApresentacaoLayout | null
+  criterio_ordenacao: ApresentacaoCriterioOrdenacao | null
+  exibir_percentual_fipe: boolean | null
+  exibir_vantagens: boolean | null
+  exibir_legenda: boolean | null
+  exibir_observacoes: boolean | null
+  exibir_comissao: boolean | null
+  observacoes_comerciais: string | null
+  status: ApresentacaoStatus | null
+  criado_em: string | null
+  atualizado_em: string | null
+  gerada_em: string | null
+  escolhida_em: string | null
+}
+
+export type ApresentacaoCotacaoRow = {
+  id: string
+  apresentacao_id: string
+  cotacao_id: string
+  parcelamento_id: string | null
+  ordem: number
+  recomendada: boolean | null
+  titulo_comercial: string | null
+  vantagens_texto: string | null
+  observacao_comercial: string | null
 }
 
 export type EndossoSubtipoRow = {
@@ -108,10 +411,10 @@ export type EndossoSubtipoRow = {
   tenant_id: string
   filial_id: string | null
   ramo_id: string | null
-  nome: string
-  natureza_canonica: string
+  nome: string | null
+  natureza_canonica: string | null
   ordem: number | null
-  ativo: boolean
+  ativo: boolean | null
   observacoes: string | null
 }
 
@@ -120,15 +423,15 @@ export type CancelamentoMotivoRow = {
   tenant_id: string
   filial_id: string | null
   ramo_id: string | null
-  nome: string
+  nome: string | null
   ordem: number | null
-  ativo: boolean
+  ativo: boolean | null
   observacoes: string | null
 }
 
 type DbTable<Row, RequiredKeys extends keyof Row> = {
   Row: Row
-  Insert: Partial<Row> & Pick<Row, RequiredKeys>
+  Insert: Partial<Row> & { [Key in RequiredKeys]: NonNullable<Row[Key]> }
   Update: Partial<Row>
   Relationships: readonly unknown[]
 }
@@ -246,7 +549,7 @@ export type FinanceiroCobrancaRow = {
   responsavel_id: string | null
   data_abertura: string | null
   vencimento_followup: string | null
-  status: CobrancaStatus
+  status: CobrancaStatus | null
   prioridade: CobrancaPrioridade | null
   ultima_cobranca_em: string | null
   proxima_cobranca_em: string | null
@@ -257,7 +560,7 @@ export type FinanceiroCobrancaRow = {
 }
 export type ComissaoTipo = 'NORMAL' | 'AGENCIAMENTO' | 'VITALICIA' | 'ADICIONAL' | 'RESTITUICAO'
 export type ComissaoStatus = 'PREVISTA' | 'PARCIAL' | 'RECEBIDA' | 'DIVERGENTE' | 'CANCELADA'
-export type ComissaoRow = { id: string; proposta_id: string; parcela_id: string | null; numero: number | null; tipo_comissao: ComissaoTipo; percentual: number | null; base_calculo: number | null; valor_previsto: number | null; valor_recebido: number | null; valor_diferenca: number | null; status: ComissaoStatus | null; prevista_em: string | null; recebida_em: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
+export type ComissaoRow = { id: string; proposta_id: string; parcela_id: string | null; numero: number | null; tipo_comissao: ComissaoTipo | null; percentual: number | null; base_calculo: number | null; valor_previsto: number | null; valor_recebido: number | null; valor_diferenca: number | null; status: ComissaoStatus | null; prevista_em: string | null; recebida_em: string | null; competencia_inicio: string | null; competencia_fim: string | null; observacoes: string | null }
 export type ComissaoExtratoOrigemTipo = 'MANUAL' | 'ARQUIVO' | 'INTEGRACAO'
 export type ComissaoExtratoFormato = 'PDF' | 'XLS' | 'XLSX' | 'CSV' | 'TXT' | 'XML' | 'OUTRO'
 export type ComissaoExtratoProcessamentoStatus = 'RECEBIDO' | 'NORMALIZANDO' | 'NORMALIZADO' | 'ERRO' | 'CANCELADO'
@@ -430,18 +733,32 @@ export type Database = {
       repasse_recibo_itens: DbTable<RepasseReciboItemRow, "recibo_id" | "repasse_id" | "documento_referencia_snapshot" | "segurado_nome_snapshot" | "seguradora_nome_snapshot" | "ramo_nome_snapshot" | "valor_previsto_snapshot" | "valor_pago_snapshot" | "criado_em">
       endosso_subtipos: DbTable<EndossoSubtipoRow, "tenant_id" | "nome" | "natureza_canonica" | "ativo">
       cancelamento_motivos: DbTable<CancelamentoMotivoRow, "tenant_id" | "nome" | "ativo">
+      calculos: DbTable<CalculoRow, "oportunidade_id" | "ramo_id" | "origem">
+      calc_auto: DbTable<CalcAutoRow, "calculo_id">
+      calc_residencia: DbTable<CalcResidenciaRow, "calculo_id">
+      calc_condominio: DbTable<CalcCondominioRow, "calculo_id">
+      calc_vida: DbTable<CalcVidaRow, "calculo_id">
+      calc_empresa: DbTable<CalcEmpresaRow, "calculo_id">
+      calc_diversos: DbTable<CalcDiversosRow, "calculo_id">
+      calculo_coberturas: DbTable<CalculoCoberturaRow, "calculo_id">
+      calculo_execucoes: DbTable<CalculoExecucaoRow, "calculo_id" | "seguradora_id" | "tentativa" | "motor" | "comissao_origem" | "status" | "criada_em">
+      cotacoes: DbTable<CotacaoRow, "execucao_id">
+      cotacao_coberturas: DbTable<CotacaoCoberturaRow, "cotacao_id" | "chave_resultado">
+      cotacao_parcelamentos: DbTable<CotacaoParcelamentoRow, "cotacao_id" | "codigo_opcao" | "forma_pagamento" | "quantidade_parcelas">
+      apresentacoes_comerciais: DbTable<ApresentacaoComercialRow, "oportunidade_id">
+      apresentacao_cotacoes: DbTable<ApresentacaoCotacaoRow, "apresentacao_id" | "cotacao_id" | "ordem">
       anexos: {
         Row: {
           anexado_em: string | null
           categoria: string | null
           descricao: string | null
-          entidade_id: string
-          entidade_tipo: string
+          entidade_id: string | null
+          entidade_tipo: string | null
           filial_id: string | null
           hash_sha256: string | null
           id: string
           mime_type: string | null
-          nome_arquivo: string
+          nome_arquivo: string | null
           origem: string | null
           status: string | null
           tamanho_bytes: number | null
@@ -497,8 +814,8 @@ export type Database = {
           canal: string | null
           concluida_em: string | null
           descricao: string | null
-          entidade_id: string
-          entidade_tipo: string
+          entidade_id: string | null
+          entidade_tipo: string | null
           filial_id: string | null
           fixada_em: string | null
           id: string
@@ -510,7 +827,7 @@ export type Database = {
           responsavel_id: string | null
           status: string | null
           tenant_id: string
-          tipo: string
+          tipo: string | null
           titulo: string | null
           vencimento: string | null
         }
@@ -614,10 +931,10 @@ export type Database = {
       }
       audit_logs: {
         Row: {
-          acao: string
+          acao: string | null
           campo: string | null
-          entidade_id: string
-          entidade_tipo: string
+          entidade_id: string | null
+          entidade_tipo: string | null
           id: string
           ip: string | null
           ocorrido_em: string | null
@@ -670,7 +987,7 @@ export type Database = {
       }
       coberturas_catalogo: {
         Row: {
-          ativo: boolean
+          ativo: boolean | null
           capital_lmi_padrao: number | null
           carencia_dias: number | null
           caracteristica: string | null
@@ -680,8 +997,8 @@ export type Database = {
           franquia_padrao: number | null
           id: string
           modalidade: string | null
-          nome: string
-          obrigatoria: boolean
+          nome: string | null
+          obrigatoria: boolean | null
           ordem: number | null
           ramo_id: string
           tipo_cobertura: string | null
@@ -737,7 +1054,7 @@ export type Database = {
         Row: {
           agrupamento: string | null
           ajuda: string | null
-          ativo: boolean
+          ativo: boolean | null
           chave: string
           entidade_tipo: string
           filial_id: string | null
@@ -746,14 +1063,14 @@ export type Database = {
           mascara: string | null
           max_valor: number | null
           min_valor: number | null
-          nome: string
-          obrigatorio: boolean
+          nome: string | null
+          obrigatorio: boolean | null
           ordem: number | null
           placeholder: string | null
           tamanho_max: number | null
           tenant_id: string
-          tipo_dado: string
-          visivel_em_listagem: boolean
+          tipo_dado: string | null
+          visivel_em_listagem: boolean | null
         }
         Insert: {
           agrupamento?: string | null
@@ -816,12 +1133,12 @@ export type Database = {
       }
       campo_opcoes: {
         Row: {
-          ativo: boolean
+          ativo: boolean | null
           campo_definicao_id: string
           id: string
           ordem: number | null
-          rotulo: string
-          valor: string
+          rotulo: string | null
+          valor: string | null
         }
         Insert: {
           ativo?: boolean
@@ -948,19 +1265,19 @@ export type Database = {
       propostas: PropostaTable
       recebimento_grades: {
         Row: {
-          ativo: boolean
+          ativo: boolean | null
           base_calculo: string | null
-          considera_adicional_fracionamento: boolean
-          considera_iof: boolean
+          considera_adicional_fracionamento: boolean | null
+          considera_iof: boolean | null
           id: string
-          nome: string
+          nome: string | null
           observacoes: string | null
           percentual_default: number | null
-          qtd_parcelas: number
+          qtd_parcelas: number | null
           ramo_id: string
           seguradora_id: string
-          tipo: string
-          vitalicio: boolean
+          tipo: string | null
+          vitalicio: boolean | null
         }
         Insert: {
           ativo?: boolean
@@ -1011,14 +1328,14 @@ export type Database = {
       }
       recebimento_grade_parcelas: {
         Row: {
-          ativo: boolean
+          ativo: boolean | null
           dias_apos_vencimento: number | null
           grade_id: string
           id: string
-          numero: number
+          numero: number | null
           percentual: number | null
           percentual_sobre: string | null
-          tipo_comissao: ComissaoTipo
+          tipo_comissao: ComissaoTipo | null
         }
         Insert: {
           ativo?: boolean
@@ -1052,18 +1369,18 @@ export type Database = {
       }
       repasse_regras: {
         Row: {
-          ativo: boolean
-          base: string
+          ativo: boolean | null
+          base: string | null
           filial_id: string | null
           fim_vigencia: string | null
-          gatilho: string
+          gatilho: string | null
           id: string
           inicio_vigencia: string | null
           limite_parcelas: number | null
           observacoes: string | null
-          papel: string
+          papel: string | null
           percentual: number | null
-          prioridade: number
+          prioridade: number | null
           produtor_id: string | null
           qtd_parcelas: number | null
           ramo_id: string | null
@@ -1172,10 +1489,10 @@ export type Database = {
       }
       motivos_perda: {
         Row: {
-          ativo: boolean
+          ativo: boolean | null
           categoria: string | null
           id: string
-          nome: string
+          nome: string | null
           ordem: number | null
           tenant_id: string
         }
@@ -1207,99 +1524,53 @@ export type Database = {
       }
       oportunidades: {
         Row: OportunidadeContractFields & {
-          agenciamento: number | null
-          apolice_origem_id: string | null
-          comissao_percentual: number | null
-          concluded_at: string | null
-          created_at: string
-          filial_id: string | null
+          filial_id: string
           id: string
-          indicador: string | null
-          metadata: Json
           motivo_perda_id: string | null
-          nome: string
-          observacoes: string | null
           origem_id: string | null
-          pipeline_id: string | null
-          premio_liquido: number | null
-          producao: number | null
-          proximo_followup: string | null
           ramo_id: string | null
-          responsavel_id: string
+          responsavel_id: string | null
           segurado_id: string | null
-          seguradora_id: string | null
-          stage_id: string | null
-          status: Database["public"]["Enums"]["card_status"]
-          tenant_id: string | null
-          tipo_contato: boolean | null
-          tipo_negocio: Database["public"]["Enums"]["tipo_negocio"] | null
-          updated_at: string
-          vigencia_fim: string | null
-          vigencia_inicio: string | null
+          stage_id: string
+          tenant_id: string
         }
         Insert: Partial<OportunidadeContractFields> & {
-          agenciamento?: number | null
-          apolice_origem_id?: string | null
-          comissao_percentual?: number | null
-          concluded_at?: string | null
-          created_at?: string
-          filial_id?: string | null
+          filial_id: string
           id?: string
-          indicador?: string | null
-          metadata?: Json
           motivo_perda_id?: string | null
-          nome: string
-          observacoes?: string | null
           origem_id?: string | null
-          pipeline_id?: string | null
-          premio_liquido?: number | null
-          producao?: number | null
-          proximo_followup?: string | null
           ramo_id?: string | null
-          responsavel_id: string
+          responsavel_id?: string | null
           segurado_id?: string | null
-          seguradora_id?: string | null
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          tipo_contato?: boolean | null
-          tipo_negocio?: Database["public"]["Enums"]["tipo_negocio"] | null
-          updated_at?: string
-          vigencia_fim?: string | null
-          vigencia_inicio?: string | null
+          stage_id: string
+          tenant_id: string
         }
         Update: Partial<OportunidadeContractFields> & {
-          agenciamento?: number | null
-          apolice_origem_id?: string | null
-          comissao_percentual?: number | null
-          concluded_at?: string | null
-          created_at?: string
-          filial_id?: string | null
+          filial_id?: string
           id?: string
-          indicador?: string | null
-          metadata?: Json
           motivo_perda_id?: string | null
-          nome?: string
-          observacoes?: string | null
           origem_id?: string | null
-          pipeline_id?: string | null
-          premio_liquido?: number | null
-          producao?: number | null
-          proximo_followup?: string | null
           ramo_id?: string | null
-          responsavel_id?: string
+          responsavel_id?: string | null
           segurado_id?: string | null
-          seguradora_id?: string | null
-          stage_id?: string | null
-          status?: Database["public"]["Enums"]["card_status"]
-          tenant_id?: string | null
-          tipo_contato?: boolean | null
-          tipo_negocio?: Database["public"]["Enums"]["tipo_negocio"] | null
-          updated_at?: string
-          vigencia_fim?: string | null
-          vigencia_inicio?: string | null
+          stage_id?: string
+          tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "oportunidades_apolice_origem_id_fkey"
+            columns: ["apolice_origem_id"]
+            isOneToOne: false
+            referencedRelation: "apolices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "oportunidades_motivo_perda_id_fkey"
             columns: ["motivo_perda_id"]
@@ -1312,13 +1583,6 @@ export type Database = {
             columns: ["origem_id"]
             isOneToOne: false
             referencedRelation: "origens"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "oportunidades_pipeline_id_fkey"
-            columns: ["pipeline_id"]
-            isOneToOne: false
-            referencedRelation: "pipelines"
             referencedColumns: ["id"]
           },
           {
@@ -1336,10 +1600,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "oportunidades_seguradora_id_fkey"
-            columns: ["seguradora_id"]
+            foreignKeyName: "oportunidades_responsavel_id_fkey"
+            columns: ["responsavel_id"]
             isOneToOne: false
-            referencedRelation: "seguradoras"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1360,9 +1624,9 @@ export type Database = {
       }
       origens: {
         Row: {
-          ativo: boolean
+          ativo: boolean | null
           id: string
-          nome: string
+          nome: string | null
           ordem: number | null
           tenant_id: string
           tipo: string | null
@@ -1395,14 +1659,14 @@ export type Database = {
       }
       pipeline_stages: {
         Row: {
-          ativo: boolean
+          ativo: boolean | null
           codigo: string | null
           cor: string | null
-          finaliza_com_perda: boolean
-          finaliza_com_sucesso: boolean
+          finaliza_com_perda: boolean | null
+          finaliza_com_sucesso: boolean | null
           id: string
-          nome: string
-          ordem: number
+          nome: string | null
+          ordem: number | null
           pipeline_id: string
           probabilidade: number | null
           sla_dias: number | null
@@ -1448,15 +1712,15 @@ export type Database = {
       }
       pipelines: {
         Row: {
-          ativo: boolean
+          ativo: boolean | null
           descricao: string | null
-          entidade_tipo: string
+          entidade_tipo: string | null
           filial_id: string | null
           id: string
-          modelo_fabrica: boolean
-          nome: string
+          modelo_fabrica: boolean | null
+          nome: string | null
           ordem: number | null
-          permite_customizacao: boolean
+          permite_customizacao: boolean | null
           tenant_id: string
         }
         Insert: {
@@ -1507,63 +1771,23 @@ export type Database = {
           },
         ]
       }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          email: string | null
-          full_name: string | null
-          id: string
-          phone: string | null
-          tenant_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          full_name?: string | null
-          id: string
-          phone?: string | null
-          tenant_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          full_name?: string | null
-          id?: string
-          phone?: string | null
-          tenant_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      profiles: DbTable<ProfileRow, 'id' | 'tenant_id'>
       ramos: {
         Row: {
-          ativo: boolean
+          ativo: boolean | null
           codigo_susep: string | null
-          exige_coberturas: boolean
-          exige_item: boolean
+          exige_coberturas: boolean | null
+          exige_item: boolean | null
           forma_calculo: string | null
-          grupo_operacional: string
+          grupo_operacional: string | null
           id: string
-          is_monthly: boolean
-          nome: string
+          is_monthly: boolean | null
+          nome: string | null
           observacoes: string | null
           ordem: number | null
-          permite_endosso: boolean
-          renovavel: boolean
-          risk_type: string
+          permite_endosso: boolean | null
+          renovavel: boolean | null
+          risk_type: string | null
           tenant_id: string
         }
         Insert: {
@@ -1610,50 +1834,18 @@ export type Database = {
           },
         ]
       }
-      role_permissions: {
-        Row: {
-          can_create: boolean | null
-          can_delete: boolean | null
-          can_read: boolean | null
-          can_update: boolean | null
-          created_at: string | null
-          id: string
-          module: string
-          perfil_id: string
-        }
-        Insert: {
-          can_create?: boolean | null
-          can_delete?: boolean | null
-          can_read?: boolean | null
-          can_update?: boolean | null
-          created_at?: string | null
-          id?: string
-          module: string
-          perfil_id: string
-        }
-        Update: {
-          can_create?: boolean | null
-          can_delete?: boolean | null
-          can_read?: boolean | null
-          can_update?: boolean | null
-          created_at?: string | null
-          id?: string
-          module?: string
-          perfil_id?: string
-        }
-        Relationships: []
-      }
+      role_permissions: DbTable<RolePermissionRow, 'perfil_id'>
       seguradoras: {
         Row: {
-          ativo: boolean
-          aceita_busca_automatica: boolean
-          aceita_importacao_pdf: boolean
+          ativo: boolean | null
+          aceita_busca_automatica: boolean | null
+          aceita_importacao_pdf: boolean | null
           cnpj: string | null
           codigo_interno: string | null
           codigo_susep: string | null
           email: string | null
           id: string
-          nome: string
+          nome: string | null
           nome_curto: string | null
           observacoes: string | null
           portal_url: string | null
@@ -1708,225 +1900,29 @@ export type Database = {
           },
         ]
       }
-      segurados: {
-        Row: {
-          bairro: string | null
-          cep: string | null
-          chatwoot_id: string | null
-          cidade: string | null
-          cnae: string | null
-          complemento: string | null
-          cpf_cnpj: string | null
-          created_at: string
-          created_by: string | null
-          data_nascimento: string | null
-          email: string | null
-          endereco: string | null
-          estado: string | null
-          estado_civil: Database["public"]["Enums"]["estado_civil"] | null
-          filial_id: string | null
-          gerente_id: string | null
-          id: string
-          lgpd_autorizado: boolean
-          logradouro: string | null
-          nome: string
-          nome_fantasia: string | null
-          numero: string | null
-          observacoes: string | null
-          porte: Database["public"]["Enums"]["porte_empresa"] | null
-          produtor_id: string | null
-          sexo: Database["public"]["Enums"]["sexo_pessoa"] | null
-          site: string | null
-          status: Database["public"]["Enums"]["status_pessoa"]
-          telefone: string | null
-          tenant_id: string | null
-          tipo: Database["public"]["Enums"]["tipo_pessoa"]
-          updated_at: string
-        }
-        Insert: {
-          bairro?: string | null
-          cep?: string | null
-          chatwoot_id?: string | null
-          cidade?: string | null
-          cnae?: string | null
-          complemento?: string | null
-          cpf_cnpj?: string | null
-          created_at?: string
-          created_by?: string | null
-          data_nascimento?: string | null
-          email?: string | null
-          endereco?: string | null
-          estado?: string | null
-          estado_civil?: Database["public"]["Enums"]["estado_civil"] | null
-          filial_id?: string | null
-          gerente_id?: string | null
-          id?: string
-          lgpd_autorizado?: boolean
-          logradouro?: string | null
-          nome: string
-          nome_fantasia?: string | null
-          numero?: string | null
-          observacoes?: string | null
-          porte?: Database["public"]["Enums"]["porte_empresa"] | null
-          produtor_id?: string | null
-          sexo?: Database["public"]["Enums"]["sexo_pessoa"] | null
-          site?: string | null
-          status?: Database["public"]["Enums"]["status_pessoa"]
-          telefone?: string | null
-          tenant_id?: string | null
-          tipo?: Database["public"]["Enums"]["tipo_pessoa"]
-          updated_at?: string
-        }
-        Update: {
-          bairro?: string | null
-          cep?: string | null
-          chatwoot_id?: string | null
-          cidade?: string | null
-          cnae?: string | null
-          complemento?: string | null
-          cpf_cnpj?: string | null
-          created_at?: string
-          created_by?: string | null
-          data_nascimento?: string | null
-          email?: string | null
-          endereco?: string | null
-          estado?: string | null
-          estado_civil?: Database["public"]["Enums"]["estado_civil"] | null
-          filial_id?: string | null
-          gerente_id?: string | null
-          id?: string
-          lgpd_autorizado?: boolean
-          logradouro?: string | null
-          nome?: string
-          nome_fantasia?: string | null
-          numero?: string | null
-          observacoes?: string | null
-          porte?: Database["public"]["Enums"]["porte_empresa"] | null
-          produtor_id?: string | null
-          sexo?: Database["public"]["Enums"]["sexo_pessoa"] | null
-          site?: string | null
-          status?: Database["public"]["Enums"]["status_pessoa"]
-          telefone?: string | null
-          tenant_id?: string | null
-          tipo?: Database["public"]["Enums"]["tipo_pessoa"]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "segurados_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "segurados_produtor_id_fkey"
-            columns: ["produtor_id"]
-            isOneToOne: false
-            referencedRelation: "produtores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "segurados_gerente_id_fkey"
-            columns: ["gerente_id"]
-            isOneToOne: false
-            referencedRelation: "produtores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pessoa_contato: {
-        Row: {
-          cargo: string | null
-          created_at: string
-          id: string
-          pf_id: string
-          pj_id: string
-          principal: boolean
-          tenant_id: string | null
-        }
-        Insert: {
-          cargo?: string | null
-          created_at?: string
-          id?: string
-          pf_id: string
-          pj_id: string
-          principal?: boolean
-          tenant_id?: string | null
-        }
-        Update: {
-          cargo?: string | null
-          created_at?: string
-          id?: string
-          pf_id?: string
-          pj_id?: string
-          principal?: boolean
-          tenant_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pessoa_contato_pj_id_fkey"
-            columns: ["pj_id"]
-            isOneToOne: false
-            referencedRelation: "segurados"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pessoa_contato_pf_id_fkey"
-            columns: ["pf_id"]
-            isOneToOne: false
-            referencedRelation: "segurados"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pessoa_contato_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tenants: {
-        Row: {
-          created_at: string
-          id: string
-          is_active: boolean
-          name: string
-          slug: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          slug: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          slug?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
+      segurados: DbTable<SeguradoRow, 'tenant_id' | 'filial_id'>
+      pessoa_contato: DbTable<PessoaContatoRow, 'pj_id'>
+      tenants: DbTable<TenantRow, never>
+          produtores: DbTable<ProdutorRow, 'tenant_id'>
+          profile_filiais: DbTable<ProfileFilialRow, 'profile_id' | 'filial_id' | 'perfil_id'>
+          perfis: DbTable<PerfilRow, 'tenant_id'>
+          filiais: DbTable<FilialRow, 'tenant_id'>
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       get_team_members: {
-        Args: never
+        Args: { tenantId: string }
         Returns: {
-          avatar_url: string
+          avatar_url: string | null
           corretoras_count: number
-          created_at: string
+          ativo: boolean
+          status: string | null
+          convite_status: string | null
+          convite_enviado_em: string | null
           email: string
-          full_name: string
+          nome_completo: string
           id: string
           perfil_principal: string | null
         }[]

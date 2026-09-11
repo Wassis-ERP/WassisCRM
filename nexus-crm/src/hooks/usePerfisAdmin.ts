@@ -3,18 +3,12 @@ import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryClient';
 import { useAuth } from './useAuth';
 import type { Perfil } from '../types/platform';
+import type { RolePermissionRow } from '../types/platformRows';
+import { createCustomProfile } from '../modules/plataforma/platformCommands';
+import type { PermissionScope } from '../modules/plataforma/platformDomain';
 
-export interface PermissionRow {
-  id: string;
-  perfil_id: string;
-  module: string;
-  can_read: boolean;
-  can_create: boolean;
-  can_update: boolean;
-  can_delete: boolean;
-}
-
-export type PermField = 'can_read' | 'can_create' | 'can_update' | 'can_delete';
+export type PermissionRow = RolePermissionRow;
+export type PermField = 'can_read' | 'can_create' | 'can_update' | 'can_delete' | 'can_export' | 'can_manage';
 
 /**
  * AUTORIA de perfis de acesso (D18): CRUD de perfis personalizados + edição das
@@ -34,7 +28,7 @@ export function usePerfisAdmin() {
         .from('perfis')
         .select('*')
         .eq('ativo', true)
-        .order('created_at', { ascending: true });
+        .order('ordem', { ascending: true });
       if (error) throw error;
       return (data ?? []) as Perfil[];
     },
@@ -46,7 +40,7 @@ export function usePerfisAdmin() {
       const { data, error } = await supabase
         .from('role_permissions')
         .select('*')
-        .order('module', { ascending: true });
+        .order('modulo', { ascending: true });
       if (error) throw error;
       return (data ?? []) as PermissionRow[];
     },
@@ -54,7 +48,7 @@ export function usePerfisAdmin() {
 
   // Módulos distintos a partir das permissões existentes (semeadas pelos
   // perfis-sistema). Servem de "gabarito" ao criar um perfil novo.
-  const modules = Array.from(new Set((permsQuery.data ?? []).map((p) => p.module)));
+  const modules = Array.from(new Set((permsQuery.data ?? []).map((p) => p.modulo).filter((value): value is string => !!value)));
 
   const invalidatePerfis = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.perfis });
@@ -64,24 +58,7 @@ export function usePerfisAdmin() {
   const createPerfil = useMutation({
     mutationFn: async (nome: string): Promise<Perfil> => {
       if (!tenantId) throw new Error('Tenant não encontrado');
-      const { data, error } = await supabase
-        .from('perfis')
-        .insert({ nome: nome.trim(), sistema: false, ativo: true, tenant_id: tenantId })
-        .select()
-        .single();
-      if (error) throw error;
-      const perfil = data as Perfil;
-      // Cria as linhas de permissão (uma por módulo, tudo false) para o novo perfil.
-      for (const module of modules) {
-        await supabase.from('role_permissions').insert({
-          perfil_id: perfil.id,
-          module,
-          can_read: false,
-          can_create: false,
-          can_update: false,
-          can_delete: false,
-        });
-      }
+      const perfil = createCustomProfile(tenantId, nome, modules);
       await supabase.from('audit_logs').insert({
         action: 'CREATE_PERFIL',
         entity_type: 'perfis',
@@ -128,7 +105,13 @@ export function usePerfisAdmin() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.permissions }),
   });
 
+  const setScope = useMutation({ mutationFn: async ({ id, escopo }: { id: string; escopo: PermissionScope }) => {
+    const { error } = await supabase.from('role_permissions').update({ escopo }).eq('id', id);
+    if (error) throw error;
+  }, onSuccess: invalidatePerfis });
+
   return {
+    setScope: setScope.mutateAsync,
     perfis: perfisQuery.data ?? [],
     permissions: permsQuery.data ?? [],
     modules,
@@ -138,6 +121,7 @@ export function usePerfisAdmin() {
     removePerfil: removePerfil.mutateAsync,
     togglePermission: togglePermission.mutateAsync,
     isSaving:
+      setScope.isPending ||
       createPerfil.isPending ||
       renamePerfil.isPending ||
       removePerfil.isPending ||

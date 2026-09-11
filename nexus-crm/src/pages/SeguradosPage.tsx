@@ -235,7 +235,7 @@ export default function SeguradosPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <StatusBadge status={s.status} />
+                        <StatusBadge status={s.status ?? 'Não informado'} />
                       </td>
                       <td className="px-6 py-4 text-xs text-fg-2">
                         <p>{s.email || <span className="italic text-fg-4">sem e-mail</span>}</p>

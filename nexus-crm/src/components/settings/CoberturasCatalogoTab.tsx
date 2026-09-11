@@ -40,7 +40,7 @@ const formFromRow = (row: CoberturaCatalogoRow): CoberturaCatalogoInput => ({
   ramo_id: row.ramo_id,
   codigo: row.codigo ?? '',
   codigo_susep: row.codigo_susep ?? '',
-  nome: row.nome,
+  nome: row.nome ?? '',
   descricao: row.descricao ?? '',
   tipo_cobertura: row.tipo_cobertura ?? 'basica',
   caracteristica: row.caracteristica ?? 'massificado',
@@ -49,14 +49,14 @@ const formFromRow = (row: CoberturaCatalogoRow): CoberturaCatalogoInput => ({
   capital_lmi_padrao: row.capital_lmi_padrao,
   franquia_padrao: row.franquia_padrao,
   carencia_dias: row.carencia_dias,
-  obrigatoria: row.obrigatoria,
+  obrigatoria: row.obrigatoria === true,
   ordem: row.ordem,
-  ativo: row.ativo,
+  ativo: row.ativo === true,
 })
 
 const numberOrNull = (value: string) => (value === '' ? null : Number(value))
 
-function StatusPill({ active }: { active: boolean }) {
+function StatusPill({ active }: { active: boolean | null }) {
   return (
     <span
       className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${
@@ -170,7 +170,7 @@ export default function CoberturasCatalogoTab() {
   const handleRemove = async (row: CoberturaCatalogoRow) => {
     const shouldRemove = await confirm({
       title: 'Inativar cobertura',
-      description: `Inativar "${row.nome}"? Ela deixa de aparecer em novas seleções, mas históricos continuam preservados.`,
+      description: `Inativar "${row.nome ?? 'Não informado'}"? Ela deixa de aparecer em novas seleções, mas históricos continuam preservados.`,
       confirmLabel: 'Inativar',
       tone: 'danger',
     })
@@ -235,7 +235,7 @@ export default function CoberturasCatalogoTab() {
                 className="w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-black text-fg-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 disabled:opacity-50"
               >
                 {(ramos ?? []).map((ramo) => (
-                  <option key={ramo.id} value={ramo.id}>{ramo.nome}</option>
+                  <option key={ramo.id} value={ramo.id}>{ramo.nome ?? 'Não informado'}</option>
                 ))}
               </select>
             </label>
@@ -435,7 +435,7 @@ export default function CoberturasCatalogoTab() {
                 className="w-full rounded-[6px] border border-border-1 bg-bg-surface px-3 py-2.5 text-sm font-black text-fg-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 disabled:opacity-50"
               >
                 {(ramos ?? []).map((ramo) => (
-                  <option key={ramo.id} value={ramo.id}>{ramo.nome}</option>
+                  <option key={ramo.id} value={ramo.id}>{ramo.nome ?? 'Não informado'}</option>
                 ))}
               </select>
             </label>

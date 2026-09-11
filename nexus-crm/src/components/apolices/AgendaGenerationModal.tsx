@@ -115,7 +115,7 @@ function GradeStep({ preview, selected, onSelected, onClose }: { preview: Contra
 function PreviewStep({ preview }: { preview: ContractAgendaPreview }) {
   return <div className="space-y-5"><div><h3 className="text-base font-black text-fg-1">Prévia consolidada</h3><p className="mt-1 text-sm text-fg-3">Nenhum fato foi persistido. Os três conjuntos continuam separados.</p></div><DiagnosisGrid preview={preview} />
     <PreviewTable title="Parcelas do segurado" headers={['Parcela', 'Vencimento', 'Valor']} rows={preview.installments.map((row) => [String(row.numero), row.vencimento ? fmtDate(row.vencimento) : '—', fmtMoney(row.valor ?? undefined)])} />
-    <PreviewTable title="Comissões da corretora" headers={['Evento', 'Tipo', 'Percentual', 'Previsão', 'Valor']} rows={preview.commissions.map((row) => [String(row.numero), row.tipo_comissao, `${row.percentual}%`, row.prevista_em ? fmtDate(row.prevista_em) : '—', fmtMoney(row.valor_previsto ?? undefined)])} />
+    <PreviewTable title="Comissões da corretora" headers={['Evento', 'Tipo', 'Percentual', 'Previsão', 'Valor']} rows={preview.commissions.map((row) => [String(row.numero), row.tipo_comissao ?? 'Não informado', `${row.percentual}%`, row.prevista_em ? fmtDate(row.prevista_em) : '—', fmtMoney(row.valor_previsto ?? undefined)])} />
     <PreviewTable title="Repasses" headers={['Evento', 'Papel', 'Base', 'Previsão', 'Valor']} rows={preview.transfers.map((row) => [String(row.numero), row.papel_beneficiario ?? '—', row.base ?? '—', row.previsto_em ? fmtDate(row.previsto_em) : '—', fmtMoney(row.valor_previsto ?? undefined)])} />
   </div>
 }

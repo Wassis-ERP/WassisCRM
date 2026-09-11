@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { InMemoryQueryBuilder } from './inMemoryQueryBuilder'
+import { getTable } from './inMemoryDb'
+import { platformDefaults } from '../types/platformRows'
 
 function insertSegurado(input: {
   id: string
@@ -8,6 +10,8 @@ function insertSegurado(input: {
   nome?: string
   tipo?: 'PF' | 'PJ'
 }) {
+  if (!getTable('tenants').some(t => t.id === 'tenant-test')) getTable('tenants').push({ ...platformDefaults.tenants, id: 'tenant-test' })
+  if (!getTable('filiais').some(f => f.id === input.filialId)) getTable('filiais').push({ ...platformDefaults.filiais, id: input.filialId, tenant_id: 'tenant-test', ativo: true })
   return new InMemoryQueryBuilder('segurados')
     .insert({
       id: input.id,
@@ -16,7 +20,7 @@ function insertSegurado(input: {
       nome: input.nome ?? input.id,
       tipo: input.tipo ?? 'PF',
       cpf_cnpj: input.cpfCnpj,
-      status: 'Prospecto',
+      status: 'Ativo',
       lgpd_autorizado: true,
     })
     .select('*')
@@ -24,7 +28,7 @@ function insertSegurado(input: {
 }
 
 describe('InMemoryQueryBuilder segurados', () => {
-  it('bloqueia segurado sem cpf_cnpj', async () => {
+  it('bloqueia segurado ativo sem cpf_cnpj', async () => {
     const result = await insertSegurado({
       id: 'seg-sem-doc',
       filialId: 'filial-sem-doc',

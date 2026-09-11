@@ -109,7 +109,7 @@ export default function NovaCobrancaModal({
               <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Responsável</span>
               <select value={responsavelId} onChange={(event) => setResponsavelId(event.target.value)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1">
                 <option value="">Usuário atual</option>
-                {(responsaveis.data ?? []).map((row) => <option key={row.id} value={row.id}>{row.full_name ?? row.email ?? row.id}</option>)}
+                {(responsaveis.data ?? []).map((row) => <option key={row.id} value={row.id}>{row.nome_completo ?? row.email ?? row.id}</option>)}
               </select>
             </label>
             <label>

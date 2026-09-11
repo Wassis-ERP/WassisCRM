@@ -77,7 +77,7 @@ describe('guias transversais polimorficas', () => {
   })
 
   it('mapeia atividades para view models de tarefa e observacao com autoria', () => {
-    const profiles = [{ id: 'profile-1', full_name: 'Dev Wassis', email: 'dev@wassis.com' }] as any[]
+    const profiles = [{ id: 'profile-1', nome_completo: 'Dev Wassis', email: 'dev@wassis.com' }] as any[]
 
     expect(mapAtividadeToTarefa({
       id: 'atividade-1',
@@ -112,7 +112,7 @@ describe('guias transversais polimorficas', () => {
   })
 
   it('monta timeline unificada mantendo audit_logs atras do toggle', () => {
-    const profiles = [{ id: 'profile-1', full_name: 'Dev Wassis', email: 'dev@wassis.com' }] as any[]
+    const profiles = [{ id: 'profile-1', nome_completo: 'Dev Wassis', email: 'dev@wassis.com' }] as any[]
     const atividades = [{
       id: 'atividade-1',
       responsavel_id: 'profile-1',
@@ -149,8 +149,8 @@ describe('guias transversais polimorficas', () => {
 
   it('deduplica mencoes resolvidas e mencoes inferidas do texto', () => {
     const profiles = [
-      { id: 'profile-1', full_name: 'Dev Wassis', email: 'dev@wassis.com' },
-      { id: 'profile-2', full_name: 'Renato Assis', email: 'renato@wassis.com' },
+      { id: 'profile-1', nome_completo: 'Dev Wassis', email: 'dev@wassis.com' },
+      { id: 'profile-2', nome_completo: 'Renato Assis', email: 'renato@wassis.com' },
     ] as any[]
 
     expect(mergeResolvedMentions('Falar com @Dev e @Renato', profiles, [

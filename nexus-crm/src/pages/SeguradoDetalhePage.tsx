@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   ArrowLeft, ChevronRight, Phone, Mail, MapPin, Edit, Clock, TrendingUp,
   ShieldCheck, ShieldAlert, Users, Building2, User, Globe, Star, Plus, Trash2,
@@ -58,6 +58,14 @@ const SEXO_LABEL: Record<NonNullable<Segurado['sexo']>, string> = {
 
 type TabId = 'visao' | 'apolices' | 'cadastrais' | 'corretora' | 'tarefas' | 'personalizados' | 'anexos' | 'observacoes'
 
+const TAB_IDS: readonly TabId[] = [
+  'visao', 'apolices', 'cadastrais', 'corretora', 'tarefas', 'personalizados', 'anexos', 'observacoes',
+]
+
+function isTabId(value: string | null): value is TabId {
+  return value !== null && TAB_IDS.includes(value as TabId)
+}
+
 function enderecoFormatado(s: Segurado): string {
   const linha1 = [s.logradouro, s.numero].filter(Boolean).join(', ')
   const linha2 = [s.bairro, s.cidade, s.estado].filter(Boolean).join(' · ')
@@ -85,22 +93,8 @@ export default function SeguradoDetalhePage() {
   const [vinculoEdit, setVinculoEdit] = useState<PessoaContato | null>(null)
   const [vinculoModalOpen, setVinculoModalOpen] = useState(false)
   const [tab, setTab] = useState<TabId>('visao')
-
-  useEffect(() => {
-    const requestedTab = searchParams.get('tab')
-    if (
-      requestedTab === 'visao' ||
-      requestedTab === 'apolices' ||
-      requestedTab === 'cadastrais' ||
-      requestedTab === 'corretora' ||
-      requestedTab === 'tarefas' ||
-      requestedTab === 'personalizados' ||
-      requestedTab === 'anexos' ||
-      requestedTab === 'observacoes'
-    ) {
-      setTab(requestedTab)
-    }
-  }, [searchParams])
+  const requestedTab = searchParams.get('tab')
+  const activeTab = isTabId(requestedTab) ? requestedTab : tab
 
   const handleTabChange = (nextTab: TabId) => {
     setTab(nextTab)
@@ -172,20 +166,21 @@ export default function SeguradoDetalhePage() {
   const isPF = segurado.tipo === 'PF'
   const contatosDaPJ = isPJ ? vinculos.filter((v) => v.pjId === segurado.id) : []
   const empresasDaPF = isPF ? vinculos.filter((v) => v.pfId === segurado.id) : []
-  const idsJaVinculados = isPJ ? contatosDaPJ.map((v) => v.pfId) : empresasDaPF.map((v) => v.pjId)
+  const idsJaVinculados = (isPJ ? contatosDaPJ.filter(v => v.ativo !== false).map((v) => v.pfId) : empresasDaPF.map((v) => v.pjId)).filter((id): id is string => !!id)
 
   const handleSubmitVinculo = async (value: PessoaContatoFormValue) => {
     if (vinculoEdit) {
       await updateVinculo.mutateAsync({
         id: vinculoEdit.id,
         pjId: vinculoEdit.pjId,
+        ...value,
         cargo: value.cargo || null,
         principal: value.principal,
       })
     } else {
       const pjId = isPJ ? segurado.id : value.contatoId
-      const pfId = isPJ ? value.contatoId : segurado.id
-      await createVinculo.mutateAsync({ pjId, pfId, cargo: value.cargo || null, principal: value.principal })
+      const pfId = isPJ ? value.contatoId || null : segurado.id
+      await createVinculo.mutateAsync({ ...value, pjId, pfId, cargo: value.cargo || null, principal: value.principal })
     }
     setVinculoEdit(null)
   }
@@ -218,7 +213,7 @@ export default function SeguradoDetalhePage() {
     { id: 'observacoes', label: 'Observações', badge: tabsState.observacoes.length || undefined },
   ]
 
-  const telDigits = onlyDigits(segurado.telefone)
+  const telDigits = onlyDigits(segurado.whatsapp || segurado.celular || segurado.telefone)
 
   return (
     <div className="animate-fade-in">
@@ -254,7 +249,7 @@ export default function SeguradoDetalhePage() {
                 <span className="px-2.5 py-0.5 bg-bg-surface-3 text-fg-3 rounded text-[10px] font-bold uppercase tracking-wide">
                   {isPJ ? 'Pessoa Jurídica' : 'Pessoa Física'}
                 </span>
-                <StatusBadge status={segurado.status} />
+                <StatusBadge status={segurado.status ?? 'Não informado'} />
               </div>
               {isPJ && segurado.nomeFantasia && (
                 <p className="text-sm text-fg-3 mt-0.5">{segurado.nomeFantasia}</p>
@@ -295,7 +290,7 @@ export default function SeguradoDetalhePage() {
             )}
             {segurado.telefone && (
               <a
-                href={`tel:${telDigits}`}
+                href={`tel:${onlyDigits(segurado.telefone)}`}
                 title="Ligar"
                 className="w-9 h-9 rounded-full bg-bg-surface-2 text-fg-2 flex items-center justify-center hover:text-accent-primary transition"
               >
@@ -322,10 +317,10 @@ export default function SeguradoDetalhePage() {
       </div>
 
       {/* Guias */}
-      <EntityTabsBar tabs={tabs} active={tab} onChange={handleTabChange} />
+      <EntityTabsBar tabs={tabs} active={activeTab} onChange={handleTabChange} />
 
       <div role="tabpanel">
-        {tab === 'visao' && (
+        {activeTab === 'visao' && (
           <TabVisaoGeral
             s={segurado}
             vinculos={isPJ ? contatosDaPJ : empresasDaPF}
@@ -338,8 +333,8 @@ export default function SeguradoDetalhePage() {
             onGoTab={setTab}
           />
         )}
-        {tab === 'apolices' && <ApolicesTab seguradoId={id} />}
-        {tab === 'cadastrais' && (
+        {activeTab === 'apolices' && <ApolicesTab seguradoId={id} />}
+        {activeTab === 'cadastrais' && (
           <TabCadastrais
             s={segurado}
             isPJ={isPJ}
@@ -350,14 +345,14 @@ export default function SeguradoDetalhePage() {
             onRemoveVinculo={handleRemoveVinculo}
           />
         )}
-        {tab === 'corretora' && <TabCorretora s={segurado} />}
-        {tab === 'tarefas' && (
+        {activeTab === 'corretora' && <TabCorretora s={segurado} />}
+        {activeTab === 'tarefas' && (
           <TarefasTab tarefas={tabsState.tarefas} onAdd={tabsState.addTarefa} onToggle={tabsState.toggleTarefa} />
         )}
-        {tab === 'personalizados' && (
+        {activeTab === 'personalizados' && (
           <CamposPersonalizadosTab entidadeTipo="segurado" entidadeId={segurado.id} />
         )}
-        {tab === 'anexos' && (
+        {activeTab === 'anexos' && (
           <AnexosLogsTab
             anexos={tabsState.anexos}
             logs={tabsState.logs}
@@ -367,7 +362,7 @@ export default function SeguradoDetalhePage() {
             onToggleAuditLogs={tabsState.setShowAuditLogs}
           />
         )}
-        {tab === 'observacoes' && (
+        {activeTab === 'observacoes' && (
           <ObservacoesTab
             observacoes={tabsState.observacoes}
             onAdd={tabsState.addObservacao}
@@ -385,7 +380,7 @@ export default function SeguradoDetalhePage() {
         onSave={handleSave}
       />
 
-      <PessoaContatoModal
+      {segurado.tipo && <PessoaContatoModal
         key={`${vinculoModalOpen}-${vinculoEdit?.id ?? 'novo'}`}
         isOpen={vinculoModalOpen}
         onClose={() => setVinculoModalOpen(false)}
@@ -394,7 +389,7 @@ export default function SeguradoDetalhePage() {
         vinculo={vinculoEdit}
         idsJaVinculados={idsJaVinculados}
         onSubmit={handleSubmitVinculo}
-      />
+      />}
     </div>
   )
 }
@@ -498,6 +493,7 @@ function TabVisaoGeral({
                   premio={o.premio}
                   badge={OPP_BADGE[o.status]}
                   vencimento={o.vigenciaFim}
+                  dataLabel="previsto"
                   onClick={() => onOpenOportunidade(o.id)}
                 />
               ))}
@@ -561,7 +557,9 @@ function TabVisaoGeral({
 
         <DetailCard title="Contato" icon={Phone}>
           <div className="space-y-3">
-            <ContatoLinha icon={Phone} label="Telefone / WhatsApp" valor={s.telefone} />
+            <ContatoLinha icon={Phone} label="Telefone" valor={s.telefone} />
+            <ContatoLinha icon={Phone} label="Celular" valor={s.celular} />
+            <ContatoLinha icon={Phone} label="WhatsApp" valor={s.whatsapp} />
             <ContatoLinha icon={Mail} label="E-mail" valor={s.email} />
             {isPJ && <ContatoLinha icon={Globe} label="Site" valor={s.site} />}
             <ContatoLinha icon={MapPin} label="Endereço" valor={enderecoLinha} />
@@ -609,7 +607,7 @@ function TabVisaoGeral({
             )}
             <DetailField label="Produtor">{s.produtorNome}</DetailField>
             <DetailField label="Status">
-              <StatusBadge status={s.status} />
+              <StatusBadge status={s.status ?? 'Não informado'} />
             </DetailField>
           </div>
         </DetailCard>
@@ -653,6 +651,7 @@ function NegocioRow({
   premio,
   badge,
   vencimento,
+  dataLabel = 'vence',
   onClick,
 }: {
   titulo: string
@@ -661,6 +660,7 @@ function NegocioRow({
   premio?: number | null
   badge: { texto: string; tone: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }
   vencimento?: string | null
+  dataLabel?: string
   onClick?: () => void
 }) {
   const premioFmt = formatBRL(premio)
@@ -678,7 +678,7 @@ function NegocioRow({
       <div className="text-right shrink-0">
         {premioFmt && <p className="text-sm font-semibold text-fg-1">{premioFmt}</p>}
         {vencimento ? (
-          <p className="text-xs text-fg-4">vence {fmtDate(vencimento)}</p>
+          <p className="text-xs text-fg-4">{dataLabel} {fmtDate(vencimento)}</p>
         ) : (
           <StatusBadge status={badge.texto} tone={badge.tone} dot={false} />
         )}
@@ -809,7 +809,7 @@ function TabCadastrais({
             title={isPJ ? 'Nenhum contato vinculado' : 'Nenhuma empresa vinculada'}
             hint={
               isPJ
-                ? 'Vincule pessoas físicas como contatos desta empresa.'
+                ? 'Cadastre um contato ou vincule uma pessoa física da mesma corretora.'
                 : 'Vincule esta pessoa às empresas em que atua.'
             }
           />
@@ -876,6 +876,9 @@ function VinculoCard({
             )}
           </div>
           {vinculo.cargo && <p className="text-xs text-fg-3 mt-0.5">{vinculo.cargo}</p>}
+          {vinculo.email && <p className="text-xs text-fg-3 break-all">{vinculo.email}</p>}
+          {(vinculo.celular || vinculo.telefone) && <p className="text-xs text-fg-3">{vinculo.celular || vinculo.telefone}</p>}
+          {vinculo.ativo === false && <p className="text-xs text-fg-3">Contato inativo</p>}
         </div>
       </div>
       <div className="flex items-center gap-1 shrink-0">
@@ -906,7 +909,7 @@ function TabCorretora({ s }: { s: Segurado }) {
       <DetailCard title="Classificação & atendimento" icon={Sliders}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <DetailField label="Status do cadastro">
-            <StatusBadge status={s.status} />
+            <StatusBadge status={s.status ?? 'Não informado'} />
           </DetailField>
           <DetailField label="Tipo">{s.tipo === 'PJ' ? 'Pessoa Jurídica' : 'Pessoa Física'}</DetailField>
           <DetailField label="ID de atendimento (Chatwoot)" mono>

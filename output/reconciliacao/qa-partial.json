@@ -1,0 +1,38 @@
+{
+  "evidence": [
+    {
+      "name": "produtor-cadastro",
+      "client": 1440,
+      "scroll": 1440,
+      "zoom": "1"
+    },
+    {
+      "name": "permissoes",
+      "client": 1440,
+      "scroll": 1440,
+      "zoom": "1"
+    },
+    {
+      "name": "acesso-inativado",
+      "client": 1440,
+      "scroll": 1440,
+      "zoom": "1"
+    },
+    {
+      "name": "acesso-vigencia",
+      "client": 1440,
+      "scroll": 1440,
+      "zoom": "1"
+    },
+    {
+      "name": "acesso-mobile",
+      "client": 390,
+      "scroll": 390,
+      "zoom": "1"
+    }
+  ],
+  "errors": [],
+  "producer": true,
+  "permissions": true,
+  "access": true
+}

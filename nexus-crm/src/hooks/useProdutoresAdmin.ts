@@ -40,7 +40,7 @@ export function useProdutoresAdmin() {
     const next = { ...input };
     if (next.cpf_cnpj !== undefined) next.cpf_cnpj = next.cpf_cnpj ? onlyDigits(next.cpf_cnpj) : null;
     if (next.profile_id === '') next.profile_id = null;
-    if (next.percentual_repasse_padrao === undefined) next.percentual_repasse_padrao = null;
+    if (next.favorecido_cpf_cnpj !== undefined) next.favorecido_cpf_cnpj = next.favorecido_cpf_cnpj ? onlyDigits(next.favorecido_cpf_cnpj) : null;
     return next;
   };
 

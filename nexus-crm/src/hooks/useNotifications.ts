@@ -32,7 +32,7 @@ export interface NotificationItem {
 }
 
 function profileLabel(profile: ProfileRow | undefined) {
-  return profile?.full_name || profile?.email || 'Usuário'
+  return profile?.nome_completo || profile?.email || 'Usuário'
 }
 
 function entidadeLabel(tipo: string, id: string, segurados: SeguradoRow[]) {
@@ -72,7 +72,7 @@ async function fetchNotifications(profileId: string): Promise<NotificationItem[]
 
   ;((mencoesResult.data ?? []) as MencaoRow[]).forEach((mencao) => {
       const atividade = atividades.find((row) => row.id === mencao.atividade_id)
-      if (!atividade) return
+      if (!atividade?.entidade_id || !atividade.entidade_tipo) return
       const entidadeTipo = atividade.entidade_tipo as EntidadeTipo
       const trecho = atividade.descricao ?? atividade.observacoes ?? atividade.titulo ?? 'Menção em atividade'
       items.push({

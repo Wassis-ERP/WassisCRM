@@ -6,7 +6,7 @@ import { PosVendaCard } from './Card'
 
 type SeguradoCard = Pick<Database['public']['Tables']['segurados']['Row'], 'id' | 'nome' | 'filial_id'>
 type LookupCard = { id: string; nome: string }
-type ProfileCard = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'full_name' | 'avatar_url'>
+type ProfileCard = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'nome_completo' | 'avatar_url'>
 
 type PosVendaCardRow = PosVendaRow & {
   apolices: {
@@ -31,7 +31,7 @@ export function mapPosVendaToKanbanCard(row: PosVendaCardRow, pipelineId: string
     title: apolice?.segurados?.nome ?? row.assunto ?? 'Pós-venda',
     subtitle: row.assunto ?? (apolice?.numero_apolice ? `Apólice ${apolice.numero_apolice}` : 'Apólice vinculada'),
     responsavelId: row.responsavel_id,
-    responsavelName: row.profiles?.full_name ?? undefined,
+    responsavelName: row.profiles?.nome_completo ?? undefined,
     responsavelAvatar: row.profiles?.avatar_url ?? undefined,
     primaryValue: apolice?.premio_total == null ? null : Number(apolice.premio_total),
     primaryValueLabel: 'Prêmio',
@@ -72,7 +72,7 @@ export const posVendaAdapter: ModuleAdapter = {
           ramos:ramo_id ( id, nome ),
           seguradoras:seguradora_id ( id, nome )
         ),
-        profiles:responsavel_id ( id, full_name, avatar_url )
+        profiles:responsavel_id ( id, nome_completo, avatar_url )
       `)
       .in('stage_id', stageIds)
       .order('data_conclusao_prevista', { ascending: true, nullsFirst: false })

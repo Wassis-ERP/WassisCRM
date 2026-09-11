@@ -18,7 +18,7 @@ type SeguradoRowWithJoins = SeguradoRow & {
 }
 type PessoaContatoRowWithJoins = PessoaContatoRow & {
   pj?: Pick<SeguradoRow, 'id' | 'nome' | 'nome_fantasia'> | null
-  pf?: Pick<SeguradoRow, 'id' | 'nome'> | null
+  pf?: Pick<SeguradoRow, 'id' | 'nome' | 'email' | 'telefone' | 'celular'> | null
 }
 
 function firstWord(value?: string | null): string | null {
@@ -63,19 +63,21 @@ function colorFor(seed?: string | null): string | null {
 export function mapSeguradoRowToView(row: SeguradoRowWithJoins): Segurado {
   const produtorNome = row.produtor?.nome ?? null
   const gerenteNome = row.gerente?.nome ?? null
-  const documento = row.cpf_cnpj ? formatDocumento(row.cpf_cnpj, row.tipo) : ''
+  const documento = row.cpf_cnpj ? row.tipo ? formatDocumento(row.cpf_cnpj, row.tipo) : row.cpf_cnpj : ''
 
   return {
     id: row.id,
     tipo: row.tipo,
-    nome: row.nome,
+    nome: row.nome ?? '',
     nomeFantasia: row.nome_fantasia ?? undefined,
     documento,
-    status: row.status ?? 'Ativo',
-    lgpdAutorizado: Boolean(row.lgpd_autorizado),
+    status: row.status,
+    lgpdAutorizado: row.lgpd_autorizado,
 
     email: row.email ?? undefined,
     telefone: row.telefone ?? undefined,
+    celular: row.celular ?? undefined,
+    whatsapp: row.whatsapp ?? undefined,
     chatwootId: row.chatwoot_id ?? undefined,
 
     cep: row.cep ?? undefined,
@@ -101,8 +103,8 @@ export function mapSeguradoRowToView(row: SeguradoRowWithJoins): Segurado {
     porte: row.porte ?? undefined,
     site: row.site ?? undefined,
 
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: row.created_at ?? undefined,
+    updatedAt: row.updated_at ?? undefined,
   }
 }
 
@@ -148,6 +150,8 @@ export function partialSeguradoToUpdate(data: Partial<Segurado>): SeguradoUpdate
 
   if (data.email !== undefined) u.email = trimOrNull(data.email)
   if (data.telefone !== undefined) u.telefone = trimOrNull(data.telefone)
+  if (data.celular !== undefined) u.celular = trimOrNull(data.celular)
+  if (data.whatsapp !== undefined) u.whatsapp = trimOrNull(data.whatsapp)
   if (data.chatwootId !== undefined) u.chatwoot_id = trimOrNull(data.chatwootId)
 
   if (data.cep !== undefined) u.cep = trimOrNull(data.cep)
@@ -169,7 +173,7 @@ export function partialSeguradoToUpdate(data: Partial<Segurado>): SeguradoUpdate
   if (data.porte !== undefined) u.porte = data.porte ?? null
   if (data.site !== undefined) u.site = trimOrNull(data.site)
 
-  return applyTipoFilter(u, data.tipo)
+  return applyTipoFilter(u, data.tipo ?? undefined)
 }
 
 /**
@@ -178,7 +182,9 @@ export function partialSeguradoToUpdate(data: Partial<Segurado>): SeguradoUpdate
 export function buildCreateSeguradoInput(data: Partial<Segurado>) {
   const nome = data.nome?.trim()
   if (!nome) throw new Error('Nome é obrigatório')
-  const tipo: 'PF' | 'PJ' = data.tipo ?? 'PF'
+  if (!data.tipo) throw new Error('Tipo de pessoa é obrigatório')
+  if (!data.status) throw new Error('Status da pessoa é obrigatório')
+  const tipo = data.tipo
 
   return {
     nome,
@@ -190,6 +196,8 @@ export function buildCreateSeguradoInput(data: Partial<Segurado>) {
 
     email: trimOrNull(data.email),
     telefone: trimOrNull(data.telefone),
+    celular: trimOrNull(data.celular),
+    whatsapp: trimOrNull(data.whatsapp),
     chatwoot_id: trimOrNull(data.chatwootId),
 
     cep: trimOrNull(data.cep),
@@ -220,9 +228,16 @@ export function mapPessoaContatoRowToView(row: PessoaContatoRowWithJoins): Pesso
     pfId: row.pf_id,
     pjNome: row.pj?.nome ?? undefined,
     pjNomeFantasia: row.pj?.nome_fantasia ?? undefined,
-    pfNome: row.pf?.nome ?? undefined,
+    pfNome: row.nome ?? row.pf?.nome ?? undefined,
+    dadosProprios: { email: row.email, telefone: row.telefone, celular: row.celular },
+    nome: row.nome ?? undefined,
+    departamento: row.departamento ?? undefined,
+    email: row.email ?? row.pf?.email ?? undefined,
+    telefone: row.telefone ?? row.pf?.telefone ?? undefined,
+    celular: row.celular ?? row.pf?.celular ?? undefined,
+    observacoes: row.observacoes ?? undefined,
+    ativo: row.ativo === true,
     cargo: row.cargo ?? undefined,
     principal: Boolean(row.principal),
-    createdAt: row.created_at,
   }
 }

@@ -51,7 +51,7 @@ export default function ContractCatalogTab({ kind }: { kind: CatalogKind }) {
 
   const rows = (getTable(tableName) as unknown as CatalogRow[])
     .slice()
-    .sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999) || a.nome.localeCompare(b.nome, 'pt-BR'))
+    .sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999) || (a.nome ?? '').localeCompare(b.nome ?? '', 'pt-BR'))
   const branches = useMemo(() => getTable('filiais') as unknown as LookupRow[], [])
   const insuranceBranches = useMemo(() => getTable('ramos') as unknown as LookupRow[], [])
   const branchNames = useMemo(() => new Map(branches.map((row) => [row.id, row.fantasia ?? row.nome ?? row.id])), [branches])
@@ -59,7 +59,7 @@ export default function ContractCatalogTab({ kind }: { kind: CatalogKind }) {
   const filtered = rows.filter((row) => {
     const needle = search.trim().toLocaleLowerCase('pt-BR')
     if (!needle) return true
-    const canonical = isEndorsement && 'natureza_canonica' in row ? row.natureza_canonica : ''
+    const canonical = isEndorsement && 'natureza_canonica' in row ? row.natureza_canonica ?? '' : ''
     return `${row.nome} ${canonical} ${branchNames.get(row.filial_id ?? '') ?? ''} ${insuranceBranchNames.get(row.ramo_id ?? '') ?? ''}`.toLocaleLowerCase('pt-BR').includes(needle)
   })
 
@@ -75,8 +75,8 @@ export default function ContractCatalogTab({ kind }: { kind: CatalogKind }) {
 
   const edit = (row: CatalogRow) => {
     setEditingId(row.id)
-    setName(row.nome)
-    setNature(isEndorsement && 'natureza_canonica' in row ? row.natureza_canonica : '')
+    setName(row.nome ?? '')
+    setNature(isEndorsement && 'natureza_canonica' in row ? row.natureza_canonica ?? '' : '')
     setBranchId(row.filial_id ?? '')
     setInsuranceBranchId(row.ramo_id ?? '')
     setOrder(String(row.ordem ?? 10))
@@ -86,6 +86,7 @@ export default function ContractCatalogTab({ kind }: { kind: CatalogKind }) {
 
   const save = () => {
     const normalizedName = name.trim()
+    if (isEndorsement && !nature) { notify({ title: 'Informe a natureza do endosso', tone: 'danger' }); return }
     if (!normalizedName) {
       notify({ title: 'Informe o nome', description: `O ${singular} precisa de um nome operacional.`, tone: 'danger' })
       return
@@ -137,7 +138,7 @@ export default function ContractCatalogTab({ kind }: { kind: CatalogKind }) {
     }
     row.ativo = !row.ativo
     setRevision((current) => current + 1)
-    notify({ title: row.ativo ? 'Cadastro reativado' : 'Cadastro inativado', description: row.nome, tone: row.ativo ? 'success' : 'info' })
+    notify({ title: row.ativo ? 'Cadastro reativado' : 'Cadastro inativado', description: row.nome ?? 'Cadastro sem nome', tone: row.ativo ? 'success' : 'info' })
   }
 
   return <div className="space-y-5">
@@ -159,7 +160,7 @@ export default function ContractCatalogTab({ kind }: { kind: CatalogKind }) {
       <div className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_100px_auto] gap-4 border-b border-border-1 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-fg-3 lg:grid"><span>Nome e natureza</span><span>Escopo</span><span>Status</span><span className="text-right">Ações</span></div>
       <div className="divide-y divide-border-1">{filtered.map((row) => {
         const canonical = isEndorsement && 'natureza_canonica' in row ? row.natureza_canonica : null
-        return <div key={row.id} className="grid gap-3 px-4 py-4 hover:bg-bg-surface-2 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_100px_auto] lg:items-center"><div className="min-w-0"><p className="truncate text-sm font-black text-fg-1">{row.nome}</p>{canonical && <p className="mt-1 truncate font-mono text-[11px] text-fg-3">{canonical.replaceAll('_', ' ')}</p>}</div><div className="text-xs font-semibold text-fg-3"><p>{row.filial_id ? branchNames.get(row.filial_id) : 'Todo o grupo'}</p><p className="mt-1">{row.ramo_id ? insuranceBranchNames.get(row.ramo_id) : 'Todos os ramos'}</p></div><span className={`w-fit rounded-full px-2.5 py-1 text-[10px] font-black ${row.ativo ? 'bg-signal-success/10 text-signal-success' : 'bg-bg-surface-3 text-fg-3'}`}>{row.ativo ? 'Ativo' : 'Inativo'}</span><div className="flex justify-end gap-1"><button type="button" onClick={() => edit(row)} className="rounded-[6px] p-2 text-fg-3 hover:bg-accent-primary-soft hover:text-accent-primary" aria-label={`Editar ${row.nome}`} title="Editar"><Edit3 size={15} /></button><button type="button" onClick={() => void toggle(row)} className={`rounded-[6px] p-2 ${row.ativo ? 'text-fg-3 hover:bg-signal-warning/10 hover:text-signal-warning' : 'text-accent-primary hover:bg-accent-primary-soft'}`} aria-label={`${row.ativo ? 'Inativar' : 'Reativar'} ${row.nome}`} title={row.ativo ? 'Inativar' : 'Reativar'}>{row.ativo ? <Trash2 size={15} /> : <RotateCcw size={15} />}</button></div></div>
+        return <div key={row.id} className="grid gap-3 px-4 py-4 hover:bg-bg-surface-2 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_100px_auto] lg:items-center"><div className="min-w-0"><p className="truncate text-sm font-black text-fg-1">{row.nome ?? 'Cadastro sem nome'}</p>{canonical && <p className="mt-1 truncate font-mono text-[11px] text-fg-3">{canonical.replaceAll('_', ' ')}</p>}</div><div className="text-xs font-semibold text-fg-3"><p>{row.filial_id ? branchNames.get(row.filial_id) : 'Todo o grupo'}</p><p className="mt-1">{row.ramo_id ? insuranceBranchNames.get(row.ramo_id) : 'Todos os ramos'}</p></div><span className={`w-fit rounded-full px-2.5 py-1 text-[10px] font-black ${row.ativo ? 'bg-signal-success/10 text-signal-success' : 'bg-bg-surface-3 text-fg-3'}`}>{row.ativo == null ? 'Não informado' : row.ativo ? 'Ativo' : 'Inativo'}</span><div className="flex justify-end gap-1"><button type="button" onClick={() => edit(row)} className="rounded-[6px] p-2 text-fg-3 hover:bg-accent-primary-soft hover:text-accent-primary" aria-label={`Editar ${row.nome}`} title="Editar"><Edit3 size={15} /></button><button type="button" onClick={() => void toggle(row)} className={`rounded-[6px] p-2 ${row.ativo ? 'text-fg-3 hover:bg-signal-warning/10 hover:text-signal-warning' : 'text-accent-primary hover:bg-accent-primary-soft'}`} aria-label={`${row.ativo ? 'Inativar' : 'Reativar'} ${row.nome}`} title={row.ativo ? 'Inativar' : 'Reativar'}>{row.ativo ? <Trash2 size={15} /> : <RotateCcw size={15} />}</button></div></div>
       })}{filtered.length === 0 && <p className="px-4 py-12 text-center text-sm font-semibold text-fg-3">Nenhum registro encontrado.</p>}</div>
     </section>
   </div>

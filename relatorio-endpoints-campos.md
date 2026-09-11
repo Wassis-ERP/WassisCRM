@@ -1,7 +1,7 @@
 # Relatorio unico de Endpoints & Campos — WassisCRM
 
-> Contrato de referencia: `.codex/artefatos/wassis_erp_esqueleto_v2_0.dbml` e
-> `.codex/artefatos/instrucoes_projeto_wassis_v2_0.md`.
+> Contrato de referencia: `.codex/artefatos/wassis_erp_esqueleto_v3_1.dbml` e
+> `.codex/artefatos/instrucoes_projeto_wassis_v3_1.md`.
 >
 > Este arquivo e o snapshot parcial e versionavel do hand-off ja consolidado.
 > Por decisao de 2026-07-10, ele nao sera atualizado a cada tela: a proxima
@@ -22,9 +22,9 @@ Os documentos abaixo permanecem como fonte historica detalhada:
 
 | Fase | Modulo | Status neste relatorio |
 |---|---|---|
-| 0.1 | Plataforma multi-corretora | Consolidado |
-| 0.2 | Produtores | Consolidado |
-| 0.3 | Segurados | Consolidado |
+| 0.1 | Plataforma multi-corretora | Reconciliado v3.1 em 11/09/2026 |
+| 0.2 | Produtores | Reconciliado v3.1 em 11/09/2026 |
+| 0.3 | Segurados | Reconciliado v3.1 em 11/09/2026 |
 | 0.4a | Ramos reconciliados | Absorvido pela consolidacao G8 |
 | 0.4b | Catalogos auxiliares | Absorvido pela consolidacao G8 |
 | G8 | Configuracoes V2 como hub de cadastros | Consolidado em 2026-07-08 |
@@ -34,222 +34,116 @@ Os documentos abaixo permanecem como fonte historica detalhada:
 
 ---
 
+## Reconciliação de 11/09/2026 — referência v3.1
+
+Os blocos 0.1–0.3 abaixo substituem os snapshots anteriores para plataforma e cadastros. As rotas são contratos propostos para a equipe de backend; o frontend continua usando mock em memória. Demais fases mantêm o status parcial indicado neste documento. O inventário completo de campos de cada tabela é contratual: não significa que todos sejam editáveis na interface. A classificação UI / preservado / serviço está em [resultado da reconciliação](resultado-reconciliacao-front-2026-09-11.md).
+
 ## 0.1 — Plataforma multi-corretora
 
-### Entidades DBML
+### Campos canônicos
 
-- `tenants`
-- `filiais`
-- `profiles`
-- `perfis`
-- `profile_filiais`
-- `role_permissions`
-- `segurados`
-- `oportunidades`
-- `audit_logs`
+#### `tenants`
 
-### Campos de negocio
+`id`, `razao_social`, `nome_fantasia`, `cnpj_cpf`, `slug`, `email`, `telefone`, `celular`, `home_page`, `cep`, `endereco`, `numero`, `complemento`, `bairro`, `cidade`, `uf`, `pais`, `timezone`, `moeda_padrao`, `status`, `ativo`, `criado_em`, `atualizado_em`.
 
 #### `filiais`
 
-- `id`
-- `tenant_id`
-- `matriz_id`
-- `razao_social`
-- `fantasia`
-- `cnpj_cpf`
-- `susep`
-- `percentual_imposto`
-- `lgpd_aceito`
-- `lgpd_aceito_em`
-- `gerente`
-- `gerente_id`
-- `contato`
-- `home_page`
-- `email`
-- `telefone`
-- `celular`
-- `telefone2`
-- `cep`
-- `endereco`
-- `numero`
-- `complemento`
-- `bairro`
-- `cidade`
-- `uf`
-- `ativo`
+`id`, `tenant_id`, `matriz_id`, `razao_social`, `fantasia`, `cnpj_cpf`, `susep`, `percentual_imposto`, `lgpd_aceito`, `lgpd_aceito_em`, `gerente`, `gerente_id`, `contato`, `home_page`, `email`, `telefone`, `celular`, `telefone2`, `inscricao_estadual`, `inscricao_municipal`, `regime_tributario`, `percentual_iss`, `codigo_corretora`, `codigo_externo`, `municipio_ibge`, `pais`, `horario_atendimento`, `observacoes`, `cep`, `endereco`, `numero`, `complemento`, `bairro`, `cidade`, `uf`, `ativo`.
+
+#### `profiles`
+
+`id`, `tenant_id`, `nome_completo`, `email`, `telefone`, `celular`, `cargo`, `departamento`, `avatar_url`, `status`, `ativo`, `ultimo_acesso_em`, `convite_status`, `convite_enviado_em`.
 
 #### `perfis`
 
-- `id`
-- `tenant_id`
-- `nome`
-- `sistema`
-- `ativo`
+`id`, `tenant_id`, `nome`, `descricao`, `sistema`, `nivel_acesso`, `ordem`, `ativo`.
 
 #### `profile_filiais`
 
-- `id`
-- `profile_id`
-- `filial_id`
-- `perfil_id`
-- `principal`
+`id`, `profile_id`, `filial_id`, `perfil_id`, `principal`, `ativo`, `data_inicio`, `data_fim`.
 
 #### `role_permissions`
 
-- `id`
-- `perfil_id`
-- `module`
-- `can_read`
-- `can_create`
-- `can_update`
-- `can_delete`
+`id`, `perfil_id`, `modulo`, `escopo`, `can_read`, `can_create`, `can_update`, `can_delete`, `can_export`, `can_manage`.
 
-### Operacoes esperadas
+### Operações, filtros e lookups esperados
 
-| Operacao | Contrato esperado | Observacoes |
+| Operação | Contrato esperado | Regras e filtros |
 |---|---|---|
-| Listar corretoras ativas | `GET /filiais?ativo=true&order=razao_social` | Escopo por tenant e permissoes do usuario |
-| Criar corretora | `POST /filiais` | Front envia campos de negocio e `ativo=true` |
-| Editar corretora | `PATCH /filiais/:id` | Backend valida tenant, matriz e unicidade |
-| Inativar corretora | `PATCH /filiais/:id { ativo:false }` | Soft-disable, sem delete fisico |
-| Listar perfis | `GET /perfis?ativo=true` | Catalogo do grupo |
-| Criar/renomear/inativar perfil | `POST/PATCH /perfis` | Perfil `sistema=true` nao deve ser deletavel |
-| Atualizar matriz de permissoes | `POST/PATCH /role_permissions` | Enforcement real no backend |
-| Vincular usuario a corretora/perfil | `POST/PATCH/DELETE /profile_filiais` | Perfil e corretora por usuario |
-| Listar equipe | RPC `get_team_members()` | Sem papel global; deriva de `profile_filiais` |
-| Convidar usuario | Edge function/RPC `invite-user` | Acesso por corretora atribuido depois |
+| Consultar grupo | GET /tenants/:id | Identidade e estado institucional; grupo derivado da sessão no serviço. |
+| Listar/criar/editar/inativar corretora | GET/POST /filiais; PATCH /filiais/:id | tenant, ativo, busca por nome/documento, ordem razão social; matriz e gerente do mesmo grupo. |
+| Listar equipe | GET /equipe (mock: get_team_members) | Grupo obrigatório; nome, email, avatar, ativo/status/convite e quantidade/perfil das corretoras elegíveis. Não retorna created_at inexistente. |
+| Convidar ou reenviar convite | POST /convites | Email/nome e grupo; serviço cria identidade e controla PENDENTE/ACEITO/CANCELADO e convite_enviado_em. Mock apenas simula, sem email externo. |
+| Atualizar perfil / ativar / inativar | PATCH /profiles/:id | Estado ATIVO/INATIVO coerente com ativo; serviço mantém metadados de último acesso. |
+| Listar/criar/renomear/inativar perfil | GET/POST /perfis; PATCH /perfis/:id | tenant, ativo e ordem; nome único no grupo para perfis ativos; perfis de sistema protegidos. |
+| Consultar/editar matriz | GET /role_permissions?perfil_id=:id; PATCH /role_permissions/:id | modulo canônico, seis ações independentes e escopo; único perfil + módulo. |
+| Vincular/editar/inativar acesso | GET/POST /profile_filiais; PATCH /profile_filiais/:id | profile, filial e perfil; ativo, principal, data_inicio, data_fim. Inativação preserva a linha. |
 
-### Regras de validacao e backend
+### Validação e autorização no serviço
 
-- `filiais (tenant_id, cnpj_cpf)` deve ser unico.
-- No maximo uma matriz por tenant; bloquear auto-referencia, ciclos e cadeias.
-- `profile_filiais (profile_id, filial_id)` deve ser unico.
-- Deve haver no maximo uma corretora principal por usuario.
-- Permissao de negocio vem de `profile_filiais.perfil_id -> role_permissions`.
-- O filtro do front e apenas UX; RLS/RBAC real e responsabilidade do backend.
-- `segurados` e `oportunidades` devem ser carimbados com `filial_id`.
-
----
+- IDs raiz obrigatórios nunca nulos. Usuário, perfil, produtor e corretora referenciados devem existir e pertencer ao mesmo grupo; corretora operacional e perfil ativos ao conceder acesso ativo. Escritas em lote são atômicas.
+- Usuário elegível exige ativo=true e status=ATIVO. Vínculo exige ativo=true e período inclusivo válido; datas vazias não impõem limite. Datas inválidas e fim anterior ao início são recusados. Reavaliar vigência no fuso de negócio definido pelo serviço.
+- Único vínculo por usuário/corretora. No máximo um principal; troca e inativação não apagam histórico. Novo principal deve estar elegível na data da operação.
+- Seis ações: can_read, can_create, can_update, can_delete, can_export, can_manage. Gerenciar não concede CRUD/exportar implicitamente. nivel_acesso é classificação descritiva, sem herança automática.
+- GRUPO alcança apenas corretoras autorizadas do grupo; CORRETORA exige o vínculo da corretora do registro; PROPRIO exige autoria/responsabilidade resolvida por módulo. O backend aplica todas as ações, filtros, exportações e administração. Navegação habilitada no front não concede acesso irrestrito a registros.
+- Filiais: unicidade de documento por grupo, no máximo uma matriz; impedir auto-referência, ciclos e cadeias. Pessoas, oportunidades e demais registros operacionais carregam filial_id.
+- PATCH preserva campos omitidos e distingue null explícito de ausência. Tipos canônicos eliminam full_name/phone/module e timestamps não previstos; a API de identidade possui conversão própria.
+- Administração institucional do tenant, convites, auditoria e integracao_logs são responsabilidades do serviço. Não há implementação de backend neste repositório.
 
 ## 0.2 — Produtores
 
-### Entidades DBML
-
-- `produtores`
-- `profiles`
-- `segurados`
-- `filiais`
-- `audit_logs`
-
-### Campos de negocio
+### Campos canônicos
 
 #### `produtores`
 
-- `id`
-- `tenant_id`
-- `profile_id`
-- `nome`
-- `cpf_cnpj`
-- `email`
-- `telefone`
-- `celular`
-- `banco`
-- `agencia`
-- `conta`
-- `chave_pix`
-- `percentual_repasse_padrao`
-- `ativo`
-- `created_at`
-- `updated_at`
+`id`, `tenant_id`, `profile_id`, `nome`, `cpf_cnpj`, `tipo_pessoa`, `nome_fantasia`, `rg_ie`, `susep`, `categoria_operacional`, `data_nascimento`, `email`, `telefone`, `celular`, `telefone2`, `cep`, `endereco`, `numero`, `complemento`, `bairro`, `cidade`, `uf`, `pais`, `banco`, `agencia`, `conta`, `tipo_conta`, `chave_pix`, `favorecido_nome`, `favorecido_cpf_cnpj`, `descontar_imposto`, `percentual_imposto`, `percentual_repasse_padrao`, `observacoes`, `ativo`.
 
-### Operacoes esperadas
+### Operações e regras
 
-| Operacao | Contrato esperado | Observacoes |
+| Operação | Contrato esperado | Regras e filtros |
 |---|---|---|
-| Listar produtores ativos | `GET /produtores?ativo=true&order=nome` | Catalogo do grupo |
-| Criar produtor | `POST /produtores` | Interno se `profile_id` preenchido; externo se `NULL` |
-| Editar produtor | `PATCH /produtores/:id` | Nao reescreve historico de segurados/apolices/repasses |
-| Inativar produtor | `PATCH /produtores/:id { ativo:false }` | Soft-delete |
-| Auditar mutacoes | `POST /audit_logs` | `CREATE_PRODUTOR`, `UPDATE_PRODUTOR`, `DEACTIVATE_PRODUTOR` |
+| Listar e consultar | GET /produtores; GET /produtores/:id | tenant, ativo, nome/documento, profile_id; ordem nome. |
+| Criar | POST /produtores | Nome e grupo obrigatórios; profile_id opcional diferencia vínculo interno. |
+| Editar/inativar | PATCH /produtores/:id | Preservar campos omitidos; inativação não reescreve histórico financeiro. |
+| Lookups | GET /profiles; catálogos bancários existentes | Membro do mesmo grupo, sem duplicar vínculo já usado por produtor. |
 
-### Lookups e responsabilidades do backend
+Formulário em página dedicada contempla PF/PJ, nome fantasia, RG/IE, SUSEP, categoria, nascimento PF, canais, endereço, banco/agência/conta/Pix, tipo de conta, favorecido, imposto e observações. CPF/CNPJ e documento do favorecido são normalizados. Percentuais aceitam 0–100; descontar_imposto exige percentual informado. Dados fiscais não geram cálculo automático novo.
 
-- `segurados.produtor_id` e `segurados.gerente_id` apontam para `produtores.id`.
-- `filiais.gerente_id` deve preferir FK para `produtores.id`, preservando
-  `filiais.gerente` como texto legado/compatibilidade.
-- `profile_id` preenchido deve pertencer ao mesmo tenant.
-- Esperado `UNIQUE(profile_id) WHERE profile_id IS NOT NULL`.
-- Produtor inativo nao aparece para novas selecoes, mas historico permanece
-  resolvivel.
+percentual_repasse_padrao é preservado como legado; regras financeiras normalizadas continuam a fonte operacional. Comissão e repasse permanecem distintos. segurados.produtor_id/gerente_id e filiais.gerente_id referenciam produtores do mesmo grupo. Serviço controla unicidade e auditoria, sem confiar na UI.
 
----
+## 0.3 — Segurados e contatos empresariais
 
-## 0.3 — Segurados
-
-### Entidades DBML
-
-- `segurados`
-- `pessoa_contato`
-- `produtores`
-- `filiais`
-- `oportunidades`
-
-### Campos de negocio
+### Campos canônicos
 
 #### `segurados`
 
-- `id`
-- `tenant_id`
-- `filial_id`
-- `tipo`
-- `nome`
-- `nome_fantasia`
-- `cpf_cnpj`
-- `status`
-- `lgpd_autorizado`
-- `produtor_id`
-- `gerente_id`
-- campos de contato
-- campos de endereco
-- campos especificos PF/PJ usados pelo front
+`id`, `tenant_id`, `filial_id`, `produtor_id`, `gerente_id`, `cpf_cnpj`, `tipo`, `nome`, `nome_fantasia`, `status`, `lgpd_autorizado`, `email`, `telefone`, `chatwoot_id`, `cep`, `logradouro`, `endereco`, `numero`, `complemento`, `bairro`, `cidade`, `estado`, `data_nascimento`, `sexo`, `estado_civil`, `cnae`, `porte`, `site`, `observacoes`, `created_at`, `updated_at`, `nome_social`, `rg_ie`, `inscricao_municipal`, `atividade_economica`, `profissao`, `renda_mensal`, `cnh_numero`, `cnh_categoria`, `cnh_vencimento`, `celular`, `telefone2`, `whatsapp`, `pais`, `lgpd_autorizado_em`, `origem_importacao`.
 
 #### `pessoa_contato`
 
-- `id`
-- `tenant_id`
-- `pj_id`
-- `pf_id`
-- `cargo`
-- `principal`
+`id`, `pj_id`, `pf_id`, `nome`, `cargo`, `departamento`, `email`, `telefone`, `celular`, `principal`, `ativo`, `observacoes`.
 
-### Operacoes esperadas
+### Operações e regras
 
-| Operacao | Contrato esperado | Observacoes |
+| Operação | Contrato esperado | Regras e filtros |
 |---|---|---|
-| Listar segurados | `GET /segurados?filial_id=:ativa&order=nome` | Corretora ativa; RLS real no backend |
-| Obter segurado | `GET /segurados/:id` | Deve resolver produtor/gerente quando necessario |
-| Criar segurado | `POST /segurados` | Exige CPF/CNPJ valido e normalizado |
-| Editar segurado | `PATCH /segurados/:id` | Mantem unicidade por corretora |
-| Listar contatos PJ/PF | `GET /pessoa_contato?pj_id=:id` | Contatos da mesma corretora |
-| Criar contato PJ/PF | `POST /pessoa_contato` | PF e PJ continuam cadastros independentes |
-| Editar contato PJ/PF | `PATCH /pessoa_contato/:id` | Cargo/principal |
-| Remover vinculo PJ/PF | `DELETE /pessoa_contato/:id` | Remove vinculo, nao remove cadastros |
+| Listar/consultar pessoas | GET /segurados; GET /segurados/:id | tenant/corretoras autorizadas, nome/documento, PF/PJ, status, produtor e gerente. |
+| Criar/editar pessoa | POST /segurados; PATCH /segurados/:id | tenant e filial obrigatórios/coerentes; nome; documento normalizado e unicidade no grupo. Prospecto admite documento ausente no contrato; fluxos podem exigir conforme estado. |
+| Listar contatos da empresa / empresas da PF | GET /pessoa_contato?pj_id=:id ou pf_id=:id | Escopo herdado da PJ; filtro ativo/principal quando solicitado. |
+| Criar/editar contato | POST /pessoa_contato; PATCH /pessoa_contato/:id | PJ obrigatória, PF opcional; nome próprio obrigatório sem PF. PJ/PF do mesmo grupo e corretora. |
+| Inativar contato | PATCH /pessoa_contato/:id {ativo:false} | Preserva dados e retira principal. Exclusão curta existente no mock precisa política de histórico definida no backend. |
+| Excluir vínculo quando permitido | DELETE /pessoa_contato/:id | Serviço valida autorização, referências e política de auditoria. |
 
-### Regras de validacao e backend
+Contato possui nome/cargo/departamento/canais/observações próprios. A leitura usa dados próprios e fallback da PF quando o campo é nulo; a edição preserva essa distinção. A mesma PF não é duplicada entre contatos ativos da mesma PJ. Troca do principal e validações são atômicas; edição não transfere silenciosamente o contato para outra empresa. pessoa_contato não possui tenant_id nem created_at: escopo deriva da PJ.
 
-- `UNIQUE(filial_id, cpf_cnpj)`.
-- `cpf_cnpj` obrigatorio em cadastro de `segurados`.
-- Documento deve ser normalizado com somente digitos.
-- A mesma pessoa em outra corretora do grupo gera outro registro independente.
-- `pessoa_contato.pj_id` deve apontar para `segurados.tipo = PJ`.
-- `pessoa_contato.pf_id` deve apontar para `segurados.tipo = PF`.
-- PJ e PF vinculados devem pertencer a mesma `filial_id`.
-- Deve haver no maximo um contato principal por `pj_id`.
-- Lead sem documento fica em `oportunidades` com `segurado_id = NULL`, nao em
-  `segurados`.
-- Backend deve poder retornar um sinal controlado de cliente ja existente em
-  outra corretora do mesmo grupo, sem vazar dados protegidos.
+Segurado preserva campos opcionais não editados. Celular e WhatsApp agora são separados do telefone. created_by não faz parte da tabela: autoria é responsabilidade de auditoria/serviço. LGPD e origem de importação devem ser mantidos pelos processos correspondentes. Nulabilidade do DBML não dispensa validações por fluxo/estado; a revisão posterior zerou as diferenças de nulabilidade dos tipos de leitura. Formulários e comandos preservam validações por estado/fluxo; o backend deve aceitar leituras incompletas e recusar escritas/transições sem dados necessários. Ver resultado-nulabilidade-2026-09-11.md.
+
+## Nota comercial v3.1
+
+- calc_auto.chassi_remarcado é boolean nullable: desconhecido permanece nulo.
+- Apresentação/orçamento permite até cinco cotações. Backend deve repetir o limite e a coerência oportunidade → versão do cálculo → cotação → proposta.
+- Origem escolhida acompanha proposta manual e importação de propostas no mock; não confundir proposta com contrato/documento/item nem implementar integração real de seguradora neste frontend.
+- Esta nota atualiza as decisões comerciais específicas; o hand-off completo de todas as telas comerciais continua sujeito à consolidação final.
 
 ---
 
@@ -566,3 +460,6 @@ Os documentos abaixo permanecem como fonte historica detalhada:
 - Pos-venda permanece no produto para onboarding do segurado e acompanhamentos
   mensais de ramos faturaveis; o legado deve migrar de `oportunidade_id` para
   `apolice_id` na Fase 4.2.
+# Nota de integração — 11/09/2026
+
+A conciliação com main preserva a integração HTTP existente de Segurados e Oportunidades, cujo DTO ainda é anterior ao DBML v3.1. A tipagem canônica foi mantida e a tradução fica em `backendDomainApi.ts`. Campos sem suporte não são descartados em gravações: há bloqueio explícito. Matriz de limitações e responsabilidades em `resultado-publicacao-2026-09-11.md`. Multicalculo e demais módulos continuam em memória.

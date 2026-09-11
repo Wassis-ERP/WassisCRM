@@ -74,8 +74,8 @@ const MASCARAS: Array<{ value: string; label: string }> = [
 const labelFrom = <T extends string>(items: Array<{ value: T; label: string }>, value: T | null | undefined) =>
   items.find((item) => item.value === value)?.label ?? value ?? '-'
 
-const isNumericType = (tipo: CampoTipoDado) => tipo === 'INTEIRO' || tipo === 'DECIMAL'
-const isListType = (tipo: CampoTipoDado) => tipo === 'LISTA_UNICA' || tipo === 'LISTA_MULTIPLA'
+const isNumericType = (tipo: CampoTipoDado | null) => tipo === 'INTEIRO' || tipo === 'DECIMAL'
+const isListType = (tipo: CampoTipoDado | null) => tipo === 'LISTA_UNICA' || tipo === 'LISTA_MULTIPLA'
 const numberOrNull = (value: string) => (value === '' ? null : Number(value))
 const createDraftId = () => `draft-${Date.now()}-${Math.random().toString(36).slice(2)}`
 const chipClass = 'inline-flex h-6 items-center justify-center rounded-full px-2.5 text-[10px] font-black uppercase leading-none tracking-widest'
@@ -104,11 +104,11 @@ const definicaoFormFromRow = (row: CampoDefinicaoRow): CampoDefinicaoInput => ({
   filial_id: row.filial_id,
   entidade_tipo: row.entidade_tipo,
   chave: row.chave,
-  nome: row.nome,
+  nome: row.nome ?? '',
   tipo_dado: row.tipo_dado,
   formato: row.formato,
-  obrigatorio: row.obrigatorio,
-  ativo: row.ativo,
+  obrigatorio: row.obrigatorio === true,
+  ativo: row.ativo === true,
   ordem: row.ordem,
   ajuda: row.ajuda ?? '',
   min_valor: row.min_valor,
@@ -117,7 +117,7 @@ const definicaoFormFromRow = (row: CampoDefinicaoRow): CampoDefinicaoInput => ({
   mascara: row.mascara ?? '',
   placeholder: row.placeholder ?? '',
   agrupamento: row.agrupamento ?? '',
-  visivel_em_listagem: row.visivel_em_listagem,
+  visivel_em_listagem: row.visivel_em_listagem === true,
 })
 
 const emptyOpcaoForm = (campoDefinicaoId = ''): CampoOpcaoInput => ({
@@ -130,13 +130,13 @@ const emptyOpcaoForm = (campoDefinicaoId = ''): CampoOpcaoInput => ({
 
 const opcaoFormFromRow = (row: CampoOpcaoRow): CampoOpcaoInput => ({
   campo_definicao_id: row.campo_definicao_id,
-  rotulo: row.rotulo,
-  valor: row.valor,
+  rotulo: row.rotulo ?? '',
+  valor: row.valor ?? '',
   ordem: row.ordem,
-  ativo: row.ativo,
+  ativo: row.ativo === true,
 })
 
-function StatusPill({ active }: { active: boolean }) {
+function StatusPill({ active }: { active: boolean | null }) {
   return (
     <span
       className={`${chipClass} w-fit self-center justify-self-start ${
@@ -145,7 +145,7 @@ function StatusPill({ active }: { active: boolean }) {
           : 'border border-border-1 bg-bg-surface-2 text-fg-4'
       }`}
     >
-      {active ? 'Ativo' : 'Inativo'}
+      {active == null ? 'Não informado' : active ? 'Ativo' : 'Inativo'}
     </span>
   )
 }
@@ -275,7 +275,7 @@ export default function CamposPersonalizadosTab() {
     }))
   }
 
-  const handleTipoChange = (tipo: CampoTipoDado) => {
+  const handleTipoChange = (tipo: CampoTipoDado | null) => {
     setDefForm((prev) => ({
       ...prev,
       tipo_dado: tipo,
@@ -367,7 +367,7 @@ export default function CamposPersonalizadosTab() {
   const handleRemoveDef = async (row: CampoDefinicaoRow) => {
     const shouldRemove = await confirm({
       title: 'Inativar campo',
-      description: `Inativar "${row.nome}"? Ele deixa de aparecer em novos preenchimentos, mas valores antigos permanecem preservados.`,
+      description: `Inativar "${row.nome ?? 'Não informado'}"? Ele deixa de aparecer em novos preenchimentos, mas valores antigos permanecem preservados.`,
       confirmLabel: 'Inativar',
       tone: 'danger',
     })
@@ -398,11 +398,11 @@ export default function CamposPersonalizadosTab() {
 
     const duplicatedExisting = opcoes.some((opcao) =>
       opcao.id !== editingOpcaoId &&
-      slugifyCampoChave(opcao.valor || opcao.rotulo) === normalizedValor,
+      slugifyCampoChave(opcao.valor || opcao.rotulo || '') === normalizedValor,
     )
     const duplicatedDraft = draftOpcoes.some((opcao) =>
       opcao.clientId !== editingDraftId &&
-      slugifyCampoChave(opcao.valor || opcao.rotulo) === normalizedValor,
+      slugifyCampoChave(opcao.valor || opcao.rotulo || '') === normalizedValor,
     )
     if ((activeListaDefinicaoId && duplicatedExisting) || (!activeListaDefinicaoId && duplicatedDraft)) {
       setOpcaoError('Já existe uma opção com este valor interno.')
@@ -456,10 +456,10 @@ export default function CamposPersonalizadosTab() {
     setEditingOpcaoId(null)
     setOpcaoForm({
       campo_definicao_id: row.campo_definicao_id,
-      rotulo: row.rotulo,
-      valor: row.valor,
+      rotulo: row.rotulo ?? '',
+      valor: row.valor ?? '',
       ordem: row.ordem,
-      ativo: row.ativo,
+      ativo: row.ativo === true,
     })
     setOpcaoError(null)
   }
@@ -565,11 +565,11 @@ export default function CamposPersonalizadosTab() {
               <label className="space-y-1.5">
                 <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Tipo de campo *</span>
                 <select
-                  value={defForm.tipo_dado}
+                  value={defForm.tipo_dado ?? ''}
                   onChange={(event) => handleTipoChange(event.target.value as CampoTipoDado)}
                   className="w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-black text-fg-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
                 >
-                  {TIPOS_DADO.map((item) => (
+                  <option value="" disabled>Informe o tipo</option>{TIPOS_DADO.map((item) => (
                     <option key={item.value} value={item.value}>{item.label}</option>
                   ))}
                 </select>
@@ -954,7 +954,7 @@ export default function CamposPersonalizadosTab() {
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-sm font-black text-fg-1">{def.nome}</p>
+                      <p className="truncate text-sm font-black text-fg-1">{def.nome ?? 'Não informado'}</p>
                       <span className="font-mono text-xs font-semibold text-fg-4">{def.chave}</span>
                     </div>
                     {def.ajuda && <p className="mt-1 line-clamp-1 text-xs font-semibold text-fg-3">{def.ajuda}</p>}
@@ -977,7 +977,7 @@ export default function CamposPersonalizadosTab() {
                       type="button"
                       onClick={() => handleEditDef(def)}
                       className="rounded-[6px] p-2 text-fg-4 transition-colors hover:bg-accent-primary-soft hover:text-accent-primary"
-                      aria-label={`Editar campo ${def.nome}`}
+                      aria-label={`Editar campo ${def.nome ?? 'Não informado'}`}
                       title="Editar"
                     >
                       <Edit3 size={15} />
@@ -987,7 +987,7 @@ export default function CamposPersonalizadosTab() {
                       onClick={() => handleRemoveDef(def)}
                       disabled={isRemovingDefinicao || !def.ativo}
                       className="rounded-[6px] p-2 text-fg-4 transition-colors hover:bg-signal-danger/10 hover:text-signal-danger disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label={`Inativar campo ${def.nome}`}
+                      aria-label={`Inativar campo ${def.nome ?? 'Não informado'}`}
                       title="Inativar"
                     >
                       <Trash2 size={15} />

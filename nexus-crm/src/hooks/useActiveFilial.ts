@@ -15,7 +15,7 @@ import { useMyBranches } from './useMyBranches';
 export function useActiveFilialId(): string | null {
   const { activeBranchId } = useAuth();
   const { branches } = useMyBranches();
-  if (activeBranchId) return activeBranchId;
+  if (activeBranchId) return branches.some(b => b.id === activeBranchId) ? activeBranchId : null;
   const principal = branches.find((b) => b.principal) ?? branches[0];
   return principal?.id ?? null;
 }

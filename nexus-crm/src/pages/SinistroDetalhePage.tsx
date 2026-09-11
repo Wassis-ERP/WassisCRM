@@ -302,7 +302,7 @@ export default function SinistroDetalhePage() {
                   <ClipboardList size={13} /> {sinistro.pipeline_stages?.nome ?? 'Etapa não identificada'}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <UserRound size={13} /> {sinistro.profiles?.full_name ?? 'Sem responsável'}
+                  <UserRound size={13} /> {sinistro.profiles?.nome_completo ?? 'Sem responsável'}
                 </span>
               </div>
             </div>
@@ -450,7 +450,7 @@ function VisaoGeral({ sinistro }: { sinistro: NonNullable<ReturnType<typeof useS
             <DetailField label="Data do aviso" mono>{safeDate(sinistro.data_aviso)}</DetailField>
             <DetailField label="Registro do aviso" mono>{safeDate(sinistro.data_registro_aviso)}</DetailField>
             <DetailField label="Tipo">{sinistro.tipo_sinistro === 'judicial' ? 'Judicial' : 'Administrativo'}</DetailField>
-            <DetailField label="Responsável">{sinistro.profiles?.full_name}</DetailField>
+            <DetailField label="Responsável">{sinistro.profiles?.nome_completo}</DetailField>
             <DetailField label="Causa" full>{sinistro.causa}</DetailField>
             <DetailField label="Descrição" full>{sinistro.descricao}</DetailField>
             <DetailField label="Local da ocorrência" full>{sinistro.local_ocorrencia}</DetailField>

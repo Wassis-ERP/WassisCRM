@@ -55,6 +55,7 @@ export function buildCampoValorPayload(
   entidadeId: string,
   value: CampoValorInput,
 ): CampoValorInsert {
+  if (!definicao.tipo_dado || definicao.obrigatorio == null) throw new Error('Complete o tipo e a obrigatoriedade da definição antes de preencher.');
   const payload = valorBase(definicao.id, entidadeId);
 
   switch (definicao.tipo_dado) {
@@ -88,7 +89,7 @@ export function buildCampoValorPayload(
 function sortDefinicoes(a: CampoDefinicaoRow, b: CampoDefinicaoRow) {
   const group = (a.agrupamento ?? '').localeCompare(b.agrupamento ?? '');
   if (group !== 0) return group;
-  return (a.ordem ?? 9999) - (b.ordem ?? 9999) || a.nome.localeCompare(b.nome);
+  return (a.ordem ?? 9999) - (b.ordem ?? 9999) || (a.nome ?? '').localeCompare(b.nome ?? '');
 }
 
 export function useCamposPersonalizados(entidadeTipo: CampoEntidadeTipo, entidadeId: string | undefined) {
@@ -187,6 +188,7 @@ export function useCamposPersonalizados(entidadeTipo: CampoEntidadeTipo, entidad
   const saveMutation = useMutation({
     mutationFn: async ({ definicao, value }: { definicao: CampoDefinicaoRow; value: CampoValorInput }) => {
       if (!entidadeId) throw new Error('Entidade não encontrada.');
+      if (!definicao.tipo_dado || definicao.obrigatorio == null || definicao.ativo !== true) throw new Error('Complete e ative a definição antes de preencher o campo.');
       const existing = await findExistingValor(definicao.id);
 
       if (isCampoValorInputEmpty(definicao, value)) {
