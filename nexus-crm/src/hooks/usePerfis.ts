@@ -15,7 +15,7 @@ export function usePerfis() {
         .from('perfis')
         .select('*')
         .eq('ativo', true)
-        .order('created_at', { ascending: true });
+        .order('ordem', { ascending: true });
       if (error) throw error;
       return (data ?? []) as Perfil[];
     },

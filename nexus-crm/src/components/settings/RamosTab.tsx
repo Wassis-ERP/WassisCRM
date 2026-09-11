@@ -33,20 +33,20 @@ const emptyForm = (): RamoInput => ({
 })
 
 const formFromRow = (row: RamoAdminRow): RamoInput => ({
-  nome: row.nome,
+  nome: row.nome ?? '',
   codigo_susep: row.codigo_susep ?? '',
-  categoria_risco: getRamoCategoriaRiscoFromFields(row.risk_type, row.grupo_operacional, row.forma_calculo).value,
-  is_monthly: row.is_monthly,
-  renovavel: row.renovavel,
-  permite_endosso: row.permite_endosso,
-  exige_item: row.exige_item,
-  exige_coberturas: row.exige_coberturas,
+  categoria_risco: row.risk_type && row.grupo_operacional ? getRamoCategoriaRiscoFromFields(row.risk_type, row.grupo_operacional, row.forma_calculo).value : null,
+  is_monthly: row.is_monthly === true,
+  renovavel: row.renovavel === true,
+  permite_endosso: row.permite_endosso === true,
+  exige_item: row.exige_item === true,
+  exige_coberturas: row.exige_coberturas === true,
   ordem: row.ordem,
-  ativo: row.ativo,
+  ativo: row.ativo === true,
   observacoes: row.observacoes ?? '',
 })
 
-function StatusPill({ active }: { active: boolean }) {
+function StatusPill({ active }: { active: boolean | null }) {
   return (
     <span
       className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${
@@ -55,7 +55,7 @@ function StatusPill({ active }: { active: boolean }) {
           : 'border border-border-1 bg-bg-surface-2 text-fg-4'
       }`}
     >
-      {active ? 'Ativo' : 'Inativo'}
+      {active == null ? 'Não informado' : active ? 'Ativo' : 'Inativo'}
     </span>
   )
 }
@@ -162,7 +162,7 @@ export default function RamosTab() {
   const handleRemove = async (row: RamoAdminRow) => {
     const shouldRemove = await confirm({
       title: 'Inativar ramo',
-      description: `Inativar "${row.nome}"? Ele deixa de aparecer em novas seleções, mas históricos continuam preservados.`,
+      description: `Inativar "${row.nome ?? 'Não informado'}"? Ele deixa de aparecer em novas seleções, mas históricos continuam preservados.`,
       confirmLabel: 'Inativar',
       tone: 'danger',
     })
@@ -239,11 +239,11 @@ export default function RamosTab() {
             <label className="space-y-1.5">
               <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Categoria do risco</span>
               <select
-                value={form.categoria_risco}
+                value={form.categoria_risco ?? ''}
                 onChange={(event) => updateForm('categoria_risco', event.target.value as RamoInput['categoria_risco'])}
                 className="w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-black text-fg-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
               >
-                {RAMO_CATEGORIAS_RISCO.map((item) => (
+                <option value="" disabled>Informe a categoria</option>{RAMO_CATEGORIAS_RISCO.map((item) => (
                   <option key={item.value} value={item.value}>{item.label}</option>
                 ))}
               </select>
@@ -358,7 +358,7 @@ export default function RamosTab() {
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-sm font-black text-fg-1">{ramo.nome}</p>
+                    <p className="truncate text-sm font-black text-fg-1">{ramo.nome ?? 'Não informado'}</p>
                     {ramo.codigo_susep && <span className="font-mono text-xs font-semibold text-fg-4">SUSEP {ramo.codigo_susep}</span>}
                   </div>
                   {ramo.observacoes && <p className="mt-1 line-clamp-1 text-xs font-semibold text-fg-3">{ramo.observacoes}</p>}
@@ -380,7 +380,7 @@ export default function RamosTab() {
                     type="button"
                     onClick={() => handleEdit(ramo)}
                     className="rounded-[6px] p-2 text-fg-4 transition-colors hover:bg-accent-primary-soft hover:text-accent-primary"
-                    aria-label={`Editar ramo ${ramo.nome}`}
+                    aria-label={`Editar ramo ${ramo.nome ?? 'Não informado'}`}
                     title="Editar"
                   >
                     <Edit3 size={15} />
@@ -390,7 +390,7 @@ export default function RamosTab() {
                     onClick={() => handleRemove(ramo)}
                     disabled={isRemoving || !ramo.ativo}
                     className="rounded-[6px] p-2 text-fg-4 transition-colors hover:bg-signal-danger/10 hover:text-signal-danger disabled:cursor-not-allowed disabled:opacity-40"
-                    aria-label={`Inativar ramo ${ramo.nome}`}
+                    aria-label={`Inativar ramo ${ramo.nome ?? 'Não informado'}`}
                     title="Inativar"
                   >
                     <Trash2 size={15} />

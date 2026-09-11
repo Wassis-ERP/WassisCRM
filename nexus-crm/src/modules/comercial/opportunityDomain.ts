@@ -30,11 +30,11 @@ export interface OpportunityCreateContext {
 }
 
 export interface OpportunityJoin {
-  segurado?: { id: string; nome: string; cpf_cnpj?: string | null; telefone?: string | null; email?: string | null } | null
-  ramo?: { id: string; nome: string; risk_type?: string | null; grupo_operacional?: string | null; forma_calculo?: string | null } | null
-  origem?: { id: string; nome: string } | null
-  motivoPerda?: { id: string; nome: string } | null
-  responsavel?: { id: string; full_name: string | null; avatar_url: string | null } | null
+  segurado?: { id: string; nome: string | null; cpf_cnpj?: string | null; telefone?: string | null; email?: string | null } | null
+  ramo?: { id: string; nome: string | null; risk_type?: string | null; grupo_operacional?: string | null; forma_calculo?: string | null } | null
+  origem?: { id: string; nome: string | null } | null
+  motivoPerda?: { id: string; nome: string | null } | null
+  responsavel?: { id: string; nome_completo: string | null; avatar_url: string | null } | null
 }
 
 export type OpportunityViewStatus = 'pending' | 'won' | 'lost'
@@ -122,7 +122,7 @@ export function mapOpportunityToKanbanCard(
     title,
     subtitle: customer !== title ? customer : ramo ?? undefined,
     responsavelId: row.responsavel_id,
-    responsavelName: join.responsavel?.full_name ?? undefined,
+    responsavelName: join.responsavel?.nome_completo ?? undefined,
     responsavelAvatar: join.responsavel?.avatar_url ?? undefined,
     primaryValue: row.valor_premio_estimado,
     primaryValueLabel: 'Prêmio estimado',

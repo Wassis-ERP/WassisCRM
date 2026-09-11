@@ -27,9 +27,9 @@ export function useProdutores() {
       if (error) throw error;
       return ((data ?? []) as Produtor[]).map((p) => ({
         id: p.id,
-        nome: p.nome,
+        nome: p.nome ?? 'Produtor sem nome',
         profile_id: p.profile_id,
-        ativo: p.ativo,
+        ativo: p.ativo === true,
       }));
     },
     staleTime: 5 * 60_000,

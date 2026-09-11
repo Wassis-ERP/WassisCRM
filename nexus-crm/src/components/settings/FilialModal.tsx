@@ -37,7 +37,7 @@ const EMPTY: FilialInput = {
 function toForm(f: Filial | null): FilialInput {
   if (!f) return { ...EMPTY }
   /* eslint-disable @typescript-eslint/no-unused-vars */
-  const { id, tenant_id, created_at, updated_at, ...rest } = f
+  const { id, tenant_id, ...rest } = f
   /* eslint-enable @typescript-eslint/no-unused-vars */
   return { ...EMPTY, ...rest }
 }
@@ -180,7 +180,7 @@ export default function FilialModal({
               <label className="flex items-center gap-3 h-[46px] px-4 bg-bg-surface-2 border border-border-1 rounded-[6px] cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={form.lgpd_aceito}
+                  checked={form.lgpd_aceito === true}
                   onChange={(e) => set('lgpd_aceito', e.target.checked)}
                   className="w-4 h-4 accent-[var(--accent-primary)]"
                 />

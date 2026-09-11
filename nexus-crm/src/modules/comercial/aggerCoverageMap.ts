@@ -64,6 +64,7 @@ export const AGGER_COVERAGE_MAP: readonly AggerCoverageMapping[] = [
   coverage('AUTO', 'Vidros', 'vidros', 'Vidros', 'adicional', 'selecao'),
   coverage('AUTO', 'CarroReserva', 'carro-reserva', 'Carro reserva', 'servico', 'selecao'),
   coverage('AUTO', 'KitGas', 'kit-gas', 'Kit gás'),
+  coverage('AUTO', 'Blindagem', 'blindagem', 'Blindagem'),
   coverage('AUTO', 'Carroceria', 'carroceria', 'Carroceria'),
   coverage('AUTO', 'Equipamento', 'equipamentos', 'Equipamentos'),
   parameter('AUTO', 'TipoVeiculo', 'Tipo de veículo', 'enum'),

@@ -227,7 +227,7 @@ export function listFinanceiroRepasses(branchIds?: readonly string[] | null): Fi
       apoliceId: policy.id,
       apoliceNumero: policy.numero_apolice,
       seguradoId: insured.id,
-      seguradoNome: insured.nome,
+      seguradoNome: insured.nome ?? 'Não informado',
       seguradoraId: insurer?.id ?? null,
       seguradoraNome: insurer?.nome ?? 'Seguradora não informada',
       ramoId: ramo?.id ?? null,

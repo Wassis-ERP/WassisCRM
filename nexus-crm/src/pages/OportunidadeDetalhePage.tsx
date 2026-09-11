@@ -1,3 +1,4 @@
+import { opportunityPermissionContext } from '../modules/plataforma/platformDomain'
 import { useState, type ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
@@ -25,6 +26,7 @@ import { useEntityTabsState } from '../components/detail/useEntityTabsState'
 import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
 import ConcludeCardModal from '../components/kanban/ConcludeCardModal'
 import LeadQualificationPanel from '../components/oportunidades/LeadQualificationPanel'
+import CalculationsTab from '../components/oportunidades/CalculationsTab'
 import {
   useOportunidade,
   useOpportunityProfiles,
@@ -46,8 +48,8 @@ import { normalizePipelineStageRow, type CardStatus } from '../modules/types'
 import { fmtDate } from '../utils/date'
 import { formatCpfCnpj, onlyDigits } from '../utils/documento'
 
-type TabId = 'visao' | 'tarefas' | 'personalizados' | 'anexos' | 'observacoes'
-const VALID_TABS: TabId[] = ['visao', 'tarefas', 'personalizados', 'anexos', 'observacoes']
+type TabId = 'visao' | 'calculos' | 'tarefas' | 'personalizados' | 'anexos' | 'observacoes'
+const VALID_TABS: TabId[] = ['visao', 'calculos', 'tarefas', 'personalizados', 'anexos', 'observacoes']
 
 interface OpportunityDraft {
   titulo: string
@@ -126,7 +128,7 @@ export default function OportunidadeDetalhePage() {
   const profiles = useOpportunityProfiles()
   const ramos = useRamos()
   const origens = useOrigens()
-  const { can } = usePermission('comercial')
+  const { can } = usePermission('comercial', opportunityPermissionContext(detail.data))
   const confirm = useConfirm()
   const { notify } = useSystemFeedback()
   const { transmitRenewalOpportunity } = usePropostas()
@@ -158,6 +160,7 @@ export default function OportunidadeDetalhePage() {
   const isEditing = draft !== null || qualifying
   const canUpdate = can('update')
   const canDelete = can('delete')
+  const canCreate = can('create')
 
   const handleTabChange = (nextTab: TabId) => {
     if (isEditing) {
@@ -241,6 +244,7 @@ export default function OportunidadeDetalhePage() {
   const pendingTasks = tabsState.tarefas.filter((task) => task.status !== 'Concluída').length
   const tabs: EntityTab<TabId>[] = [
     { id: 'visao', label: 'Visão geral' },
+    { id: 'calculos', label: 'Cálculos' },
     { id: 'tarefas', label: 'Tarefas', badge: pendingTasks || undefined },
     { id: 'personalizados', label: 'Campos personalizados' },
     { id: 'anexos', label: 'Anexos e logs', badge: tabsState.anexos.length || undefined },
@@ -317,6 +321,7 @@ export default function OportunidadeDetalhePage() {
             )}
           </div>
         )}
+        {activeTab === 'calculos' && <CalculationsTab opportunity={row} canCreate={canCreate} />}
         {activeTab === 'tarefas' && (
           <TarefasTab
             tarefas={tabsState.tarefas}
@@ -385,7 +390,7 @@ function OpportunityOverview({
             <DetailField label="Ramo">{row.ramos?.nome}</DetailField>
             <DetailField label="Origem">{row.origens?.nome}</DetailField>
             <DetailField label="Prioridade">{row.prioridade}</DetailField>
-            <DetailField label="Responsável">{row.profiles?.full_name}</DetailField>
+            <DetailField label="Responsável">{row.profiles?.nome_completo}</DetailField>
             <DetailField label="Etapa">{row.pipeline_stage?.nome}</DetailField>
             <DetailField label="Campanha">{row.campanha}</DetailField>
             <DetailField label="Descrição" full>{row.descricao}</DetailField>
@@ -443,7 +448,7 @@ function OpportunityOverviewEditor({
   isSaving: boolean
   ramos: Array<{ id: string; nome: string }>
   origens: Array<{ id: string; nome: string }>
-  profiles: Array<{ id: string; full_name: string | null }>
+  profiles: Array<{ id: string; nome_completo: string | null }>
   showAgenciamento: boolean
 }) {
   const change = <K extends keyof OpportunityDraft>(key: K, value: OpportunityDraft[K]) => onChange({ ...draft, [key]: value })
@@ -458,7 +463,7 @@ function OpportunityOverviewEditor({
         <Field label="Prioridade"><select value={draft.prioridade} onChange={(event) => change('prioridade', event.target.value)} className={inputClass}><option value="baixa">Baixa</option><option value="media">Média</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></Field>
         <Field label="Ramo"><select value={draft.ramoId} onChange={(event) => change('ramoId', event.target.value)} className={inputClass}><option value="">Não informado</option>{ramos.map((row) => <option key={row.id} value={row.id}>{row.nome}</option>)}</select></Field>
         <Field label="Origem"><select value={draft.origemId} onChange={(event) => change('origemId', event.target.value)} className={inputClass}><option value="">Não informada</option>{origens.map((row) => <option key={row.id} value={row.id}>{row.nome}</option>)}</select></Field>
-        <Field label="Responsável"><select value={draft.responsavelId} onChange={(event) => change('responsavelId', event.target.value)} className={inputClass}><option value="">Não atribuído</option>{profiles.map((row) => <option key={row.id} value={row.id}>{row.full_name ?? 'Usuário sem nome'}</option>)}</select></Field>
+        <Field label="Responsável"><select value={draft.responsavelId} onChange={(event) => change('responsavelId', event.target.value)} className={inputClass}><option value="">Não atribuído</option>{profiles.map((row) => <option key={row.id} value={row.id}>{row.nome_completo ?? 'Usuário sem nome'}</option>)}</select></Field>
         <Field label="Prêmio estimado"><input inputMode="decimal" value={draft.premioEstimado} onChange={(event) => change('premioEstimado', event.target.value)} className={`${inputClass} font-mono`} /></Field>
         <Field label="Comissão estimada"><input inputMode="decimal" value={draft.comissaoEstimada} onChange={(event) => change('comissaoEstimada', event.target.value)} className={`${inputClass} font-mono`} /></Field>
         <Field label="Comissão estimada (%)"><input inputMode="decimal" value={draft.comissaoPercentual} onChange={(event) => change('comissaoPercentual', event.target.value)} className={`${inputClass} font-mono`} /></Field>

@@ -196,7 +196,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
               </label>
               <div className="max-h-40 overflow-y-auto rounded-[8px] border border-border-1">
                 {seguradoOptions.map((row) => (
-                  <button key={row.id} type="button" onClick={() => { setSeguradoId(row.id); setSeguradoSearch(row.nome) }} className={`flex w-full items-center justify-between gap-3 border-b border-border-1 px-3 py-2.5 text-left last:border-0 ${seguradoId === row.id ? 'bg-accent-primary-soft text-accent-primary' : 'hover:bg-bg-surface-2'}`}>
+                  <button key={row.id} type="button" onClick={() => { setSeguradoId(row.id); setSeguradoSearch(row.nome ?? '') }} className={`flex w-full items-center justify-between gap-3 border-b border-border-1 px-3 py-2.5 text-left last:border-0 ${seguradoId === row.id ? 'bg-accent-primary-soft text-accent-primary' : 'hover:bg-bg-surface-2'}`}>
                     <span className="text-sm font-bold">{row.nome}</span>
                     <span className="font-mono text-xs text-fg-4">{row.cpf_cnpj ? formatCpfCnpj(row.cpf_cnpj) : 'Sem documento'}</span>
                   </button>

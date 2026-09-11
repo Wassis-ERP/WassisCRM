@@ -13,7 +13,7 @@ import {
 type SeguradoLite = Pick<Database['public']['Tables']['segurados']['Row'], 'id' | 'nome' | 'cpf_cnpj' | 'telefone' | 'email'>
 type RamoLite = Pick<Database['public']['Tables']['ramos']['Row'], 'id' | 'nome' | 'risk_type' | 'grupo_operacional' | 'forma_calculo'>
 type LookupLite = { id: string; nome: string }
-type ProfileLite = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'full_name' | 'avatar_url'>
+type ProfileLite = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'nome_completo' | 'avatar_url'>
 type StageRow = Database['public']['Tables']['pipeline_stages']['Row']
 
 export type OpportunityDetail = OpportunityRow & {
@@ -105,7 +105,7 @@ export function useOportunidade(id: string | undefined) {
       }
       const [profileResult, stageResult] = await Promise.all([
         row.responsavel_id
-          ? supabase.from('profiles').select('id, full_name, avatar_url').eq('id', row.responsavel_id).maybeSingle()
+          ? supabase.from('profiles').select('id, nome_completo, avatar_url').eq('id', row.responsavel_id).maybeSingle()
           : Promise.resolve({ data: null, error: null }),
         supabase.from('pipeline_stages').select('*').eq('id', row.stage_id).maybeSingle(),
       ])
@@ -129,7 +129,7 @@ export function useOpportunityProfiles() {
   return useQuery({
     queryKey: ['profiles', 'opportunity-lookup'],
     queryFn: async (): Promise<ProfileLite[]> => {
-      const { data, error } = await supabase.from('profiles').select('id, full_name, avatar_url').order('full_name')
+      const { data, error } = await supabase.from('profiles').select('id, nome_completo, avatar_url').order('nome_completo')
       if (error) throw error
       return (data ?? []) as ProfileLite[]
     },

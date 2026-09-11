@@ -33,11 +33,11 @@ type SeguradoResumo = Pick<
 >
 type SeguradoraResumo = Pick<Database['public']['Tables']['seguradoras']['Row'], 'id' | 'nome'>
 type RamoResumo = Pick<Database['public']['Tables']['ramos']['Row'], 'id' | 'nome' | 'risk_type'>
-type ProfileResumo = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'full_name' | 'avatar_url'>
+type ProfileResumo = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'nome_completo' | 'avatar_url'>
 type StageResumo = Pick<Database['public']['Tables']['pipeline_stages']['Row'], 'id' | 'nome' | 'cor' | 'pipeline_id'>
 export type SinistroResponsavel = Pick<
   Database['public']['Tables']['profiles']['Row'],
-  'id' | 'full_name' | 'email' | 'tenant_id'
+  'id' | 'nome_completo' | 'email' | 'tenant_id'
 >
 
 type ApoliceLookupRow = {
@@ -101,7 +101,7 @@ export function useSinistro(id: string | undefined) {
             apolice_itens (*)
           ),
           pipeline_stages:stage_id ( id, nome, cor, pipeline_id ),
-          profiles:responsavel_id ( id, full_name, avatar_url ),
+          profiles:responsavel_id ( id, nome_completo, avatar_url ),
           sinistro_envolvidos (
             *,
             apolice_itens:apolice_item_id (
@@ -176,8 +176,8 @@ export function useSinistroResponsaveis() {
     queryFn: async (): Promise<SinistroResponsavel[]> => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, tenant_id')
-        .order('full_name', { ascending: true })
+        .select('id, nome_completo, email, tenant_id')
+        .order('nome_completo', { ascending: true })
 
       if (error) throw error
       return ((data ?? []) as SinistroResponsavel[]).filter(

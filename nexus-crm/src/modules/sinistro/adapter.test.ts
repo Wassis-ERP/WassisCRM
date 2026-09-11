@@ -24,17 +24,18 @@ describe('sinistroAdapter contratual', () => {
       filialId: 'mock-branch-id',
     })
 
-    expect(cards).toHaveLength(1)
-    expect(cards[0]).toMatchObject({
+    expect(cards.length).toBeGreaterThanOrEqual(3)
+    const viaforteCard = cards.find((card) => card.id === 'mock-sinistro-viaforte')
+    expect(viaforteCard).toMatchObject({
       id: 'mock-sinistro-viaforte',
       pipelineId: pipeline?.id,
       status: 'pending',
       title: 'Viaforte Logística Ltda',
       responsavelName: 'Dev Wassis',
     })
-    expect(cards[0].raw).not.toHaveProperty('pipeline_id')
-    expect(cards[0].raw).not.toHaveProperty('oportunidade_id')
-    expect(cards[0].raw).not.toHaveProperty('metadata')
+    expect(viaforteCard?.raw).not.toHaveProperty('pipeline_id')
+    expect(viaforteCard?.raw).not.toHaveProperty('oportunidade_id')
+    expect(viaforteCard?.raw).not.toHaveProperty('metadata')
   })
 
   it('mantem terceiro apenas em sinistro_envolvidos', () => {

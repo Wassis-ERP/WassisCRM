@@ -1,6 +1,7 @@
 export type ManualDocumentMode = 'PROPOSTA' | 'APOLICE'
 
 export interface ManualCoverageDraft {
+  returnedCoverageId?: string
   id: string
   catalogId: string
   capital: string
@@ -9,6 +10,7 @@ export interface ManualCoverageDraft {
 }
 
 export interface ManualItemDetails {
+  pessoaId?: string
   marca: string
   modelo: string
   placa: string
@@ -36,6 +38,7 @@ export interface ManualItemDraft {
 }
 
 export interface ManualDocumentDraft {
+  quoteId?: string
   mode: ManualDocumentMode
   insuredId: string
   branchOfficeId: string

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import QuoteOriginField from '../../oportunidades/QuoteOriginField'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -20,6 +21,7 @@ import { useSystemFeedback } from '../../feedback/systemFeedbackContext'
 import AppModal from '../../modals/AppModal'
 import {
   applyManualInsuredDefaults,
+  applyQuoteToManualDraft,
   createEmptyItem,
   createManualDraft,
   createManualInsuranceDocument,
@@ -84,10 +86,16 @@ function validateCurrentStep(step: number, draft: ManualDocumentDraft): string[]
 
 export default function CadastroManualWizard() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { refreshProposals } = usePropostas()
   const { notify } = useSystemFeedback()
   const createInsured = useCreateSegurado()
-  const [draft, setDraft] = useState(createManualDraft)
+  const [draft, setDraft] = useState(() => {
+    const initial = createManualDraft()
+    const quoteId = searchParams.get('cotacao')
+    if (!quoteId) return initial
+    try { return applyQuoteToManualDraft(initial, quoteId) } catch { return { ...initial, quoteId } }
+  })
   const [lookups, setLookups] = useState(getManualLookups)
   const [step, setStep] = useState(0)
   const [confirmed, setConfirmed] = useState(false)
@@ -205,7 +213,7 @@ export default function CadastroManualWizard() {
 
       <main className="rounded-[8px] border border-border-1 bg-bg-surface shadow-[var(--shadow-1)]">
         <div ref={headingRef} tabIndex={-1} className="min-h-[440px] p-5 outline-none sm:p-7 lg:p-8">
-          {step === 0 && <ContextStep draft={draft} lookups={lookups} update={update} onNewInsured={() => setShowNewInsured(true)} />}
+          {step === 0 && <><QuoteOriginField value={draft.quoteId} onChange={(quoteId) => { try { setDraft((current) => applyQuoteToManualDraft(current, quoteId)); setError(null) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Cotação indisponível.') } }} /><ContextStep draft={draft} lookups={lookups} update={update} onNewInsured={() => setShowNewInsured(true)} /></>}
           {step === 1 && <DocumentStep draft={draft} lookups={lookups} update={update} />}
           {step === 2 && <ItemsStep draft={draft} lookups={lookups} update={update} />}
           {step === 3 && <FinanceStep draft={draft} lookups={lookups} update={update} />}

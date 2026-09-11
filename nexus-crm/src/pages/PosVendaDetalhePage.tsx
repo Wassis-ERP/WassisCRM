@@ -90,7 +90,7 @@ function EditForm({
           <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-fg-3">Responsável</span>
           <select value={responsavelId} onChange={(event) => setResponsavelId(event.target.value)} className="w-full rounded-[8px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1">
             <option value="">Sem responsável</option>
-            {(responsaveis ?? []).map((responsavel) => <option key={responsavel.id} value={responsavel.id}>{responsavel.full_name ?? responsavel.email ?? responsavel.id}</option>)}
+            {(responsaveis ?? []).map((responsavel) => <option key={responsavel.id} value={responsavel.id}>{responsavel.nome_completo ?? responsavel.email ?? responsavel.id}</option>)}
           </select>
         </label>
         <DateField label="Conclusão prevista" value={dataPrevista} onChange={setDataPrevista} inputClassName="text-sm" />
@@ -145,7 +145,7 @@ function Overview({ posVenda, processLabel }: { posVenda: PosVendaDetalhe; proce
             <DetailField label="Etapa">{posVenda.pipeline_stages?.nome}</DetailField>
             <DetailField label="Status operacional">{posVenda.status ?? 'Não definido no contrato vigente'}</DetailField>
             <DetailField label="Prioridade">{posVenda.prioridade}</DetailField>
-            <DetailField label="Responsável">{posVenda.profiles?.full_name}</DetailField>
+            <DetailField label="Responsável">{posVenda.profiles?.nome_completo}</DetailField>
             <DetailField label="Abertura" mono>{safeDate(posVenda.data_abertura)}</DetailField>
             <DetailField label="Conclusão prevista" mono>{safeDate(posVenda.data_conclusao_prevista)}</DetailField>
             <DetailField label="Conclusão" mono>{safeDate(posVenda.data_conclusao)}</DetailField>
@@ -276,7 +276,7 @@ export default function PosVendaDetalhePage() {
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-fg-3">
                 <span className="inline-flex items-center gap-1.5"><CalendarDays size={13} /> {safeDate(posVenda.data_abertura) ?? 'Data não informada'}</span>
                 <span className="inline-flex items-center gap-1.5"><ClipboardList size={13} /> {posVenda.pipeline_stages?.nome ?? 'Etapa não identificada'}</span>
-                <span className="inline-flex items-center gap-1.5"><UserRound size={13} /> {posVenda.profiles?.full_name ?? 'Sem responsável'}</span>
+                <span className="inline-flex items-center gap-1.5"><UserRound size={13} /> {posVenda.profiles?.nome_completo ?? 'Sem responsável'}</span>
               </div>
             </div>
           </div>

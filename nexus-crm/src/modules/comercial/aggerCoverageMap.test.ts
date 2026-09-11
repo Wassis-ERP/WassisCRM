@@ -4,7 +4,7 @@ import { AGGER_COVERAGE_MAP, findAggerMapping, getAggerCatalogMappings } from '.
 
 describe('de-para de coberturas do Aggilizador', () => {
   it('mantem as chaves documentadas separadas por forma de calculo', () => {
-    expect(getAggerCatalogMappings('AUTO')).toHaveLength(10)
+    expect(getAggerCatalogMappings('AUTO')).toHaveLength(11)
     expect(getAggerCatalogMappings('RESIDENCIA')).toHaveLength(15)
     expect(getAggerCatalogMappings('CONDOMINIO')).toHaveLength(23)
     expect(getAggerCatalogMappings('VIDA')).toHaveLength(3)

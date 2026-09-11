@@ -201,7 +201,7 @@ Componente assinatura dos funis. Deve ser compacto, arrastavel, com hierarquia c
 
 ### Do:
 - **Do** usar `nexus-crm/src/design-system/colors_and_type.css` como fonte visual normativa quando implementar telas React/Tailwind.
-- **Do** consultar `.agents/skills/wassis-design-uiux` antes de desenhar ou alterar telas do WassisCRM.
+- **Do** consultar a skill global `wassis-design` antes de desenhar ou alterar telas do WassisCRM.
 - **Do** usar lucide-react para icones, com stroke consistente e tamanho entre 12px e 20px na maioria dos controles.
 - **Do** validar contraste, foco, fechamento por Esc/clique fora em modais e estados de loading/empty/error nos fluxos principais.
 - **Do** manter copy em portugues do Brasil, objetiva e com termos do mercado de seguros.

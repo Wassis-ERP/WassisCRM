@@ -58,7 +58,7 @@ function makeStore(): SinistroCreationStore {
       id: 'stage-1', pipeline_id: 'pipeline-1', ativo: true, ordem: 10,
     } as SinistroCreationStore['stages'][number]],
     profiles: [{
-      id: 'user-1', full_name: 'Responsável', tenant_id: 'tenant-1',
+      id: 'user-1', nome_completo: 'Responsável', tenant_id: 'tenant-1',
     } as SinistroCreationStore['profiles'][number]],
     sinistros: [],
     envolvidos: [],

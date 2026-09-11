@@ -8,6 +8,7 @@
  */
 
 import { getTable, newId, nowIso, RELATIONS, type Row } from './inMemoryDb';
+import { canonicalPlatformRow, isPlatformTable, validatePlatformRow } from '../modules/plataforma/platformDomain';
 
 type QueryError = { message: string; code?: string };
 export type QueryResult<T = any> = { data: T | null; error: QueryError | null; count?: number | null };
@@ -159,12 +160,12 @@ function validateSeguradoRow(candidate: Row, table: Row[], selfId?: string): voi
   if (!candidate.filial_id) {
     throw new Error('filial_id é obrigatório para cadastrar segurado');
   }
-  if (!cpfCnpj) {
+  if (!cpfCnpj && candidate.status !== 'Prospecto') {
     throw new Error('CPF/CNPJ é obrigatório para cadastrar segurado');
   }
   const duplicate = table.some(
     (row) =>
-      row.id !== selfId &&
+      !!cpfCnpj && row.id !== selfId &&
       row.filial_id === candidate.filial_id &&
       onlyDigits(row.cpf_cnpj) === cpfCnpj,
   );
@@ -174,30 +175,20 @@ function validateSeguradoRow(candidate: Row, table: Row[], selfId?: string): voi
   candidate.cpf_cnpj = cpfCnpj;
 }
 
-function validatePessoaContatoRow(candidate: Row, table: Row[], selfId?: string): void {
-  const segurados = getTable('segurados');
-  const pj = segurados.find((row) => row.id === candidate.pj_id);
-  const pf = segurados.find((row) => row.id === candidate.pf_id);
-  if (!pj || !pf) {
-    throw new Error('PJ e PF do vínculo devem existir em segurados');
-  }
-  if (pj.tipo !== 'PJ' || pf.tipo !== 'PF') {
-    throw new Error('pessoa_contato deve vincular uma PJ a uma PF');
-  }
-  if (pj.filial_id !== pf.filial_id) {
-    throw new Error('pessoa_contato deve vincular cadastros da mesma corretora');
-  }
-  if (
-    candidate.principal &&
-    table.some((row) => row.id !== selfId && row.pj_id === candidate.pj_id && row.principal)
-  ) {
-    throw new Error('Já existe contato principal para esta PJ');
-  }
+function validateRow(tableName: string, candidate: Row, table: Row[], selfId?: string): void {
+  if (isPlatformTable(tableName)) validatePlatformRow(tableName, candidate, name => name === tableName ? table : getTable(name));
+  if (tableName === 'segurados') validateSeguradoRow(candidate, table, selfId);
 }
 
-function validateRow(tableName: string, candidate: Row, table: Row[], selfId?: string): void {
-  if (tableName === 'segurados') validateSeguradoRow(candidate, table, selfId);
-  if (tableName === 'pessoa_contato') validatePessoaContatoRow(candidate, table, selfId);
+function prepareRow(table: string, input: Record<string, unknown>, creating: boolean): Record<string, unknown> {
+  const row = { ...input, id: input.id ?? newId() };
+  if (isPlatformTable(table)) {
+    const canonical = canonicalPlatformRow(table, row);
+    if (table === 'tenants') { canonical.atualizado_em = nowIso(); if (creating) canonical.criado_em ??= nowIso(); }
+    if (table === 'segurados') { canonical.updated_at = nowIso(); if (creating && !canonical.created_at) canonical.created_at = nowIso(); }
+    return canonical;
+  }
+  return { ...row, ...(creating ? { created_at: input.created_at ?? nowIso() } : {}), updated_at: nowIso() };
 }
 
 // ----- builder -----
@@ -342,29 +333,19 @@ export class InMemoryQueryBuilder<T = any> implements PromiseLike<QueryResult<T>
   private doInsert(): Row[] {
     const table = getTable(this.table);
     const items: Row[] = Array.isArray(this.payload) ? this.payload : [this.payload];
-    const inserted: Row[] = [];
-    for (const item of items) {
-      const row: Row = {
-        ...item,
-        id: item.id ?? newId(),
-        created_at: item.created_at ?? nowIso(),
-        updated_at: item.updated_at ?? nowIso(),
-      };
-      validateRow(this.table, row, table);
-      table.push(row);
-      inserted.push(row);
-    }
+    const inserted = items.map(item => prepareRow(this.table, item, true));
+    for (const row of inserted) validateRow(this.table, row, [...table, ...inserted.filter(other => other !== row)]);
+    table.push(...inserted);
     return inserted;
   }
 
   private doUpdate(): Row[] {
     const table = getTable(this.table);
-    const matched = table.filter((r) => this.filters.every((f) => matchFilter(r, f)));
-    for (const r of matched) {
-      const next = { ...r, ...this.payload, updated_at: nowIso() };
-      validateRow(this.table, next, table, r.id);
-      Object.assign(r, next);
-    }
+    const matched = table.filter(r => this.filters.every(f => matchFilter(r, f)));
+    const candidates = matched.map(r => prepareRow(this.table, { ...r, ...this.payload }, false));
+    const future = table.map(row => candidates.find(c => c.id === row.id) ?? row);
+    for (const candidate of candidates) validateRow(this.table, candidate, future, String(candidate.id));
+    matched.forEach((row,i) => Object.assign(row, candidates[i]));
     return matched;
   }
 
@@ -380,30 +361,23 @@ export class InMemoryQueryBuilder<T = any> implements PromiseLike<QueryResult<T>
 
   private doUpsert(): Row[] {
     const table = getTable(this.table);
+    const working = table.map(row => ({ ...row }));
     const items: Row[] = Array.isArray(this.payload) ? this.payload : [this.payload];
-    const result: Row[] = [];
+    const resultIds: string[] = [];
     for (const item of items) {
       const conflictCol = this.upsertOnConflict ?? 'id';
-      const conflictVal = item[conflictCol];
-      const existing = conflictVal != null ? table.find((r) => r[conflictCol] === conflictVal) : undefined;
-      if (existing) {
-        const next = { ...existing, ...item, updated_at: nowIso() };
-        validateRow(this.table, next, table, existing.id);
-        Object.assign(existing, next);
-        result.push(existing);
-      } else {
-        const row: Row = {
-          ...item,
-          id: item.id ?? newId(),
-          created_at: item.created_at ?? nowIso(),
-          updated_at: item.updated_at ?? nowIso(),
-        };
-        validateRow(this.table, row, table);
-        table.push(row);
-        result.push(row);
-      }
+      const existing = item[conflictCol] != null ? working.find(row => row[conflictCol] === item[conflictCol]) : undefined;
+      const candidate = prepareRow(this.table, { ...existing, ...item }, !existing);
+      validateRow(this.table, candidate, working, existing?.id);
+      if (existing) Object.assign(existing, candidate); else working.push(candidate);
+      resultIds.push(String(candidate.id));
     }
-    return result;
+    // Publica somente depois de validar o lote inteiro, preservando referências existentes.
+    for (const candidate of working) {
+      const existing = table.find(row => row.id === candidate.id);
+      if (existing) Object.assign(existing, candidate); else table.push(candidate);
+    }
+    return resultIds.map(id => table.find(row => row.id === id)!);
   }
 
   private async execute(): Promise<QueryResult<T>> {

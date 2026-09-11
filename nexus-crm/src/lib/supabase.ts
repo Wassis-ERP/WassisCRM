@@ -12,6 +12,7 @@
 
 import { InMemoryQueryBuilder, type QueryResult } from './inMemoryQueryBuilder';
 import { getTable } from './inMemoryDb';
+import { activeProfileLinks } from '../modules/plataforma/platformCommands';
 
 export const supabase = {
   from<T = any>(table: string) {
@@ -20,21 +21,23 @@ export const supabase = {
 
   async rpc<T = any>(name: string, _params?: Record<string, unknown>): Promise<QueryResult<T>> {
     if (name === 'get_team_members') {
-      const profiles = getTable('profiles');
-      const pf = getTable('profile_filiais');
+      const profiles = getTable('profiles').filter(p => !_params?.tenantId || p.tenant_id === _params.tenantId);
       const perfis = getTable('perfis');
       const members = profiles.map((p) => {
-        const vinc = pf.filter((v) => v.profile_id === p.id);
+        const vinc = activeProfileLinks(String(p.id));
         const principal = vinc.find((v) => v.principal) ?? vinc[0];
         const perfilNome = principal
           ? perfis.find((pe) => pe.id === principal.perfil_id)?.nome ?? null
           : null;
         return {
           id: p.id,
-          full_name: p.full_name ?? '',
+          nome_completo: p.nome_completo ?? '',
           email: p.email ?? '',
           avatar_url: p.avatar_url ?? null,
-          created_at: p.created_at,
+          ativo: p.ativo === true,
+          status: p.status ?? null,
+          convite_status: p.convite_status ?? null,
+          convite_enviado_em: p.convite_enviado_em ?? null,
           corretoras_count: vinc.length,
           perfil_principal: perfilNome,
         };

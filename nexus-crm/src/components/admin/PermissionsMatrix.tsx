@@ -22,10 +22,11 @@ export function PermissionsMatrix() {
     renamePerfil,
     removePerfil,
     togglePermission,
+    setScope,
   } = usePerfisAdmin();
 
   const permFor = (perfilId: string, module: string): PermissionRow | undefined =>
-    permissions.find((p) => p.perfil_id === perfilId && p.module === module);
+    permissions.find((p) => p.perfil_id === perfilId && p.modulo === module);
 
   // O perfil-sistema "Master" representa acesso total — bloqueado para edição.
   const isLocked = (nome: string, sistema: boolean) => sistema && nome === 'Master';
@@ -127,26 +128,26 @@ export function PermissionsMatrix() {
                 {perfis.map((perfil) => (
                   <th key={perfil.id} className="px-6 py-5 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-[11px] font-black uppercase tracking-widest text-fg-2">{perfil.nome}</span>
-                      {perfil.sistema ? (
+                      <span className="text-[11px] font-black uppercase tracking-widest text-fg-2">{perfil.nome ?? 'Perfil sem nome'}</span>
+                      {perfil.sistema !== false ? (
                         <span title="Perfil do sistema (não excluível)" className="text-fg-4">
                           <Lock size={12} />
                         </span>
                       ) : (
                         <span className="flex items-center gap-1">
                           <button
-                            onClick={() => handleRename(perfil.id, perfil.nome)}
+                            onClick={() => handleRename(perfil.id, perfil.nome ?? '')}
                             className="text-fg-4 hover:text-accent-primary transition-colors"
                             title="Renomear"
-                            aria-label={`Renomear perfil ${perfil.nome}`}
+                            aria-label={`Renomear perfil ${perfil.nome ?? 'Perfil sem nome'}`}
                           >
                             <Pencil size={12} />
                           </button>
                           <button
-                            onClick={() => handleRemove(perfil.id, perfil.nome)}
+                            onClick={() => handleRemove(perfil.id, perfil.nome ?? 'Perfil sem nome')}
                             className="text-fg-4 hover:text-signal-danger transition-colors"
                             title="Inativar"
-                            aria-label={`Inativar perfil ${perfil.nome}`}
+                            aria-label={`Inativar perfil ${perfil.nome ?? 'Perfil sem nome'}`}
                           >
                             <Trash2 size={12} />
                           </button>
@@ -168,19 +169,40 @@ export function PermissionsMatrix() {
                   </td>
                   {perfis.map((perfil) => {
                     const perm = permFor(perfil.id, module);
-                    const locked = isLocked(perfil.nome, perfil.sistema);
+                    const locked = isLocked(perfil.nome ?? '', perfil.sistema !== false);
                     if (!perm) return <td key={perfil.id} className="px-6 py-4 text-center text-fg-4">-</td>;
                     return (
                       <td key={perfil.id} className="px-6 py-4">
                         <div className="flex flex-col gap-2 items-center">
                           <div className="flex gap-1.5">
-                            <PermissionBadge label="Ler" active={perm.can_read} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_read')} />
-                            <PermissionBadge label="Criar" active={perm.can_create} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_create')} />
+                            <PermissionBadge label="Ler" active={!!perm.can_read} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_read')} />
+                            <PermissionBadge label="Criar" active={!!perm.can_create} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_create')} />
                           </div>
                           <div className="flex gap-1.5">
-                            <PermissionBadge label="Editar" active={perm.can_update} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_update')} />
-                            <PermissionBadge label="Excluir" active={perm.can_delete} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_delete')} />
+                            <PermissionBadge label="Editar" active={!!perm.can_update} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_update')} />
+                            <PermissionBadge label="Excluir" active={!!perm.can_delete} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_delete')} />
                           </div>
+                          <div className="flex gap-1.5">
+                            <PermissionBadge label="Exportar" active={!!perm.can_export} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_export')} />
+                            <PermissionBadge label="Gerenciar" active={!!perm.can_manage} disabled={isSaving || locked} onClick={() => handleToggle(perm, 'can_manage')} />
+                          </div>
+                          <select
+                            aria-label={`Escopo de ${module} para ${perfil.nome ?? 'Perfil sem nome'}`}
+                            value={perm.escopo ?? ''}
+                            disabled={isSaving || locked}
+                            onChange={async e => {
+                              const escopo = e.target.value;
+                              if (escopo !== 'GRUPO' && escopo !== 'CORRETORA' && escopo !== 'PROPRIO') return;
+                              try { await setScope({ id: perm.id, escopo }); }
+                              catch (error) { notify({ title: 'Erro ao salvar escopo', description: error instanceof Error ? error.message : 'Tente novamente.', tone: 'danger' }); }
+                            }}
+                            className="w-full min-w-36 mt-1 px-2 py-2 text-xs bg-bg-surface text-fg-1 border border-border-1 rounded-md focus:outline-2 focus:outline-accent-primary disabled:opacity-70"
+                          >
+                            <option value="" disabled>Definir escopo</option>
+                            <option value="GRUPO">Grupo autorizado</option>
+                            <option value="CORRETORA">Corretora</option>
+                            <option value="PROPRIO">Próprios registros</option>
+                          </select>
                         </div>
                       </td>
                     );
@@ -271,7 +293,8 @@ function PermissionBadge({
       onClick={onClick}
       disabled={disabled}
       aria-label={`${active ? 'Remover permissão' : 'Conceder permissão'}: ${label}`}
-      className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter transition-all flex items-center gap-1 border ${
+      aria-pressed={active}
+      className={`px-2 py-1.5 rounded-md text-[11px] font-bold transition-colors flex items-center gap-1 border ${
         active
           ? 'bg-accent-primary-soft text-accent-primary border-accent-primary/20'
           : 'bg-bg-surface-2 text-fg-4 border-border-1'

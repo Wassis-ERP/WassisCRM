@@ -37,6 +37,11 @@ function targetCommission(predicate?: (row: FinanceiroComissao) => boolean): Fin
   return row
 }
 
+function seedConciliatedCommission(): FinanceiroComissao {
+  const reconciliation = getTable('comissao_conciliacoes').find((row) => row.id === 'mock-conciliacao-exata')
+  return targetCommission((candidate) => candidate.id === reconciliation?.comissao_id)
+}
+
 function commandFor(row: FinanceiroComissao, overrides: Partial<BaixaManualCommand> = {}): BaixaManualCommand {
   return {
     filialId: row.filialId,
@@ -57,7 +62,7 @@ function commandFor(row: FinanceiroComissao, overrides: Partial<BaixaManualComma
 
 describe('comissoesDomain', () => {
   it('compõe a agenda materializada sem confundir conciliação com baixa', () => {
-    const row = targetCommission((candidate) => candidate.conciliacoesConfirmadas > 0)
+    const row = seedConciliatedCommission()
     expect(row.statusOperacional).toBe('CONCILIADA')
     expect(row.valorConciliado).not.toBe(0)
     expect(row.valorBaixado).toBe(0)
@@ -86,7 +91,7 @@ describe('comissoesDomain', () => {
   })
 
   it('consome uma ou mais conciliações confirmadas sem criar extrato duplicado', () => {
-    const row = targetCommission((candidate) => candidate.conciliacaoIds.length > 0 && candidate.saldo > 0)
+    const row = seedConciliatedCommission()
     const beforeExtracts = getTable('comissao_extratos').length
     const result = registerManualCommissionReceipt(commandFor(row, {
       items: [{
@@ -105,7 +110,8 @@ describe('comissoesDomain', () => {
   })
 
   it('impede baixa enquanto houver ocorrência ou sugestão de conciliação pendente', () => {
-    const row = targetCommission((candidate) => candidate.conciliacaoIds.length > 0 && candidate.saldo > 0)
+    const row = seedConciliatedCommission()
+    const beforeReceipts = getTable('comissao_baixas').length
     const reconciliation = getTable('comissao_conciliacoes').find((candidate) => candidate.id === row.conciliacaoIds[0])
     if (!reconciliation) throw new Error('Conciliação de teste não encontrada.')
     getTable('comissao_conciliacao_ocorrencias').push({
@@ -126,7 +132,7 @@ describe('comissoesDomain', () => {
         valorEfetivo: row.saldo, conciliacaoIds: row.conciliacaoIds,
       }],
     }))).toThrow(/resolva ocorrências/i)
-    expect(getTable('comissao_baixas')).toHaveLength(0)
+    expect(getTable('comissao_baixas')).toHaveLength(beforeReceipts)
   })
 
   it('mantém saldo na mesma comissão após baixa parcial e conclui com uma segunda baixa', () => {
@@ -161,12 +167,13 @@ describe('comissoesDomain', () => {
 
   it('exige justificativa para divergência e preserva a ocorrência resolvida', () => {
     const row = targetCommission((candidate) => candidate.conciliacoesConfirmadas === 0 && candidate.saldo > 0)
+    const beforeReceipts = getTable('comissao_baixas').length
     const over = Math.round((row.saldo + 10) * 100) / 100
     const invalid = commandFor(row, {
       items: [{ comissaoId: row.id, valorBruto: over, valorDescontos: 0, valorEfetivo: over }],
     })
     expect(() => registerManualCommissionReceipt(invalid)).toThrow(/exige justificativa/i)
-    expect(getTable('comissao_baixas')).toHaveLength(0)
+    expect(getTable('comissao_baixas')).toHaveLength(beforeReceipts)
 
     const result = registerManualCommissionReceipt({ ...invalid, chaveIdempotencia: `teste-divergencia-${newId()}`, justificativa: 'Diferença aceita após conferência do demonstrativo.' })
     expect(result.baixaIds).toHaveLength(1)
@@ -246,7 +253,7 @@ describe('comissoesDomain', () => {
       seguradoraId: target.seguradoraId ?? '', ramoId: target.ramoId ?? '',
       documento: target.documentoReferencia, competenciaDe: target.competencia_inicio ?? '',
       competenciaAte: target.competencia_inicio ?? '', status: target.statusOperacional,
-      tipo: target.tipo_comissao,
+      tipo: target.tipo_comissao ?? '',
     }
     const filtered = filterFinanceiroComissoes(rows, filters)
     expect(filtered.length).toBeGreaterThan(0)

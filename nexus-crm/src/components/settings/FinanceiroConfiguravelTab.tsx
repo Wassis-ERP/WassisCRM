@@ -115,15 +115,15 @@ const emptyGradeForm = (seguradoraId = '', ramoId = ''): RecebimentoGradeInput =
 const gradeFormFromRow = (row: RecebimentoGradeRow): RecebimentoGradeInput => ({
   seguradora_id: row.seguradora_id,
   ramo_id: row.ramo_id,
-  nome: row.nome,
+  nome: row.nome ?? '',
   tipo: row.tipo,
-  qtd_parcelas: row.qtd_parcelas,
+  qtd_parcelas: row.qtd_parcelas ?? 0,
   base_calculo: row.base_calculo ?? 'PREMIO_LIQUIDO',
   percentual_default: row.percentual_default,
-  considera_iof: row.considera_iof,
-  considera_adicional_fracionamento: row.considera_adicional_fracionamento,
-  vitalicio: row.vitalicio,
-  ativo: row.ativo,
+  considera_iof: row.considera_iof === true,
+  considera_adicional_fracionamento: row.considera_adicional_fracionamento === true,
+  vitalicio: row.vitalicio === true,
+  ativo: row.ativo === true,
   observacoes: row.observacoes ?? '',
 })
 
@@ -139,12 +139,12 @@ const emptyParcelaForm = (gradeId = ''): RecebimentoGradeParcelaInput => ({
 
 const parcelaFormFromRow = (row: RecebimentoGradeParcelaRow): RecebimentoGradeParcelaInput => ({
   grade_id: row.grade_id,
-  numero: row.numero,
+  numero: row.numero ?? 0,
   tipo_comissao: row.tipo_comissao,
   percentual: row.percentual,
   percentual_sobre: row.percentual_sobre ?? 'COMISSAO_TOTAL',
   dias_apos_vencimento: row.dias_apos_vencimento,
-  ativo: row.ativo,
+  ativo: row.ativo === true,
 })
 
 const emptyRegraForm = (produtorId: string | null = null): RepasseRegraInput => ({
@@ -178,14 +178,14 @@ const regraFormFromRow = (row: RepasseRegraRow): RepasseRegraInput => ({
   gatilho: row.gatilho,
   qtd_parcelas: row.qtd_parcelas,
   limite_parcelas: row.limite_parcelas,
-  prioridade: row.prioridade,
+  prioridade: row.prioridade ?? Number.NaN,
   inicio_vigencia: row.inicio_vigencia ?? '',
   fim_vigencia: row.fim_vigencia ?? '',
-  ativo: row.ativo,
+  ativo: row.ativo === true,
   observacoes: row.observacoes ?? '',
 })
 
-function StatusPill({ active }: { active: boolean }) {
+function StatusPill({ active }: { active: boolean | null }) {
   return (
     <span
       className={`inline-flex w-fit self-center justify-self-start whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-black uppercase leading-none tracking-widest ${
@@ -194,7 +194,7 @@ function StatusPill({ active }: { active: boolean }) {
           : 'border border-border-1 bg-bg-surface-2 text-fg-4'
       }`}
     >
-      {active ? 'Ativo' : 'Inativo'}
+      {active == null ? 'Não informado' : active ? 'Ativo' : 'Inativo'}
     </span>
   )
 }
@@ -435,7 +435,7 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
       grade.id !== editingGradeId && grade.ativo
       && grade.seguradora_id === payload.seguradora_id
       && grade.ramo_id === payload.ramo_id
-      && grade.nome.trim().toLocaleLowerCase('pt-BR') === payload.nome.trim().toLocaleLowerCase('pt-BR'))
+      && (grade.nome ?? '').trim().toLocaleLowerCase('pt-BR') === payload.nome.trim().toLocaleLowerCase('pt-BR'))
     if (duplicateName) {
       setGradeError('Já existe uma grade ativa com este nome para a seguradora e o ramo.')
       return
@@ -482,7 +482,7 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
   const handleRemoveGrade = async (row: RecebimentoGradeRow) => {
     const shouldRemove = await confirm({
       title: 'Inativar grade',
-      description: `Inativar "${row.nome}"? Ela deixa de aparecer em novas emissões, mas fatos já gerados continuam preservados.`,
+      description: `Inativar "${row.nome ?? 'Não informado'}"? Ela deixa de aparecer em novas emissões, mas fatos já gerados continuam preservados.`,
       confirmLabel: 'Inativar',
       tone: 'danger',
     })
@@ -503,7 +503,7 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
     if (isSavingParcela || !activeGradeId) return
     const payload = { ...parcelaForm, grade_id: activeGradeId }
     setParcelaError(null)
-    if (activeGrade && payload.numero > activeGrade.qtd_parcelas) {
+    if (activeGrade && (activeGrade.qtd_parcelas == null || payload.numero > activeGrade.qtd_parcelas)) {
       setParcelaError(`O evento não pode exceder a quantidade ${activeGrade.qtd_parcelas} definida na grade.`)
       return
     }
@@ -554,7 +554,7 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
     const baseName = `${activeGrade.nome} - cópia`
     let copyName = baseName
     let suffix = 2
-    while (grades.some((grade) => grade.seguradora_id === activeGrade.seguradora_id && grade.ramo_id === activeGrade.ramo_id && grade.nome.toLocaleLowerCase('pt-BR') === copyName.toLocaleLowerCase('pt-BR'))) {
+    while (grades.some((grade) => grade.seguradora_id === activeGrade.seguradora_id && grade.ramo_id === activeGrade.ramo_id && (grade.nome ?? '').toLocaleLowerCase('pt-BR') === copyName.toLocaleLowerCase('pt-BR'))) {
       copyName = `${baseName} ${suffix}`
       suffix += 1
     }
@@ -692,7 +692,7 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                   >
                     <option value="">Todos</option>
                     {ramos.map((ramo) => (
-                      <option key={ramo.id} value={ramo.id}>{ramo.nome}</option>
+                      <option key={ramo.id} value={ramo.id}>{ramo.nome ?? 'Não informado'}</option>
                     ))}
                   </select>
                 </label>
@@ -733,7 +733,7 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                       className="grid grid-cols-1 gap-3 px-5 py-4 transition-colors hover:bg-bg-surface-2 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.05fr)_minmax(0,110px)_auto]"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-fg-1">{grade.nome}</p>
+                        <p className="truncate text-sm font-black text-fg-1">{grade.nome ?? 'Não informado'}</p>
                         {grade.observacoes && <p className="mt-1 line-clamp-1 text-xs font-semibold text-fg-3">{grade.observacoes}</p>}
                       </div>
                       <div className="min-w-0 text-sm font-semibold text-fg-2">
@@ -755,7 +755,7 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                           type="button"
                           onClick={() => handleEditGrade(grade)}
                           className="inline-flex items-center gap-2 rounded-[6px] px-3 py-2 text-xs font-black text-fg-3 transition-colors hover:bg-accent-primary-soft hover:text-accent-primary"
-                          aria-label={`Ver ou editar grade ${grade.nome}`}
+                          aria-label={`Ver ou editar grade ${grade.nome ?? 'Não informado'}`}
                           title="Ver/editar"
                         >
                           <Edit3 size={15} /> Ver/editar
@@ -765,7 +765,7 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                           onClick={() => handleRemoveGrade(grade)}
                           disabled={isRemovingGrade || !grade.ativo}
                           className="rounded-[6px] p-2 text-fg-4 transition-colors hover:bg-signal-danger/10 hover:text-signal-danger disabled:cursor-not-allowed disabled:opacity-40"
-                          aria-label={`Inativar grade ${grade.nome}`}
+                          aria-label={`Inativar grade ${grade.nome ?? 'Não informado'}`}
                           title="Inativar"
                         >
                           <Trash2 size={15} />
@@ -844,7 +844,7 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                         className="w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-black text-fg-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 disabled:opacity-50"
                       >
                         {ramos.map((ramo) => (
-                          <option key={ramo.id} value={ramo.id}>{ramo.nome}</option>
+                          <option key={ramo.id} value={ramo.id}>{ramo.nome ?? 'Não informado'}</option>
                         ))}
                       </select>
                     </label>
@@ -860,10 +860,11 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                     <label className="min-w-0 space-y-1.5">
                       <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Tipo de recebimento</span>
                       <select
-                        value={gradeForm.tipo}
+                        value={gradeForm.tipo ?? ''}
                         onChange={(event) => setGradeField('tipo', event.target.value as RecebimentoGradeTipo)}
                         className="w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-black text-fg-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
                       >
+                        <option value="" disabled>Informe a opção</option>
                         {GRADE_TIPOS.map((item) => (
                           <option key={item.value} value={item.value}>{item.label}</option>
                         ))}
@@ -997,10 +998,11 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                     <label className="min-w-0 space-y-1.5">
                       <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Tipo de comissão</span>
                       <select
-                        value={parcelaForm.tipo_comissao}
+                        value={parcelaForm.tipo_comissao ?? ''}
                         onChange={(event) => setParcelaField('tipo_comissao', event.target.value as RecebimentoComissaoTipo)}
                         className="w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-black text-fg-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
                       >
+                        <option value="" disabled>Informe a opção</option>
                         {COMISSAO_TIPOS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                       </select>
                     </label>
@@ -1193,17 +1195,18 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                   >
                     <option value="">Todos os ramos</option>
                     {ramos.map((ramo) => (
-                      <option key={ramo.id} value={ramo.id}>{ramo.nome}</option>
+                      <option key={ramo.id} value={ramo.id}>{ramo.nome ?? 'Não informado'}</option>
                     ))}
                   </select>
                 </label>
                 <label className="min-w-0 space-y-1.5">
                   <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Papel</span>
                   <select
-                    value={regraForm.papel}
+                    value={regraForm.papel ?? ''}
                     onChange={(event) => setRegraField('papel', event.target.value as RepassePapel)}
                     className="w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-black text-fg-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
                   >
+                    <option value="" disabled>Informe a opção</option>
                     {REPASSE_PAPEIS.map((item) => (
                       <option key={item.value} value={item.value}>{item.label}</option>
                     ))}
@@ -1231,10 +1234,11 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                 <label className="min-w-0 space-y-1.5">
                   <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Base do repasse</span>
                   <select
-                    value={regraForm.base}
+                    value={regraForm.base ?? ''}
                     onChange={(event) => handleRegraBaseChange(event.target.value as RepasseBase)}
                     className="w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-black text-fg-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
                   >
+                    <option value="" disabled>Informe a opção</option>
                     {REPASSE_BASES.map((item) => (
                       <option key={item.value} value={item.value}>{item.label}</option>
                     ))}
@@ -1269,10 +1273,11 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                 <label className="min-w-0 space-y-1.5">
                   <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Gatilho de pagamento</span>
                   <select
-                    value={regraForm.gatilho}
+                    value={regraForm.gatilho ?? ''}
                     onChange={(event) => handleRegraGatilhoChange(event.target.value as RepasseGatilho)}
                     className="w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-black text-fg-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
                   >
+                    <option value="" disabled>Informe a opção</option>
                     {REPASSE_GATILHOS.map((item) => (
                       <option key={item.value} value={item.value}>{item.label}</option>
                     ))}
@@ -1305,7 +1310,7 @@ function FinanceiroConfiguravelContent({ section }: { section: FinanceiroSection
                   <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Prioridade</span>
                   <input
                     type="number"
-                    value={regraForm.prioridade}
+                    value={Number.isFinite(regraForm.prioridade) ? regraForm.prioridade : ''}
                     onChange={(event) => setRegraField('prioridade', Number(event.target.value))}
                     className="w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
                   />

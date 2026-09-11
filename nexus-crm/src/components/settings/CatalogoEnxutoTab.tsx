@@ -38,13 +38,13 @@ const emptyForm = (): CatalogoEnxutoInput => ({
 })
 
 const formFromRow = (row: CatalogoEnxutoRow, field: CatalogoEnxutoField): CatalogoEnxutoInput => ({
-  nome: row.nome,
+  nome: row.nome ?? '',
   classificacao: row[field] ?? '',
   ordem: row.ordem,
-  ativo: row.ativo,
+  ativo: row.ativo === true,
 })
 
-function StatusPill({ active }: { active: boolean }) {
+function StatusPill({ active }: { active: boolean | null }) {
   return (
     <span
       className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${
@@ -53,7 +53,7 @@ function StatusPill({ active }: { active: boolean }) {
           : 'border border-border-1 bg-bg-surface-2 text-fg-4'
       }`}
     >
-      {active ? 'Ativo' : 'Inativo'}
+      {active == null ? 'Não informado' : active ? 'Ativo' : 'Inativo'}
     </span>
   )
 }
@@ -128,7 +128,7 @@ export default function CatalogoEnxutoTab({
   const handleRemove = async (row: CatalogoEnxutoRow) => {
     const shouldRemove = await confirm({
       title: `Inativar ${singular.toLowerCase()}`,
-      description: `Inativar "${row.nome}"? O registro deixa de aparecer em novas seleções, mas históricos continuam preservados.`,
+      description: `Inativar "${row.nome ?? 'Não informado'}"? O registro deixa de aparecer em novas seleções, mas históricos continuam preservados.`,
       confirmLabel: 'Inativar',
       tone: 'danger',
     })
@@ -270,7 +270,7 @@ export default function CatalogoEnxutoTab({
                 }`}
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-black text-fg-1">{row.nome}</p>
+                  <p className="truncate text-sm font-black text-fg-1">{row.nome ?? 'Não informado'}</p>
                   <p className="mt-1 text-xs font-semibold text-fg-4">{singular}</p>
                 </div>
                 <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-fg-2">
@@ -285,7 +285,7 @@ export default function CatalogoEnxutoTab({
                     type="button"
                     onClick={() => handleEdit(row)}
                     className="rounded-[6px] p-2 text-fg-4 transition-colors hover:bg-accent-primary-soft hover:text-accent-primary"
-                    aria-label={`Editar ${singular.toLowerCase()} ${row.nome}`}
+                    aria-label={`Editar ${singular.toLowerCase()} ${row.nome ?? 'Não informado'}`}
                     title="Editar"
                   >
                     <Edit3 size={15} />
@@ -295,7 +295,7 @@ export default function CatalogoEnxutoTab({
                     onClick={() => handleRemove(row)}
                     disabled={isRemoving || !row.ativo}
                     className="rounded-[6px] p-2 text-fg-4 transition-colors hover:bg-signal-danger/10 hover:text-signal-danger disabled:cursor-not-allowed disabled:opacity-40"
-                    aria-label={`Inativar ${singular.toLowerCase()} ${row.nome}`}
+                    aria-label={`Inativar ${singular.toLowerCase()} ${row.nome ?? 'Não informado'}`}
                     title="Inativar"
                   >
                     <Trash2 size={15} />

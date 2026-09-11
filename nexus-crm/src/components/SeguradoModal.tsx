@@ -110,7 +110,7 @@ function defaultForm(seg?: Segurado | null): Partial<Segurado> {
     return {
       ...seg,
       // Garante defaults caso o cadastro venha legado sem esses campos.
-      status: seg.status ?? 'Ativo',
+      status: seg.status,
       lgpdAutorizado: seg.lgpdAutorizado ?? false,
     }
   }
@@ -148,10 +148,11 @@ export default function SeguradoModal({
   const isDocumentoUnique = useIsDocumentoUnique()
   const { options: produtorOptions } = useProdutoresLookup()
 
-  const tipo = formData.tipo ?? 'PF'
+  const tipo = formData.tipo ?? null
 
   const documentoErro = useMemo(() => {
     const doc = formData.documento ?? ''
+    if (!tipo) return 'Informe o tipo de pessoa'
     if (!doc) return 'Documento é obrigatório'
     if (!isValidDocumento(doc, tipo)) {
       return tipo === 'PF' ? 'CPF inválido' : 'CNPJ inválido'
@@ -179,7 +180,7 @@ export default function SeguradoModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setTouched({ nome: true, documento: true, lgpd: true })
-    if (nomeErro || documentoErro || lgpdErro) return
+    if (nomeErro || documentoErro || lgpdErro || !tipo || !formData.status) return
     setSubmitting(true)
     try {
       // Normaliza documento ao salvar (mantém máscara para exibição, mas a
@@ -249,10 +250,12 @@ export default function SeguradoModal({
             <Section title="Identificação" icon={IdCard}>
               <Field label="Tipo">
                 <select
-                  value={tipo}
+                  value={tipo ?? ''}
+                  required
                   onChange={(e) => handleTipoChange(e.target.value as 'PF' | 'PJ')}
                   className={baseInput}
                 >
+                  <option value="" disabled>Informe o tipo</option>
                   <option value="PF">Pessoa Física (CPF)</option>
                   <option value="PJ">Pessoa Jurídica (CNPJ)</option>
                 </select>
@@ -260,10 +263,12 @@ export default function SeguradoModal({
 
               <Field label="Status">
                 <select
-                  value={formData.status ?? 'Ativo'}
+                  value={formData.status ?? ''}
+                  required
                   onChange={(e) => update('status', e.target.value as StatusPessoa)}
                   className={baseInput}
                 >
+                  <option value="" disabled>Informe o status</option>
                   {STATUS_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
@@ -271,7 +276,7 @@ export default function SeguradoModal({
               </Field>
 
               <Field
-                label={tipo === 'PF' ? 'Nome completo' : 'Razão social'}
+                label={!tipo ? 'Nome' : tipo === 'PF' ? 'Nome completo' : 'Razão social'}
                 span={2}
                 error={touched.nome ? nomeErro ?? undefined : undefined}
               >
@@ -305,7 +310,7 @@ export default function SeguradoModal({
               )}
 
               <Field
-                label={tipo === 'PF' ? 'CPF' : 'CNPJ'}
+                label={!tipo ? 'CPF / CNPJ' : tipo === 'PF' ? 'CPF' : 'CNPJ'}
                 error={touched.documento ? documentoErro ?? undefined : undefined}
               >
                 <div className="relative">
@@ -316,7 +321,7 @@ export default function SeguradoModal({
                     value={formData.documento ?? ''}
                     onBlur={() => markTouched('documento')}
                     onChange={(e) =>
-                      update('documento', formatDocumento(e.target.value, tipo))
+                      update('documento', tipo ? formatDocumento(e.target.value, tipo) : onlyDigits(e.target.value))
                     }
                     className={`${baseInput} pl-10`}
                     placeholder={tipo === 'PF' ? '000.000.000-00' : '00.000.000/0000-00'}
@@ -377,7 +382,7 @@ export default function SeguradoModal({
                 </div>
               </Field>
 
-              <Field label="Telefone / WhatsApp">
+              <Field label="Telefone">
                 <div className="relative">
                   <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-4" />
                   <input
@@ -390,6 +395,11 @@ export default function SeguradoModal({
                 </div>
               </Field>
             </Section>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <label className="text-xs font-bold text-fg-3">Celular<input type="tel" value={formData.celular ?? ''} onChange={e => update('celular', e.target.value)} className={`${baseInput} mt-1`} /></label>
+              <label className="text-xs font-bold text-fg-3">WhatsApp<input type="tel" value={formData.whatsapp ?? ''} onChange={e => update('whatsapp', e.target.value)} className={`${baseInput} mt-1`} /></label>
+            </div>
 
             {/* 3) Endereço --------------------------------------------- */}
             <Section title="Endereço" icon={MapPin}>

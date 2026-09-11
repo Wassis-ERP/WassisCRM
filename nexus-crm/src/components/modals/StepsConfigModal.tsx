@@ -42,10 +42,10 @@ export default function StepsConfigModal({ isOpen, onClose, pipeline }: StepsCon
     () =>
       (dbStages ?? []).map((s) => ({
         id: s.id,
-        nome: s.nome,
+        nome: s.nome ?? '',
         cor: s.cor,
-        finaliza_com_sucesso: s.finaliza_com_sucesso,
-        finaliza_com_perda: s.finaliza_com_perda,
+        finaliza_com_sucesso: s.finaliza_com_sucesso === true,
+        finaliza_com_perda: s.finaliza_com_perda === true,
       })),
     [dbStages]
   )
@@ -147,6 +147,7 @@ function StepsConfigEditor({
 
   const handleSave = async () => {
     if (!pipelineId) return
+    if (steps.some(step => !step.nome?.trim())) { setError('Informe o nome de todas as etapas.'); return }
     setError(null)
     try {
       // 1) Apaga as removidas (somente IDs reais).
@@ -161,29 +162,29 @@ function StepsConfigEditor({
         if (s.__isNew) {
           const created = await createStage({
             pipelineId,
-            name: s.nome,
+            name: s.nome ?? '',
             color: s.cor ?? 'bg-slate-400',
             order: idx,
-            is_win_eligible: s.finaliza_com_sucesso,
-            is_loss_eligible: s.finaliza_com_perda,
+            is_win_eligible: s.finaliza_com_sucesso === true,
+            is_loss_eligible: s.finaliza_com_perda === true,
           })
           finalSteps.push({
             id: created.id,
             patch: {
-              nome: s.nome,
+              nome: s.nome ?? '',
               cor: s.cor,
-              finaliza_com_sucesso: s.finaliza_com_sucesso,
-              finaliza_com_perda: s.finaliza_com_perda,
+              finaliza_com_sucesso: s.finaliza_com_sucesso === true,
+              finaliza_com_perda: s.finaliza_com_perda === true,
             },
           })
         } else {
           finalSteps.push({
             id: s.id,
             patch: {
-              nome: s.nome,
+              nome: s.nome ?? '',
               cor: s.cor,
-              finaliza_com_sucesso: s.finaliza_com_sucesso,
-              finaliza_com_perda: s.finaliza_com_perda,
+              finaliza_com_sucesso: s.finaliza_com_sucesso === true,
+              finaliza_com_perda: s.finaliza_com_perda === true,
             },
           })
         }
@@ -279,7 +280,7 @@ function StepsConfigEditor({
                     </span>
                     <input
                       type="text"
-                      value={step.nome}
+                      value={step.nome ?? ''}
                       onChange={(e) => handleUpdate(step.id, { nome: e.target.value })}
                       className="w-full min-w-0 bg-transparent border-none text-sm font-bold text-fg-1 focus:outline-none focus:ring-2 focus:ring-accent-primary/30 rounded-[4px]"
                     />

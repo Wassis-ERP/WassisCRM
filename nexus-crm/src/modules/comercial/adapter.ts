@@ -28,7 +28,7 @@ export const comercialAdapter: ModuleAdapter = {
         .eq('pipeline_id', pipelineId)
         .eq('ativo', true)
         .order('ordem', { ascending: true }),
-      supabase.from('profiles').select('id, full_name, avatar_url'),
+      supabase.from('profiles').select('id, nome_completo, avatar_url'),
     ])
     if (stagesResult.error) throw stagesResult.error
     if (profilesResult.error) throw profilesResult.error
@@ -36,7 +36,7 @@ export const comercialAdapter: ModuleAdapter = {
     const stages = ((stagesResult.data ?? []) as PipelineStageDbRow[]).map(normalizePipelineStageRow)
     const stageById = new Map(stages.map((stage) => [stage.id, stage]))
     const profileById = new Map(
-      ((profilesResult.data ?? []) as Array<{ id: string; full_name: string | null; avatar_url: string | null }>).map(
+      ((profilesResult.data ?? []) as Array<{ id: string; nome_completo: string | null; avatar_url: string | null }>).map(
         (profile) => [profile.id, profile],
       ),
     )

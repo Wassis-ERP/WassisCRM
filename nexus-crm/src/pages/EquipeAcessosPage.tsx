@@ -6,6 +6,9 @@ import { usePerfis } from '../hooks/usePerfis'
 import { useProfileFiliais } from '../hooks/useProfileFiliais'
 import { useSystemFeedback } from '../components/feedback/systemFeedbackContext'
 import AppModal from '../components/modals/AppModal'
+import type { ProfileFilial } from '../types/platform'
+import { isActiveLink } from '../modules/plataforma/platformDomain'
+import './EquipeAcessosPage.css'
 
 /**
  * Modal de membro. Convite = nome + e-mail (o CARGO global foi aposentado — D18).
@@ -22,11 +25,14 @@ const ProdutorModal = ({
   isOpen: boolean
   onClose: () => void
   produtor?: TeamMember | null
-  onInvite: (email: string, full_name: string) => Promise<void>
+  onInvite: (email: string, nome_completo: string) => Promise<void>
   isSaving: boolean
 }) => {
+  const {setActive,isUpdating,members} = useTeamAdmin()
+  const {notify} = useSystemFeedback()
+  const currentMember = members.find(p=>p.id===produtor?.id) ?? produtor
   const [formData, setFormData] = useState({
-    full_name: produtor?.full_name || '',
+    nome_completo: produtor?.nome_completo || '',
     email: produtor?.email || '',
   })
 
@@ -35,7 +41,7 @@ const ProdutorModal = ({
   const isEditing = !!produtor?.id
 
   return (
-    <AppModal
+    <div className="team-access-modal"><AppModal
       isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? 'Editar Membro' : 'Convidar Membro'}
@@ -49,9 +55,9 @@ const ProdutorModal = ({
               <label className="text-[10px] font-black text-fg-4 uppercase tracking-widest ml-1">Nome Completo</label>
               <input
                 type="text"
-                value={formData.full_name}
+                value={formData.nome_completo}
                 disabled={isEditing}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, nome_completo: e.target.value })}
                 placeholder="Ex: João Silva"
                 className="w-full px-4 py-3 bg-bg-surface-2 text-fg-1 placeholder:text-fg-4 border border-border-1 rounded-[6px] text-sm focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 font-medium disabled:opacity-50"
               />
@@ -71,6 +77,13 @@ const ProdutorModal = ({
 
           {isEditing ? (
             <div className="mt-8">
+              <div className="flex items-center justify-between gap-4 mb-5">
+                <span className="text-sm text-fg-2">Usuário {currentMember?.ativo ? 'ativo' : 'inativo'}</span>
+                <button type="button" disabled={isUpdating} className="px-3 py-2 border border-border-1 rounded-md text-sm text-accent-primary disabled:opacity-50" onClick={async()=>{
+                  try { await setActive({id:produtor!.id,ativo:!currentMember?.ativo}) }
+                  catch(error){notify({title:'Erro ao alterar usuário',description:error instanceof Error?error.message:'Tente novamente.',tone:'danger'})}
+                }}>{currentMember?.ativo?'Inativar usuário':'Ativar usuário'}</button>
+              </div>
               <CorretorasPerfilSection profileId={produtor!.id} />
             </div>
           ) : (
@@ -91,15 +104,15 @@ const ProdutorModal = ({
           </button>
           {!isEditing && (
             <button
-              disabled={isSaving || !formData.email || !formData.full_name}
-              onClick={() => onInvite(formData.email, formData.full_name)}
+              disabled={isSaving || !formData.email || !formData.nome_completo}
+              onClick={() => onInvite(formData.email, formData.nome_completo)}
               className="px-8 py-2.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black hover:bg-accent-primary-hover transition-all shadow-[var(--shadow-brand)] disabled:opacity-50"
             >
               {isSaving ? 'Convidando...' : 'Enviar Convite'}
             </button>
           )}
       </div>
-    </AppModal>
+    </AppModal></div>
   )
 }
 
@@ -119,7 +132,7 @@ function CorretorasPerfilSection({ profileId }: { profileId: string }) {
   const handlePerfil = async (filialId: string, perfilId: string) => {
     try {
       if (!perfilId) await removeVinculo(filialId)
-      else await setVinculo({ filialId, perfilId, principal: vinculoFor(filialId)?.principal })
+      else await setVinculo({ filialId, perfilId, principal: vinculoFor(filialId)?.principal === true, ativo: true })
     } catch (e) {
       notify({
         title: 'Erro ao definir perfil',
@@ -156,15 +169,16 @@ function CorretorasPerfilSection({ profileId }: { profileId: string }) {
         <Building2 size={16} className="text-accent-primary" />
         <h3 className="text-sm font-black text-fg-1 uppercase tracking-widest">Corretoras & Perfil</h3>
       </div>
-      <p className="text-[11px] text-fg-4 mb-2">As alterações de acesso são salvas automaticamente.</p>
+      <p className="text-xs text-fg-3 mb-2">Perfil e principal são salvos automaticamente. Confirme as datas em Salvar período.</p>
       <div className="bg-bg-surface-2 rounded-[8px] border border-border-1 divide-y divide-border-1 overflow-hidden">
         {(filiais ?? []).map((f) => {
           const v = vinculoFor(f.id)
           return (
-            <div key={f.id} className="flex items-center gap-3 p-3">
+            <div key={f.id} className="p-3 space-y-3"><div className="flex flex-wrap items-center gap-3">
               <span className="flex-1 min-w-0 text-sm font-bold text-fg-1 truncate">{f.label}</span>
               <select
-                value={v?.perfil_id ?? ''}
+                aria-label={`Perfil em ${f.label}`}
+                value={v?.ativo ? v.perfil_id : ''}
                 onChange={(e) => handlePerfil(f.id, e.target.value)}
                 disabled={isSaving}
                 className="px-3 py-2 bg-bg-surface text-fg-1 border border-border-1 rounded-[6px] text-xs font-medium focus:border-accent-primary focus:outline-none disabled:opacity-50"
@@ -177,7 +191,7 @@ function CorretorasPerfilSection({ profileId }: { profileId: string }) {
               <button
                 type="button"
                 onClick={() => handlePrincipal(f.id)}
-                disabled={isSaving || !v}
+                disabled={isSaving || !v || !isActiveLink(v)}
                 title="Corretora principal (casa)"
                 className={`px-2.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all whitespace-nowrap ${
                   v?.principal
@@ -187,6 +201,8 @@ function CorretorasPerfilSection({ profileId }: { profileId: string }) {
               >
                 {v?.principal ? 'Principal' : 'Tornar principal'}
               </button>
+              </div>
+              {v && <AccessPeriod key={`${v.id}-${v.data_inicio}-${v.data_fim}-${v.ativo}`} link={v} label={f.label} isSaving={isSaving} save={setVinculo} />}
             </div>
           )
         })}
@@ -201,6 +217,28 @@ function CorretorasPerfilSection({ profileId }: { profileId: string }) {
 /**
  * Página de Equipe (membros) em formato de Lista (Tabela).
  */
+function AccessPeriod({ link, label, isSaving, save }: {
+  link: ProfileFilial; label: string; isSaving: boolean
+  save: (input: { filialId: string; perfilId: string; data_inicio: string | null; data_fim: string | null; principal?: boolean }) => Promise<ProfileFilial>
+}) {
+  const [start, setStart] = useState(link.data_inicio ?? '')
+  const [end, setEnd] = useState(link.data_fim ?? '')
+  const { notify } = useSystemFeedback()
+  const changed = start !== (link.data_inicio ?? '') || end !== (link.data_fim ?? '')
+  return <div className="space-y-2">
+    <div className="grid grid-cols-2 gap-3">
+      <label className="text-xs text-fg-3">Início do acesso<input aria-label={`Início do acesso em ${label}`} type="date" value={start} disabled={isSaving || !link.ativo} onChange={e => setStart(e.target.value)} className="mt-1 w-full min-w-0 rounded-md border border-border-1 bg-bg-surface text-fg-1 px-2 py-2" /></label>
+      <label className="text-xs text-fg-3">Fim do acesso<input aria-label={`Fim do acesso em ${label}`} type="date" value={end} disabled={isSaving || !link.ativo} onChange={e => setEnd(e.target.value)} className="mt-1 w-full min-w-0 rounded-md border border-border-1 bg-bg-surface text-fg-1 px-2 py-2" /></label>
+    </div>
+    <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-fg-3">{isActiveLink(link) ? 'Acesso vigente' : link.ativo ? 'Fora da vigência' : 'Acesso inativo'} · datas vazias: sem limite</span>
+      {changed && <button disabled={isSaving} type="button" className="px-3 py-2 rounded-md bg-accent-primary text-fg-on-brand text-xs" onClick={async () => {
+        try { await save({ filialId: link.filial_id, perfilId: link.perfil_id, data_inicio: start || null, data_fim: end || null, principal: link.principal === true && (!start || start <= new Date().toISOString().slice(0, 10)) && (!end || end >= new Date().toISOString().slice(0, 10)) }) }
+        catch (error) { notify({ title: 'Erro ao salvar período', description: error instanceof Error ? error.message : 'Tente novamente.', tone: 'danger' }) }
+      }}>Salvar período</button>}
+    </div>
+  </div>
+}
+
 export default function EquipeAcessosPage() {
   const { members, isLoading, invite, isInviting } = useTeamAdmin()
   const { notify } = useSystemFeedback()
@@ -210,7 +248,7 @@ export default function EquipeAcessosPage() {
 
   const filtered = members.filter(
     (p) =>
-      p.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      p.nome_completo?.toLowerCase().includes(search.toLowerCase()) ||
       p.email.toLowerCase().includes(search.toLowerCase()),
   )
 
@@ -219,9 +257,9 @@ export default function EquipeAcessosPage() {
     setIsModalOpen(true)
   }
 
-  const handleInvite = async (email: string, full_name: string) => {
+  const handleInvite = async (email: string, nome_completo: string) => {
     try {
-      const member = await invite({ email, full_name })
+      const member = await invite({ email, nome_completo })
       // mantém o modal aberto em modo edição para já atribuir corretoras/perfil
       if (member) setSelectedProdutor(member)
     } catch (err) {
@@ -287,13 +325,13 @@ export default function EquipeAcessosPage() {
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
                         {p.avatar_url ? (
-                          <img src={p.avatar_url} alt={p.full_name} className="w-9 h-9 rounded-[6px] object-cover" />
+                          <img src={p.avatar_url} alt={p.nome_completo} className="w-9 h-9 rounded-[6px] object-cover" />
                         ) : (
                           <div className="w-9 h-9 bg-accent-primary-soft rounded-[6px] flex items-center justify-center text-accent-primary font-black text-xs">
-                            {p.full_name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
+                            {p.nome_completo?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
                           </div>
                         )}
-                        <span className="font-bold text-fg-1">{p.full_name || 'Sem nome'}</span>
+                        <span className="font-bold text-fg-1">{p.nome_completo || 'Sem nome'}{!p.ativo && <span className="block text-xs text-fg-3">Inativo</span>}</span>
                       </div>
                     </td>
                     <td className="px-6 py-5">
@@ -321,7 +359,7 @@ export default function EquipeAcessosPage() {
                           onClick={() => handleOpenModal(p)}
                           className="p-2 text-fg-4 hover:text-accent-primary hover:bg-accent-primary-soft rounded-[6px] transition-all"
                           title="Gerenciar acesso"
-                          aria-label={`Gerenciar acesso de ${p.full_name || p.email}`}
+                          aria-label={`Gerenciar acesso de ${p.nome_completo || p.email}`}
                         >
                           <Edit size={18} />
                         </button>
@@ -336,6 +374,7 @@ export default function EquipeAcessosPage() {
       </div>
 
       <ProdutorModal
+        key={`${isModalOpen}-${selectedProdutor?.id ?? 'novo'}`}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         produtor={selectedProdutor}

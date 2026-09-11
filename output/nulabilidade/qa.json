@@ -1,0 +1,11 @@
+{
+  "pages": [
+    "segurados",
+    "grades",
+    "ramos",
+    "seguradoras",
+    "campos"
+  ],
+  "typeStatusNotInvented": true,
+  "errors": []
+}

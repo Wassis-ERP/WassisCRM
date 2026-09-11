@@ -30,6 +30,8 @@ describe('backendApi', () => {
   });
 
   it('normaliza login do BE e persiste dados de filial na sessao local', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-23T12:00:00Z'));
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({

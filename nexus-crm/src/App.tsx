@@ -1,3 +1,4 @@
+import ProdutoresPage from './pages/ProdutoresPage'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
@@ -9,6 +10,9 @@ import SeguradosPage from './pages/SeguradosPage'
 import SeguradoDetalhePage from './pages/SeguradoDetalhePage'
 import OportunidadesPage from './pages/OportunidadesPage'
 import OportunidadeDetalhePage from './pages/OportunidadeDetalhePage'
+import CalculoOportunidadePage from './pages/CalculoOportunidadePage'
+import CommercialPresentationPage from './pages/CommercialPresentationPage'
+import ManualQuotePage from './pages/ManualQuotePage'
 import ModuleKanbanPage from './pages/ModuleKanbanPage'
 import SinistroDetalhePage from './pages/SinistroDetalhePage'
 import NovoSinistroPage from './pages/NovoSinistroPage'
@@ -185,22 +189,26 @@ function AppLayout() {
   const toggleTheme = () => setDarkMode(!darkMode)
 
   return (
-    <div className="h-screen flex overflow-hidden bg-bg-app text-fg-1">
+    <div className="fixed inset-0 flex min-h-0 overflow-clip bg-bg-app text-fg-1">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         onToggleTheme={toggleTheme}
         darkMode={darkMode}
       />
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Header />
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4 md:p-6 xl:p-8">
           <Routes>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/segurados" element={<SeguradosPage />} />
             <Route path="/segurados/:id" element={<SeguradoDetalhePage />} />
             <Route path="/oportunidades" element={<OportunidadesPage />} />
             <Route path="/oportunidades/:id" element={<OportunidadeDetalhePage />} />
+            <Route path="/oportunidades/:oportunidadeId/calculos/novo" element={<CalculoOportunidadePage />} />
+            <Route path="/oportunidades/:oportunidadeId/calculos/:calculoId" element={<CalculoOportunidadePage />} />
+            <Route path="/oportunidades/:oportunidadeId/calculos/:calculoId/cotacoes/nova" element={<ManualQuotePage />} />
+            <Route path="/oportunidades/:oportunidadeId/apresentacao" element={<CommercialPresentationPage />} />
             <Route
               path="/sinistros"
               element={<ModuleKanbanPage module="sinistro" title="Sinistros" description="Funil de atendimento e regulacao" />}
@@ -223,6 +231,7 @@ function AppLayout() {
             <Route path="/financeiro/extratos" element={<FinanceiroExtratosPage />} />
             <Route path="/financeiro/extratos/:id" element={<FinanceiroExtratoDetalhePage />} />
             <Route path="/financeiro/:id" element={<FinanceiroDetalhePage />} />
+            <Route path="/produtores/:produtorId" element={<ProdutoresPage />} />
             <Route path="/produtores" element={<Navigate to="/configuracoes?tab=produtores" replace />} />
             <Route path="/propostas" element={<PropostasPage />} />
             <Route path="/propostas/novo" element={<NovaPropostaApolicePage />} />

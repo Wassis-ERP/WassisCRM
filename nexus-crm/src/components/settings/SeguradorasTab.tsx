@@ -41,7 +41,7 @@ const emptySeguradoraForm = (): SeguradoraInput => ({
 })
 
 const formFromRow = (row: SeguradoraRow): SeguradoraInput => ({
-  nome: row.nome,
+  nome: row.nome ?? '',
   nome_curto: row.nome_curto ?? '',
   cnpj: row.cnpj ?? '',
   codigo_susep: row.codigo_susep ?? '',
@@ -51,9 +51,9 @@ const formFromRow = (row: SeguradoraRow): SeguradoraInput => ({
   telefone_sac: row.telefone_sac ?? '',
   telefone_assistencia: row.telefone_assistencia ?? '',
   email: row.email ?? '',
-  aceita_importacao_pdf: row.aceita_importacao_pdf,
-  aceita_busca_automatica: row.aceita_busca_automatica,
-  ativo: row.ativo,
+  aceita_importacao_pdf: row.aceita_importacao_pdf === true,
+  aceita_busca_automatica: row.aceita_busca_automatica === true,
+  ativo: row.ativo === true,
   observacoes: row.observacoes ?? '',
 })
 
@@ -120,7 +120,7 @@ function ToggleField({
   )
 }
 
-function StatusPill({ active }: { active: boolean }) {
+function StatusPill({ active }: { active: boolean | null }) {
   return (
     <span
       className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${
@@ -225,7 +225,7 @@ export default function SeguradorasTab() {
   const handleRemove = async (row: SeguradoraRow) => {
     const shouldRemove = await confirm({
       title: 'Inativar seguradora',
-      description: `Inativar "${row.nome}"? Ela deixa de aparecer em novas seleções, mas históricos continuam preservados.`,
+      description: `Inativar "${row.nome ?? 'Não informado'}"? Ela deixa de aparecer em novas seleções, mas históricos continuam preservados.`,
       confirmLabel: 'Inativar',
       tone: 'danger',
     })
@@ -289,7 +289,7 @@ export default function SeguradorasTab() {
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-black text-fg-1">{row.nome}</p>
+                        <p className="truncate text-sm font-black text-fg-1">{row.nome ?? 'Não informado'}</p>
                         <StatusPill active={row.ativo} />
                       </div>
                       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-fg-3">
@@ -335,7 +335,7 @@ export default function SeguradorasTab() {
                         type="button"
                         onClick={() => handleEdit(row)}
                         className="rounded-[6px] p-2 text-fg-4 transition-colors hover:bg-accent-primary-soft hover:text-accent-primary"
-                        aria-label={`Editar seguradora ${row.nome}`}
+                        aria-label={`Editar seguradora ${row.nome ?? 'Não informado'}`}
                         title="Editar"
                       >
                         <Edit3 size={15} />
@@ -345,7 +345,7 @@ export default function SeguradorasTab() {
                         onClick={() => handleRemove(row)}
                         disabled={isRemoving || !row.ativo}
                         className="rounded-[6px] p-2 text-fg-4 transition-colors hover:bg-signal-danger/10 hover:text-signal-danger disabled:cursor-not-allowed disabled:opacity-40"
-                        aria-label={`Inativar seguradora ${row.nome}`}
+                        aria-label={`Inativar seguradora ${row.nome ?? 'Não informado'}`}
                         title="Inativar"
                       >
                         <Trash2 size={15} />

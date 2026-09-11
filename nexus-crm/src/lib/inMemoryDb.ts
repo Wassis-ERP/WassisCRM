@@ -15,6 +15,20 @@ export type Row = Record<string, any>;
 
 const TABLES = [
   'oportunidades',
+  'calculos',
+  'calc_auto',
+  'calc_residencia',
+  'calc_condominio',
+  'calc_vida',
+  'calc_empresa',
+  'calc_diversos',
+  'calculo_coberturas',
+  'calculo_execucoes',
+  'cotacoes',
+  'cotacao_coberturas',
+  'cotacao_parcelamentos',
+  'apresentacoes_comerciais',
+  'apresentacao_cotacoes',
   'apolices',
   'propostas',
   'apolice_itens',
@@ -128,6 +142,44 @@ import {
   type PosVendaStore,
 } from '../modules/pos_venda/domain'
 import { getAggerCatalogMappings } from '../modules/comercial/aggerCoverageMap'
+import {
+  findCepForCalculation,
+  findInsuredForCalculation,
+  findSourcePolicyForCalculation,
+  findVehicleForCalculation,
+  type CalculationAssistanceStore,
+} from '../modules/comercial/calculationAssistance'
+import {
+  createCalculationAtomic,
+  duplicateCalculationInput,
+  getCalculationAggregate,
+  listCalculationItems,
+  type CalculationAggregate,
+  type CalculationCreateInput,
+  type CalculationListItem,
+  type CalculationStore,
+} from '../modules/comercial/calculationDomain'
+import {
+  completeCalculationExecutionSimulationAtomic,
+  getCalculationExecutionSimulationDelay,
+  getCalculationExecutionWorkspace,
+  markCalculationExecutionRunning,
+  startCalculationExecutionsAtomic,
+  startRecalculationAtomic,
+  type CalculationExecutionSort,
+  type CalculationExecutionStore,
+  type StartCalculationExecutionsInput,
+  type StartRecalculationInput,
+} from '../modules/comercial/calculationExecutionDomain'
+import {
+  getCommercialPresentationWorkspace,
+  saveCommercialPresentationAtomic,
+  toggleCommercialPresentationQuoteAtomic,
+  type CommercialPresentationStore,
+  type SaveCommercialPresentationInput,
+} from '../modules/comercial/commercialPresentationDomain'
+import { populateIntegratedDemoData } from './integratedDemoSeed'
+import { canonicalPlatformRow, isPlatformTable } from '../modules/plataforma/platformDomain'
 
 export type SinistroInMemoryContext = {
   tenantId: string
@@ -141,6 +193,144 @@ export type PosVendaInMemoryContext = {
   filialId?: string | null
   sessionUserId: string | null
   pipelineId: string
+}
+
+function calculationStore(): CalculationStore {
+  return {
+    opportunities: db.oportunidades as unknown as CalculationStore['opportunities'],
+    branches: db.filiais as unknown as CalculationStore['branches'],
+    lines: db.ramos as unknown as CalculationStore['lines'],
+    insureds: db.segurados as unknown as CalculationStore['insureds'],
+    insurers: db.seguradoras as unknown as CalculationStore['insurers'],
+    policies: db.apolices as unknown as CalculationStore['policies'],
+    coverageCatalog: db.coberturas_catalogo as unknown as CalculationStore['coverageCatalog'],
+    calculations: db.calculos as unknown as CalculationStore['calculations'],
+    autos: db.calc_auto as unknown as CalculationStore['autos'],
+    residences: db.calc_residencia as unknown as CalculationStore['residences'],
+    condominiums: db.calc_condominio as unknown as CalculationStore['condominiums'],
+    lives: db.calc_vida as unknown as CalculationStore['lives'],
+    companies: db.calc_empresa as unknown as CalculationStore['companies'],
+    diverse: db.calc_diversos as unknown as CalculationStore['diverse'],
+    coverages: db.calculo_coberturas as unknown as CalculationStore['coverages'],
+  }
+}
+
+function calculationAssistanceStore(): CalculationAssistanceStore {
+  return {
+    insureds: db.segurados as unknown as CalculationAssistanceStore['insureds'],
+    insurers: db.seguradoras as unknown as CalculationAssistanceStore['insurers'],
+    policies: db.apolices as unknown as CalculationAssistanceStore['policies'],
+    policyItems: db.apolice_itens as unknown as CalculationAssistanceStore['policyItems'],
+    vehicles: db.item_veiculo as unknown as CalculationAssistanceStore['vehicles'],
+  }
+}
+
+function calculationExecutionStore(): CalculationExecutionStore {
+  return {
+    opportunities: db.oportunidades as unknown as CalculationExecutionStore['opportunities'],
+    calculations: db.calculos as unknown as CalculationExecutionStore['calculations'],
+    insurers: db.seguradoras as unknown as CalculationExecutionStore['insurers'],
+    requestedCoverages: db.calculo_coberturas as unknown as CalculationExecutionStore['requestedCoverages'],
+    coverageCatalog: db.coberturas_catalogo as unknown as CalculationExecutionStore['coverageCatalog'],
+    executions: db.calculo_execucoes as unknown as CalculationExecutionStore['executions'],
+    quotes: db.cotacoes as unknown as CalculationExecutionStore['quotes'],
+    quoteCoverages: db.cotacao_coberturas as unknown as CalculationExecutionStore['quoteCoverages'],
+    quoteInstallments: db.cotacao_parcelamentos as unknown as CalculationExecutionStore['quoteInstallments'],
+  }
+}
+
+function commercialPresentationStore(): CommercialPresentationStore {
+  return {
+    opportunities: db.oportunidades as unknown as CommercialPresentationStore['opportunities'],
+    calculations: db.calculos as unknown as CommercialPresentationStore['calculations'],
+    executions: db.calculo_execucoes as unknown as CommercialPresentationStore['executions'],
+    insurers: db.seguradoras as unknown as CommercialPresentationStore['insurers'],
+    coverageCatalog: db.coberturas_catalogo as unknown as CommercialPresentationStore['coverageCatalog'],
+    quotes: db.cotacoes as unknown as CommercialPresentationStore['quotes'],
+    quoteCoverages: db.cotacao_coberturas as unknown as CommercialPresentationStore['quoteCoverages'],
+    quoteInstallments: db.cotacao_parcelamentos as unknown as CommercialPresentationStore['quoteInstallments'],
+    presentations: db.apresentacoes_comerciais as unknown as CommercialPresentationStore['presentations'],
+    presentationQuotes: db.apresentacao_cotacoes as unknown as CommercialPresentationStore['presentationQuotes'],
+    proposals: db.propostas as unknown as CommercialPresentationStore['proposals'],
+  }
+}
+
+export function findCalculationInsuredInMemory(document: string, branchId: string) {
+  return findInsuredForCalculation(calculationAssistanceStore(), document, branchId)
+}
+
+export function findCalculationVehicleInMemory(identifier: string) {
+  return findVehicleForCalculation(calculationAssistanceStore(), identifier)
+}
+
+export function findCalculationCepInMemory(cep: string) {
+  return findCepForCalculation(cep)
+}
+
+export function getCalculationSourcePolicyInMemory(policyId: string) {
+  return findSourcePolicyForCalculation(calculationAssistanceStore(), policyId)
+}
+
+export function createCalculationInMemory(input: CalculationCreateInput): CalculationAggregate {
+  return createCalculationAtomic(calculationStore(), input, { now: nowIso, newId })
+}
+
+export function getCalculationInMemory(calculationId: string): CalculationAggregate {
+  return getCalculationAggregate(calculationStore(), calculationId)
+}
+
+export function listCalculationsInMemory(opportunityId: string): CalculationListItem[] {
+  return listCalculationItems(calculationStore(), opportunityId)
+}
+
+export function getCalculationDuplicateInputInMemory(calculationId: string): CalculationCreateInput {
+  return duplicateCalculationInput(getCalculationInMemory(calculationId))
+}
+
+export function getCalculationExecutionWorkspaceInMemory(calculationId: string, sort: CalculationExecutionSort) {
+  return getCalculationExecutionWorkspace(calculationExecutionStore(), calculationId, sort)
+}
+
+export function startCalculationExecutionsInMemory(input: StartCalculationExecutionsInput) {
+  return startCalculationExecutionsAtomic(calculationExecutionStore(), input, { now: nowIso, newId })
+}
+
+export function startCalculationRecalculationInMemory(input: StartRecalculationInput) {
+  return startRecalculationAtomic(calculationExecutionStore(), input, { now: nowIso, newId })
+}
+
+export function markCalculationExecutionRunningInMemory(executionId: string) {
+  return markCalculationExecutionRunning(calculationExecutionStore(), executionId, { now: nowIso })
+}
+
+export function completeCalculationExecutionSimulationInMemory(executionId: string) {
+  return completeCalculationExecutionSimulationAtomic(calculationExecutionStore(), executionId, { now: nowIso, newId })
+}
+
+export function getCommercialPresentationWorkspaceInMemory(opportunityId: string, presentationId?: string) {
+  return getCommercialPresentationWorkspace(commercialPresentationStore(), opportunityId, presentationId)
+}
+
+export function toggleCommercialPresentationQuoteInMemory(
+  opportunityId: string,
+  quoteId: string,
+  createdById: string | null,
+) {
+  return toggleCommercialPresentationQuoteAtomic(
+    commercialPresentationStore(),
+    opportunityId,
+    quoteId,
+    createdById,
+    { now: nowIso, newId },
+  )
+}
+
+export function saveCommercialPresentationInMemory(input: SaveCommercialPresentationInput) {
+  return saveCommercialPresentationAtomic(commercialPresentationStore(), input, { now: nowIso, newId })
+}
+
+export function getCalculationExecutionSimulationDelayInMemory(executionId: string) {
+  return getCalculationExecutionSimulationDelay(calculationExecutionStore(), executionId)
 }
 
 function posVendaStore(): PosVendaStore {
@@ -366,6 +556,31 @@ export const RELATIONS: Record<
   'oportunidades.motivos_perda': { target: 'motivos_perda', localFk: 'motivo_perda_id', kind: 'forward' },
   'oportunidades.pipeline_stages': { target: 'pipeline_stages', localFk: 'stage_id', kind: 'forward' },
   'oportunidades.profiles': { target: 'profiles', localFk: 'responsavel_id', kind: 'forward' },
+  'calculos.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
+  'calculos.ramos': { target: 'ramos', localFk: 'ramo_id', kind: 'forward' },
+  'calculos.segurados': { target: 'segurados', localFk: 'segurado_id', kind: 'forward' },
+  'calculos.seguradoras': { target: 'seguradoras', localFk: 'seguradora_anterior_id', kind: 'forward' },
+  'calc_auto.calculos': { target: 'calculos', localFk: 'calculo_id', kind: 'forward' },
+  'calc_residencia.calculos': { target: 'calculos', localFk: 'calculo_id', kind: 'forward' },
+  'calc_condominio.calculos': { target: 'calculos', localFk: 'calculo_id', kind: 'forward' },
+  'calc_vida.calculos': { target: 'calculos', localFk: 'calculo_id', kind: 'forward' },
+  'calc_empresa.calculos': { target: 'calculos', localFk: 'calculo_id', kind: 'forward' },
+  'calc_diversos.calculos': { target: 'calculos', localFk: 'calculo_id', kind: 'forward' },
+  'calculo_coberturas.calculos': { target: 'calculos', localFk: 'calculo_id', kind: 'forward' },
+  'calculo_coberturas.coberturas_catalogo': { target: 'coberturas_catalogo', localFk: 'cobertura_id', kind: 'forward' },
+  'calculo_execucoes.calculos': { target: 'calculos', localFk: 'calculo_id', kind: 'forward' },
+  'calculo_execucoes.seguradoras': { target: 'seguradoras', localFk: 'seguradora_id', kind: 'forward' },
+  'calculo_execucoes.reexecucao_de': { target: 'calculo_execucoes', localFk: 'reexecucao_de_id', kind: 'forward' },
+  'cotacoes.calculo_execucoes': { target: 'calculo_execucoes', localFk: 'execucao_id', kind: 'forward' },
+  'cotacao_coberturas.cotacoes': { target: 'cotacoes', localFk: 'cotacao_id', kind: 'forward' },
+  'cotacao_coberturas.coberturas_catalogo': { target: 'coberturas_catalogo', localFk: 'cobertura_id', kind: 'forward' },
+  'cotacao_parcelamentos.cotacoes': { target: 'cotacoes', localFk: 'cotacao_id', kind: 'forward' },
+  'apresentacoes_comerciais.oportunidades': { target: 'oportunidades', localFk: 'oportunidade_id', kind: 'forward' },
+  'apresentacoes_comerciais.profiles': { target: 'profiles', localFk: 'criado_por_id', kind: 'forward' },
+  'apresentacoes_comerciais.cotacao_escolhida': { target: 'cotacoes', localFk: 'cotacao_escolhida_id', kind: 'forward' },
+  'apresentacao_cotacoes.apresentacoes_comerciais': { target: 'apresentacoes_comerciais', localFk: 'apresentacao_id', kind: 'forward' },
+  'apresentacao_cotacoes.cotacoes': { target: 'cotacoes', localFk: 'cotacao_id', kind: 'forward' },
+  'apresentacao_cotacoes.cotacao_parcelamentos': { target: 'cotacao_parcelamentos', localFk: 'parcelamento_id', kind: 'forward' },
   'apolices.segurados': { target: 'segurados', localFk: 'segurado_id', kind: 'forward' },
   'apolices.seguradoras': { target: 'seguradoras', localFk: 'seguradora_id', kind: 'forward' },
   'apolices.ramos': { target: 'ramos', localFk: 'ramo_id', kind: 'forward' },
@@ -373,6 +588,7 @@ export const RELATIONS: Record<
   'apolices.renovada_de': { target: 'apolices', localFk: 'renovada_de_id', kind: 'forward' },
   'oportunidades.apolice_origem': { target: 'apolices', localFk: 'apolice_origem_id', kind: 'forward' },
   'propostas.apolices': { target: 'apolices', localFk: 'apolice_id', kind: 'forward' },
+  'propostas.cotacoes': { target: 'cotacoes', localFk: 'cotacao_id', kind: 'forward' },
   'propostas.pipeline_stages': { target: 'pipeline_stages', localFk: 'stage_id', kind: 'forward' },
   'propostas.profiles': { target: 'profiles', localFk: 'responsavel_id', kind: 'forward' },
   'propostas.recebimento_grades': { target: 'recebimento_grades', localFk: 'recebimento_grade_id', kind: 'forward' },
@@ -473,13 +689,14 @@ export function seed(): void {
 
   db.tenants.push({
     id: MOCK_TENANT_ID,
-    name: 'Wassis Dev',
+    razao_social: 'Wassis Dev',
+    nome_fantasia: null, ativo: true, criado_em: nowIso(),
     created_at: nowIso(),
   });
 
   db.profiles.push({
     id: MOCK_USER_ID,
-    full_name: 'Dev Wassis',
+    nome_completo: 'Dev Wassis', ativo: true, status: 'ATIVO', convite_status: 'ACEITO',
     avatar_url: null,
     tenant_id: MOCK_TENANT_ID,
     email: 'dev@wassis.com',
@@ -487,7 +704,7 @@ export function seed(): void {
   });
   db.profiles.push({
     id: 'mock-user-renato',
-    full_name: 'Renato Assis',
+    nome_completo: 'Renato Assis', ativo: true, status: 'ATIVO', convite_status: 'ACEITO',
     avatar_url: null,
     tenant_id: MOCK_TENANT_ID,
     email: 'renato@wassis.com',
@@ -535,7 +752,10 @@ export function seed(): void {
       db.role_permissions.push({
         id: newId(),
         perfil_id: perfilId,
-        module,
+        modulo: module,
+        escopo: nome === 'Produtor' ? 'PROPRIO' : nome === 'Master' ? 'GRUPO' : 'CORRETORA',
+        can_export: nome === 'Master' || nome === 'Gestor',
+        can_manage: nome === 'Master',
         can_read: r,
         can_create: c,
         can_update: u,
@@ -624,6 +844,7 @@ export function seed(): void {
       filial_id: v.filial_id,
       perfil_id: perfilIds['Master'],
       principal: v.principal,
+      ativo: true, data_inicio: null, data_fim: null,
       created_at: nowIso(),
       updated_at: nowIso(),
     });
@@ -2124,6 +2345,44 @@ export function seed(): void {
     valor_pago: null, data_baixa: null, numero_fatura: null, competencia_inicio: null,
     competencia_fim: null, observacoes: 'Lançamento manual incompleto para demonstração da regeneração coletiva.',
   });
+
+  const opportunityStageId = (name: string) => db.pipeline_stages.find((stage) =>
+    stage.nome === name && db.pipelines.some((pipeline) =>
+      pipeline.id === stage.pipeline_id && pipeline.entidade_tipo === 'oportunidade'))?.id as string;
+
+  populateIntegratedDemoData({
+    db,
+    calculationStore: calculationStore(),
+    tenantId: MOCK_TENANT_ID,
+    matrixBranchId: MATRIZ_ID,
+    centerBranchId: FILIAL_CENTRO_ID,
+    userId: MOCK_USER_ID,
+    secondaryUserId: 'mock-user-renato',
+    internalProducerId: PRODUTOR_INTERNO_ID,
+    externalProducerId: PRODUTOR_EXTERNO_ID,
+    lineIds: ramoIds,
+    insurerIds: seguradoraIds,
+    opportunityStageIds: {
+      prospecting: opportunityStageId('Prospecção'),
+      quoting: opportunityStageId('Cotação'),
+      negotiation: opportunityStageId('Negociação'),
+      closing: opportunityStageId('Fechamento'),
+    },
+    proposalStageIds: {
+      issued: emitidaStageId,
+      waiting: aguardandoStageId,
+      analysis: analiseStageId,
+      refused: recusadaStageId,
+    },
+  });
 }
 
 seed();
+for (const table of TABLES) {
+  if (!isPlatformTable(table)) continue;
+  for (const row of db[table]) {
+    const normalized = canonicalPlatformRow(table, row);
+    Object.keys(row).forEach(key => delete row[key]);
+    Object.assign(row, normalized);
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "layouts": [
+    {
+      "name": "desktop",
+      "client": 1440,
+      "scroll": 1440,
+      "zoom": "1"
+    },
+    {
+      "name": "mobile",
+      "client": 390,
+      "scroll": 390,
+      "zoom": "1"
+    },
+    {
+      "name": "dark",
+      "client": 1440,
+      "scroll": 1440,
+      "zoom": "1"
+    }
+  ],
+  "findings": 11,
+  "tables": 11,
+  "filters": {
+    "all": 11,
+    "now": 3,
+    "prepare": 4,
+    "decide": 1,
+    "later": 3
+  },
+  "errors": []
+}

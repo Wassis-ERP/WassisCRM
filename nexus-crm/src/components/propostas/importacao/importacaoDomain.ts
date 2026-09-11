@@ -1,4 +1,5 @@
 import type { Database } from '../../../types/database'
+import { approveQuoteProposalOrigin, quoteProposalContract, quoteProposalDefaults, validateQuoteProposalOrigin } from '../../../modules/comercial/quoteProposalOrigin'
 import {
   getTable,
   materializeDocumentAgendas,
@@ -16,6 +17,7 @@ import type {
   ImportResult,
 } from './importacaoTypes'
 import { compatibleReceiptGrades } from '../../../lib/receiptGradeDomain'
+import { applyQuoteToManualDraft, createManualDraft, createManualInsuranceDocument } from '../cadastro-manual/cadastroManualDomain'
 
 type PolicyRow = Database['public']['Tables']['apolices']['Row']
 type PolicyInsert = Database['public']['Tables']['apolices']['Insert']
@@ -64,23 +66,23 @@ export function getImportLookups(): ImportLookups {
   const policies = rows<PolicyRow>('apolices')
   const insurers = rows<InsurerRow>('seguradoras').filter((row) => row.ativo)
   const branches = rows<BranchRow>('ramos').filter((row) => row.ativo)
-  const producers = rows<NamedRow>('produtores').filter((row) => row.ativo !== false)
-  const branchOffices = rows<BranchOfficeRow>('filiais').filter((row) => row.ativo !== false)
+  const producers = rows<NamedRow>('produtores').filter((row) => row.ativo === true)
+  const branchOffices = rows<BranchOfficeRow>('filiais').filter((row) => row.ativo === true)
   const subtypes = rows<EndorsementSubtypeRow>('endosso_subtipos').filter((row) => row.ativo)
   const grades = rows<GradeRow>('recebimento_grades').filter((row) => row.ativo)
 
   return {
-    insureds: insureds.map((row) => ({ id: row.id, label: row.nome, detail: row.cpf_cnpj ?? undefined })),
+    insureds: insureds.map((row) => ({ id: row.id, label: row.nome ?? 'Cadastro sem nome', detail: row.cpf_cnpj ?? undefined })),
     branchOffices: branchOffices.map((row) => ({ id: row.id, label: row.fantasia ?? row.nome ?? 'Corretora' })),
-    insurers: insurers.map((row) => ({ id: row.id, label: row.nome })),
-    branches: branches.map((row) => ({ id: row.id, label: row.nome, detail: row.risk_type })),
-    producers: producers.map((row) => ({ id: row.id, label: row.nome })),
+    insurers: insurers.map((row) => ({ id: row.id, label: row.nome ?? 'Cadastro sem nome' })),
+    branches: branches.map((row) => ({ id: row.id, label: row.nome ?? 'Cadastro sem nome', detail: row.risk_type ?? undefined })),
+    producers: producers.map((row) => ({ id: row.id, label: row.nome ?? 'Cadastro sem nome' })),
     policies: policies.map((row) => {
       const insured = insureds.find((item) => item.id === row.segurado_id)
-      return { id: row.id, label: row.numero_apolice ?? 'Contrato em emissão', detail: insured?.nome }
+      return { id: row.id, label: row.numero_apolice ?? 'Contrato em emissão', detail: insured?.nome ?? undefined }
     }),
-    endorsementSubtypes: subtypes.map((row) => ({ id: row.id, label: row.nome, detail: row.natureza_canonica })),
-    grades: grades.map((row) => ({ id: row.id, label: row.nome, detail: `${row.qtd_parcelas} evento(s)` })),
+    endorsementSubtypes: subtypes.map((row) => ({ id: row.id, label: row.nome ?? 'Cadastro sem nome', detail: row.natureza_canonica ?? undefined })),
+    grades: grades.map((row) => ({ id: row.id, label: row.nome ?? 'Cadastro sem nome', detail: `${row.qtd_parcelas} evento(s)` })),
   }
 }
 
@@ -112,7 +114,7 @@ export function createImportDraft(file: FileMetadata): ImportFileDraft {
   const policies = rows<PolicyRow>('apolices')
   const insurers = rows<InsurerRow>('seguradoras').filter((row) => row.ativo)
   const branches = rows<BranchRow>('ramos').filter((row) => row.ativo)
-  const producers = rows<NamedRow>('produtores').filter((row) => row.ativo !== false)
+  const producers = rows<NamedRow>('produtores').filter((row) => row.ativo === true)
   const subtypes = rows<EndorsementSubtypeRow>('endosso_subtipos').filter((row) => row.ativo)
   const requestedPolicy = kind === 'ENDOSSO'
     ? policies.find((row) => row.id === 'mock-apolice-viaforte') ?? policies.find((row) => row.status === 'VIGENTE')
@@ -165,7 +167,9 @@ export function createImportDraft(file: FileMetadata): ImportFileDraft {
 }
 
 export function validateImportDraft(draft: ImportFileDraft): string[] {
-  const errors: string[] = []
+  const errors: string[] = validateQuoteProposalOrigin(draft)
+  if (draft.quoteId && draft.kind !== 'PROPOSTA') errors.push('Vincule a cotação na importação da proposta. Documentos posteriores usam o contrato existente.')
+  if (draft.quoteId && errors.length === 0 && draft.proposalType !== quoteProposalContract(draft.quoteId).type) errors.push('O tipo da proposta deve corresponder ao novo seguro ou renovação da cotação.')
   if (!draft.proposalType) errors.push('Tipo de documento fora do escopo atual.')
   if (!draft.insuredId) errors.push('Selecione o segurado.')
   if (!draft.branchOfficeId) errors.push('Resolva a corretora do segurado.')
@@ -192,6 +196,14 @@ export function validateImportDraft(draft: ImportFileDraft): string[] {
   return errors
 }
 
+export function applyQuoteToImportDraft(draft: ImportFileDraft, quoteId: string): ImportFileDraft {
+  if (!quoteId) return { ...draft, quoteId: undefined }
+  if (draft.kind !== 'PROPOSTA') throw new Error('Selecione um arquivo de proposta para vincular a cotação.')
+  const next = { ...draft, ...quoteProposalDefaults(quoteId), policyId: '', proposalType: quoteProposalContract(quoteId).type }
+  const grade = compatibleReceiptGrades(rows<GradeRow>('recebimento_grades'), rows<GradeInstallmentRow>('recebimento_grade_parcelas'), next.insurerId, next.branchId)[0]
+  return { ...next, gradeId: grade?.id ?? '' }
+}
+
 export function previewImportAgendas(draft: ImportFileDraft): AgendaPreview {
   const grade = rows<GradeRow>('recebimento_grades').find((row) => row.id === draft.gradeId)
   const events = grade
@@ -208,7 +220,7 @@ export function previewImportAgendas(draft: ImportFileDraft): AgendaPreview {
       && (!row.produtor_id || row.produtor_id === draft.producerId)
       && (!row.ramo_id || row.ramo_id === draft.branchId)
       && (!row.tipo_documento || row.tipo_documento === draft.proposalType))
-    .sort((a, b) => b.prioridade - a.prioridade)
+    .sort((a, b) => (b.prioridade ?? Number.MIN_SAFE_INTEGER) - (a.prioridade ?? Number.MIN_SAFE_INTEGER))
   const rule = rules[0]
   const commissionAmount = total * commission / 100
   const transferAmount = rule
@@ -232,16 +244,32 @@ function findProposalStage(name: string): string | undefined {
     .find((row) => pipelineIds.has(row.pipeline_id) && row.nome === name)?.id
 }
 
-export function importDocument(draft: ImportFileDraft): ImportResult {
+function importDocumentAtomic(draft: ImportFileDraft): ImportResult {
   const errors = validateImportDraft(draft)
   if (errors.length) return { fileId: draft.id, status: 'ERRO', message: errors[0] }
   const duplicate = rows<{ nome_arquivo: string; tamanho_bytes: number | null }>('anexos')
     .some((row) => row.nome_arquivo === draft.fileName && row.tamanho_bytes === draft.size)
   if (duplicate) return { fileId: draft.id, status: 'ERRO', message: 'Arquivo já importado nesta sessão.' }
 
+  if (draft.quoteId) {
+    const source = applyQuoteToManualDraft(createManualDraft(), draft.quoteId)
+    const created = createManualInsuranceDocument({
+      ...source, ...draft, mode: 'PROPOSTA', responsibleId: MOCK_USER_ID,
+      proposalNumber: draft.proposalNumber, policyNumber: '', issueDate: '',
+      attachment: { name: draft.fileName, type: draft.mimeType, size: draft.size },
+    })
+    const policy = getTable('apolices').find((row) => row.id === created.policyId)
+    if (policy) policy.canal_emissao = 'IMPORTACAO_ASSISTIDA'
+    getTable('anexos').filter((row) => row.entidade_id === created.proposalId).forEach((row) => { row.origem = 'IMPORTACAO_ASSISTIDA'; row.descricao = 'Proposta importada e vinculada à cotação de origem.' })
+    getTable('audit_logs').filter((row) => row.entidade_id === created.proposalId).forEach((row) => { row.acao = 'CREATE_IMPORTACAO'; row.origem = 'IMPORTACAO_ASSISTIDA' })
+    return { fileId: draft.id, status: 'IMPORTADO', message: 'Proposta importada e vinculada à cotação, com itens para conferência.', policyId: created.policyId, proposalId: created.proposalId }
+  }
+
   const policies = rows<PolicyInsert & { id: string }>('apolices')
   const proposals = rows<ProposalInsert & { id: string }>('propostas')
   const isOfficial = draft.kind === 'APOLICE' || draft.kind === 'ENDOSSO'
+  const stageId = findProposalStage(isOfficial ? 'Emitida' : 'Em análise')
+  if (!stageId) return { fileId: draft.id, status: 'ERRO', message: 'Etapa do funil de propostas não encontrada.' }
   let policy = draft.policyId ? policies.find((row) => row.id === draft.policyId) : undefined
   if (!policy) {
     policy = {
@@ -257,7 +285,7 @@ export function importDocument(draft: ImportFileDraft): ImportResult {
       data_emissao: draft.issueDate || null,
       premio_total: numeric(draft.totalPremium),
       premio_liquido: numeric(draft.netPremium),
-      renovada_de_id: null,
+      renovada_de_id: quoteProposalContract(draft.quoteId).renewedFromId,
     }
     policies.push(policy)
   } else if (draft.kind === 'APOLICE') {
@@ -275,8 +303,6 @@ export function importDocument(draft: ImportFileDraft): ImportResult {
     })
   }
 
-  const stageId = findProposalStage(isOfficial ? 'Emitida' : 'Em análise')
-  if (!stageId) return { fileId: draft.id, status: 'ERRO', message: 'Etapa do funil de propostas não encontrada.' }
   const proposalId = newId()
   const subtype = rows<EndorsementSubtypeRow>('endosso_subtipos').find((row) => row.id === draft.endorsementSubtypeId)
   const proposal: ProposalInsert & { id: string } = {
@@ -284,6 +310,7 @@ export function importDocument(draft: ImportFileDraft): ImportResult {
     apolice_id: policy.id,
     stage_id: stageId,
     tipo: draft.proposalType,
+    cotacao_id: draft.quoteId || null,
     responsavel_id: MOCK_USER_ID,
     recebimento_grade_id: draft.gradeId || null,
     endosso_subtipo_id: draft.kind === 'ENDOSSO' ? draft.endorsementSubtypeId : null,
@@ -337,6 +364,7 @@ export function importDocument(draft: ImportFileDraft): ImportResult {
   })
 
   if (isOfficial) materializeDocumentAgendas(proposalId, draft.firstDueDate || draft.coverageStart)
+  approveQuoteProposalOrigin(draft.quoteId, proposalId)
 
   return {
     fileId: draft.id,
@@ -344,5 +372,19 @@ export function importDocument(draft: ImportFileDraft): ImportResult {
     message: isOfficial ? 'Documento e agendas materializados.' : 'Proposta importada em tramitação.',
     policyId: policy.id,
     proposalId,
+  }
+}
+
+export function importDocument(draft: ImportFileDraft): ImportResult {
+  const tables = ['apolices', 'propostas', 'apolice_itens', 'item_veiculo', 'item_imovel', 'item_empresa', 'item_vida', 'item_coberturas', 'parcelas', 'comissoes', 'repasses', 'anexos', 'audit_logs', 'cotacoes']
+  const snapshots = tables.map((name) => ({ name, rows: structuredClone(getTable(name)) }))
+  const restore = () => snapshots.forEach(({ name, rows }) => getTable(name).splice(0, getTable(name).length, ...rows))
+  try {
+    const result = importDocumentAtomic(draft)
+    if (result.status === 'ERRO') restore()
+    return result
+  } catch (error) {
+    restore()
+    return { fileId: draft.id, status: 'ERRO', message: error instanceof Error ? error.message : 'Não foi possível importar o documento.' }
   }
 }

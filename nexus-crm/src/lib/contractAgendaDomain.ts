@@ -155,11 +155,11 @@ function winningRules(
   insured: InsuredRow | undefined,
   date: string,
 ): Array<{ rule: TransferRuleRow; beneficiaryId: string }> {
-  const beneficiary = (role: string) => role === 'GERENTE' ? insured?.gerente_id : policy.produtor_id
+  const beneficiary = (role: string | null) => role === 'GERENTE' ? insured?.gerente_id : policy.produtor_id
   const documentType = document.tipo === 'RENOVACAO' ? 'RENOVACAO' : document.tipo === 'NOVA' ? 'NOVA' : null
   const valid = rules.filter((rule) => {
     const beneficiaryId = beneficiary(rule.papel)
-    return rule.ativo && Boolean(beneficiaryId)
+    return rule.ativo === true && !!rule.papel && !!rule.base && !!rule.gatilho && rule.prioridade != null && Boolean(beneficiaryId)
       && (!rule.filial_id || rule.filial_id === insured?.filial_id)
       && (!rule.produtor_id || rule.produtor_id === beneficiaryId)
       && (!rule.ramo_id || rule.ramo_id === policy.ramo_id)
@@ -183,6 +183,7 @@ function buildTransfers(
   firstDue: string,
 ): RepasseRow[] {
   return rules.flatMap(({ rule, beneficiaryId }) => {
+    if (!rule.papel || !rule.base || !rule.gatilho || rule.prioridade == null) throw new Error('Complete a regra de repasse antes de gerar a agenda.');
     const count = rule.gatilho === 'CONFORME_RECEBIMENTO'
       ? Math.max(1, Math.min(commissions.length, rule.limite_parcelas ?? commissions.length))
       : rule.gatilho === 'PARCELADO'
@@ -201,7 +202,7 @@ function buildTransfers(
       const value = rule.base === 'VALOR_FIXO'
         ? baseAmount
         : baseAmount * Number(rule.percentual ?? 0) / 100
-      const followsCommission = ['CONFORME_RECEBIMENTO', 'PRIMEIRA_COMISSAO'].includes(rule.gatilho)
+      const followsCommission = ['CONFORME_RECEBIMENTO', 'PRIMEIRA_COMISSAO'].includes(rule.gatilho ?? '')
       return {
         id: `repasse:${document.id}:${rule.id}:${index + 1}`,
         proposta_id: document.id,

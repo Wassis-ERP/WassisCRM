@@ -98,10 +98,10 @@ export function listFinanceiroCobrancas(branchIds?: readonly string[] | null): C
     return [{
       ...row,
       parcela,
-      etapaNome: stage.nome,
+      etapaNome: stage.nome ?? 'Não informado',
       pipelineId: pipeline.id,
-      pipelineNome: pipeline.nome,
-      responsavelNome: profile?.full_name ?? null,
+      pipelineNome: pipeline.nome ?? 'Não informado',
+      responsavelNome: profile?.nome_completo ?? null,
       responsavelAvatar: profile?.avatar_url ?? null,
     }]
   }).sort((a, b) => (a.proxima_cobranca_em ?? a.vencimento_followup ?? '').localeCompare(b.proxima_cobranca_em ?? b.vencimento_followup ?? ''))
@@ -120,10 +120,10 @@ export function listParcelasElegiveisCobranca(branchIds?: readonly string[] | nu
   return listFinanceiroParcelas(branchIds).filter((row) => row.statusEfetivo === 'vencida' && !activeIds.has(row.id))
 }
 
-export function listCobrancaResponsaveis(): Array<Pick<ProfileRow, 'id' | 'full_name' | 'email' | 'avatar_url'>> {
+export function listCobrancaResponsaveis(): Array<Pick<ProfileRow, 'id' | 'nome_completo' | 'email' | 'avatar_url'>> {
   return typedRows<ProfileRow>('profiles')
-    .map(({ id, full_name, email, avatar_url }) => ({ id, full_name, email, avatar_url }))
-    .sort((a, b) => (a.full_name ?? a.email ?? '').localeCompare(b.full_name ?? b.email ?? '', 'pt-BR'))
+    .map(({ id, nome_completo, email, avatar_url }) => ({ id, nome_completo, email, avatar_url }))
+    .sort((a, b) => (a.nome_completo ?? a.email ?? '').localeCompare(b.nome_completo ?? b.email ?? '', 'pt-BR'))
 }
 
 export function createFinanceiroCobranca(input: CreateCobrancaInput, branchIds?: readonly string[] | null): FinanceiroCobrancaRow {

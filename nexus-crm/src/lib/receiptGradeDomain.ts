@@ -54,13 +54,15 @@ export function validateReceiptGrade(
   const issues: ReceiptGradeIssue[] = []
   const activeEvents = events
     .filter((event) => event.ativo)
-    .sort((a, b) => a.numero - b.numero)
+    .sort((a, b) => (a.numero ?? Infinity) - (b.numero ?? Infinity))
 
   if (!grade.ativo) issues.push({ code: 'INACTIVE', message: 'A grade está inativa.' })
-  if (!grade.nome.trim()) issues.push({ code: 'NAME_REQUIRED', message: 'Informe o nome da grade.' })
+  if (!grade.nome?.trim()) issues.push({ code: 'NAME_REQUIRED', message: 'Informe o nome da grade.' })
+  if (!grade.tipo) issues.push({ code: 'TYPE_REQUIRED', message: 'Informe o tipo da grade.' })
+  if ([grade.considera_iof, grade.considera_adicional_fracionamento, grade.vitalicio].some(value => value == null)) issues.push({ code: 'FLAGS_REQUIRED', message: 'Complete as opções de IOF, fracionamento e vitaliciedade da grade.' })
   if (!grade.seguradora_id) issues.push({ code: 'INSURER_REQUIRED', message: 'Informe a seguradora.' })
   if (!grade.ramo_id) issues.push({ code: 'BRANCH_REQUIRED', message: 'Informe o ramo.' })
-  if (!Number.isInteger(grade.qtd_parcelas) || grade.qtd_parcelas < 1) {
+  if (grade.qtd_parcelas == null || !Number.isInteger(grade.qtd_parcelas) || grade.qtd_parcelas < 1) {
     issues.push({ code: 'INVALID_COUNT', message: 'A quantidade de eventos deve ser um inteiro maior que zero.' })
   }
 
@@ -69,7 +71,7 @@ export function validateReceiptGrade(
     && candidate.ativo
     && candidate.seguradora_id === grade.seguradora_id
     && candidate.ramo_id === grade.ramo_id
-    && candidate.nome.trim().toLocaleLowerCase('pt-BR') === grade.nome.trim().toLocaleLowerCase('pt-BR'))
+    && candidate.nome?.trim().toLocaleLowerCase('pt-BR') === grade.nome?.trim().toLocaleLowerCase('pt-BR'))
   if (duplicate) issues.push({ code: 'DUPLICATE_NAME', message: 'Já existe uma grade ativa com este nome para a seguradora e o ramo.' })
 
   if (grade.tipo === 'VITALICIO_PCT_DEFINIDO' && grade.percentual_default == null) {
@@ -82,13 +84,14 @@ export function validateReceiptGrade(
 
   const numbers = new Set<number>()
   activeEvents.forEach((event) => {
-    if (!Number.isInteger(event.numero) || event.numero < 1) {
+    if (!event.tipo_comissao) issues.push({ code: 'COMMISSION_TYPE_REQUIRED', message: 'Informe o tipo de comissão do evento.', eventId: event.id })
+    if (event.numero == null || !Number.isInteger(event.numero) || event.numero < 1) {
       issues.push({ code: 'INVALID_EVENT_NUMBER', message: 'O número do evento deve ser um inteiro maior que zero.', eventId: event.id })
     } else if (numbers.has(event.numero)) {
       issues.push({ code: 'DUPLICATE_EVENT_NUMBER', message: `O evento ${event.numero} está repetido.`, eventId: event.id })
     }
-    numbers.add(event.numero)
-    if (event.numero > grade.qtd_parcelas) {
+    if (event.numero != null) numbers.add(event.numero)
+    if (event.numero != null && grade.qtd_parcelas != null && event.numero > grade.qtd_parcelas) {
       issues.push({ code: 'EVENT_OUT_OF_RANGE', message: `O evento ${event.numero} excede a quantidade configurada na grade.`, eventId: event.id })
     }
     if (event.percentual != null && event.percentual < 0) {
@@ -99,11 +102,11 @@ export function validateReceiptGrade(
     }
   })
 
-  if (finiteTypes.has(grade.tipo) && activeEvents.length !== grade.qtd_parcelas) {
+  if (grade.tipo && finiteTypes.has(grade.tipo) && activeEvents.length !== grade.qtd_parcelas) {
     issues.push({ code: 'FINITE_COUNT_MISMATCH', message: `A grade exige ${grade.qtd_parcelas} evento(s) ativo(s), mas possui ${activeEvents.length}.` })
   }
   if (activeEvents.length) {
-    const missing = Array.from({ length: Math.min(grade.qtd_parcelas, activeEvents.length) }, (_, index) => index + 1)
+    const missing = Array.from({ length: Math.min(grade.qtd_parcelas ?? 0, activeEvents.length) }, (_, index) => index + 1)
       .filter((number) => !numbers.has(number))
     if (missing.length) issues.push({ code: 'EVENT_GAP', message: `A numeração possui lacuna: ${missing.join(', ')}.` })
   }
@@ -145,13 +148,16 @@ export function simulateReceiptGrade(
   events: ReceiptGradeEvent[],
   input: ReceiptGradeSimulationInput,
 ): ReceiptGradeSimulationEvent[] {
+  const validation = validateReceiptGrade(grade, events)
+  if (!validation.applicable) throw new Error(validation.issues.map(issue => issue.message).join(' '))
   const basePremium = premiumBase(grade, input)
   const commissionTotal = basePremium * input.commissionPct / 100
 
   return events
     .filter((event) => event.ativo)
-    .sort((a, b) => a.numero - b.numero)
+    .sort((a, b) => (a.numero ?? Infinity) - (b.numero ?? Infinity))
     .map((event) => {
+      if (event.numero == null || !event.tipo_comissao) throw new Error('Complete o número e o tipo de comissão do evento.')
       const { percentage, percentageOrigin } = eventPercentage(event, input)
       const calculationBase = event.percentual_sobre === 'COMISSAO_TOTAL'
         ? commissionTotal

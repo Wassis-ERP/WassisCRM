@@ -43,7 +43,7 @@ export function usePipelines() {
             ...normalizePipelineRow(pipeline),
             stages: [...(pipeline_stages ?? [])]
               .map((stage) => normalizePipelineStageRow(stage))
-              .sort((a, b) => a.ordem - b.ordem),
+              .sort((a, b) => (a.ordem ?? Number.MAX_SAFE_INTEGER) - (b.ordem ?? Number.MAX_SAFE_INTEGER)),
           };
         })
         .filter((row) => isPipelineVisibleForBranch(row, activeBranchId))

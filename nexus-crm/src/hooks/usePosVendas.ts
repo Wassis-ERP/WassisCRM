@@ -24,7 +24,7 @@ type SeguradoResumo = Pick<
 >
 type SeguradoraResumo = Pick<Database['public']['Tables']['seguradoras']['Row'], 'id' | 'nome'>
 type RamoResumo = Pick<Database['public']['Tables']['ramos']['Row'], 'id' | 'nome' | 'risk_type' | 'is_monthly'>
-type ProfileResumo = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'full_name' | 'avatar_url'>
+type ProfileResumo = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'nome_completo' | 'avatar_url'>
 type StageResumo = Pick<Database['public']['Tables']['pipeline_stages']['Row'], 'id' | 'nome' | 'cor' | 'pipeline_id'>
 
 type ApoliceLookupRow = ApoliceRow & {
@@ -49,7 +49,7 @@ export interface PosVendaApoliceOption {
 
 export interface PosVendaResponsavel {
   id: string
-  full_name: string | null
+  nome_completo: string | null
   email: string | null
   tenant_id: string | null
 }
@@ -208,7 +208,7 @@ export function usePosVenda(id: string | undefined) {
             ramos:ramo_id ( id, nome, risk_type, is_monthly )
           ),
           pipeline_stages:stage_id ( id, nome, cor, pipeline_id ),
-          profiles:responsavel_id ( id, full_name, avatar_url )
+          profiles:responsavel_id ( id, nome_completo, avatar_url )
         `)
         .eq('id', id as string)
         .single()
@@ -225,8 +225,8 @@ export function usePosVendaResponsaveis() {
     queryFn: async (): Promise<PosVendaResponsavel[]> => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, tenant_id')
-        .order('full_name', { ascending: true })
+        .select('id, nome_completo, email, tenant_id')
+        .order('nome_completo', { ascending: true })
       if (error) throw error
       return ((data ?? []) as PosVendaResponsavel[]).filter(
         (profile) => !user?.tenantId || !profile.tenant_id || profile.tenant_id === user.tenantId,

@@ -47,7 +47,7 @@ function valueFromCampo(campo: CampoPersonalizadoOperacional): CampoValorInput {
   }
 }
 
-function tipoLabel(tipo: string) {
+function tipoLabel(tipo: string | null) {
   const labels: Record<string, string> = {
     TEXTO_CURTO: 'Texto',
     TEXTO_LONGO: 'Texto longo',
@@ -59,10 +59,10 @@ function tipoLabel(tipo: string) {
     LISTA_UNICA: 'Seleção única',
     LISTA_MULTIPLA: 'Seleção múltipla',
   }
-  return labels[tipo] ?? tipo
+  return tipo ? labels[tipo] ?? tipo : 'Tipo não informado'
 }
 
-function CampoIcon({ tipo }: { tipo: string }) {
+function CampoIcon({ tipo }: { tipo: string | null }) {
   if (tipo === 'DATA' || tipo === 'DATA_HORA') return <Calendar size={16} />
   if (tipo === 'BOOLEANO') return <ShieldCheck size={16} />
   if (tipo === 'LISTA_UNICA' || tipo === 'LISTA_MULTIPLA') return <ListChecks size={16} />
@@ -114,6 +114,7 @@ function CampoEditor({
   }
 
   const renderInput = () => {
+    if (!campo.tipo_dado || campo.obrigatorio == null) return <p className="text-sm text-signal-warning">Complete a definição deste campo em Configurações antes de preencher.</p>
     switch (campo.tipo_dado) {
       case 'TEXTO_LONGO':
         return (

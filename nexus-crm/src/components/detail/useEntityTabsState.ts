@@ -98,7 +98,7 @@ function isOverdue(vencimento?: string | null): boolean {
 }
 
 function profileName(profile: ProfileRow | undefined, fallback: string): string {
-  return profile?.full_name || profile?.email || fallback
+  return profile?.nome_completo || profile?.email || fallback
 }
 
 function initials(nome: string): string {
@@ -144,7 +144,7 @@ export function mapAtividadeToTarefa(row: AtividadeRow, profiles: ProfileRow[], 
   return {
     id: row.id,
     titulo: row.titulo ?? row.descricao ?? 'Tarefa',
-    tipo: DB_TO_TAREFA_TIPO[row.tipo] ?? 'Follow-up',
+    tipo: DB_TO_TAREFA_TIPO[row.tipo ?? ''] ?? 'Follow-up',
     prazo: row.vencimento ?? undefined,
     status: concluida ? 'Concluída' : isOverdue(row.vencimento) ? 'Atrasada' : 'Pendente',
     prioridade: DB_TO_PRIORIDADE[row.prioridade ?? ''] ?? 'Média',
@@ -172,8 +172,8 @@ export function mapAtividadeToObservacao(row: AtividadeRow, profiles: ProfileRow
 export function mapAnexoToView(row: AnexoRow): Anexo {
   return {
     id: row.id,
-    nome: row.nome_arquivo,
-    tipo: fileType(row.nome_arquivo),
+    nome: row.nome_arquivo ?? 'Arquivo sem nome',
+    tipo: fileType(row.nome_arquivo ?? ''),
     tamanho: humanSize(row.tamanho_bytes),
     data: row.anexado_em ?? row.created_at,
     autor: row.origem === 'usuario' ? 'Usuário da sessão' : undefined,
@@ -308,7 +308,7 @@ function buildAnexoLogs(anexos: AnexoRow[], fallbackAutor: string): LogEntry[] {
     id: `anexo-${anexo.id}`,
     quando: anexo.anexado_em ?? anexo.created_at ?? new Date().toISOString(),
     titulo: 'Anexo adicionado',
-    detalhe: anexo.nome_arquivo,
+    detalhe: anexo.nome_arquivo ?? undefined,
     autor: fallbackAutor,
     tipo: 'anexo' as const,
     origem: 'anexo' as const,
@@ -361,7 +361,7 @@ function resolveProfileMentions(texto: string, profiles: ProfileRow[]): string[]
   if (mentions.length === 0) return []
   return profiles
     .filter((profile) => {
-      const nameParts = (profile.full_name ?? profile.email ?? '')
+      const nameParts = (profile.nome_completo ?? profile.email ?? '')
         .toLowerCase()
         .split(/[\s@.]+/)
         .filter(Boolean)

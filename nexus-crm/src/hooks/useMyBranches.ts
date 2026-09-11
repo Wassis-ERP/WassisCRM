@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useAuth } from './useAuth';
 import { useFiliais } from './useFiliais';
 import { useProfileFiliais } from './useProfileFiliais';
+import { activeProfileLinks } from '../modules/plataforma/platformCommands';
 
 export interface MyBranch {
   id: string;
@@ -22,17 +23,18 @@ export function useMyBranches() {
 
   const branches = useMemo<MyBranch[]>(() => {
     const labelById = new Map((filiais ?? []).map((f) => [f.id, f.label]));
+    const allowed = new Set(user ? activeProfileLinks(user.id).map(v => v.id) : []);
     return vinculos
-      .filter((v) => labelById.has(v.filial_id)) // só filiais ativas
+      .filter((v) => labelById.has(v.filial_id) && allowed.has(v.id))
       .map((v) => ({
         id: v.filial_id,
         label: labelById.get(v.filial_id) as string,
-        principal: v.principal,
+        principal: v.principal === true,
       }))
       .sort((a, b) =>
         a.principal === b.principal ? a.label.localeCompare(b.label, 'pt-BR') : a.principal ? -1 : 1,
       );
-  }, [vinculos, filiais]);
+  }, [vinculos, filiais, user]);
 
   return { branches, isLoading };
 }
