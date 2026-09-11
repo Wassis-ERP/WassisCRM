@@ -126,13 +126,14 @@ function normalizeCurrentUser(raw: unknown): BackendCurrentUser {
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   ensureApiBaseUrl();
+  const headers = new Headers(init?.headers);
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -141,6 +142,21 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return response.json() as Promise<T>;
+}
+
+export async function requestAuthenticatedBackendJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getBackendAccessToken();
+  if (!token) {
+    throw new Error('Sessao do WAssisBE nao encontrada ou expirada.');
+  }
+
+  const headers = new Headers(init?.headers);
+  headers.set('Authorization', `Bearer ${token}`);
+
+  return requestJson<T>(path, {
+    ...init,
+    headers,
+  });
 }
 
 export async function loginToBackend(username: string, password: string): Promise<BackendLoginResponse> {

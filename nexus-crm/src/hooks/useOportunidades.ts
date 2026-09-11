@@ -1,3 +1,5 @@
+import { createBackendOpportunity, getBackendInsuredPerson, getBackendOpportunity, updateBackendOpportunity, usesBackendDomainData } from '../lib/backendDomainApi'
+import { getTable } from '../lib/inMemoryDb'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { Database } from '../types/database'
@@ -12,7 +14,7 @@ import {
 
 type SeguradoLite = Pick<Database['public']['Tables']['segurados']['Row'], 'id' | 'nome' | 'cpf_cnpj' | 'telefone' | 'email'>
 type RamoLite = Pick<Database['public']['Tables']['ramos']['Row'], 'id' | 'nome' | 'risk_type' | 'grupo_operacional' | 'forma_calculo'>
-type LookupLite = { id: string; nome: string }
+type LookupLite = { id: string; nome: string | null }
 type ProfileLite = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'nome_completo' | 'avatar_url'>
 type StageRow = Database['public']['Tables']['pipeline_stages']['Row']
 
@@ -51,6 +53,7 @@ export function useCreateOportunidade() {
         dataAbertura: todayIso(),
       })
 
+      if (usesBackendDomainData) return createBackendOpportunity(payload, user.tenantId)
       const { data, error } = await supabase.from('oportunidades').insert(payload).select('*').single()
       if (error) throw error
       return data as OpportunityRow
@@ -61,10 +64,12 @@ export function useCreateOportunidade() {
 
 /** Atualiza apenas campos do contrato v2.6 e invalida detalhe, lista e Kanban. */
 export function useUpdateOportunidade() {
+  const { user } = useAuth()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (args: { id: string; patch: OpportunityUpdate }): Promise<OpportunityRow> => {
+      if (usesBackendDomainData) return updateBackendOpportunity(args.id, args.patch, user?.tenantId ?? null)
       const { data, error } = await supabase
         .from('oportunidades')
         .update(args.patch)
@@ -80,10 +85,26 @@ export function useUpdateOportunidade() {
 
 /** Busca o detalhe e resolve joins sem depender de FKs legadas de pipeline/seguradora. */
 export function useOportunidade(id: string | undefined) {
+  const { user } = useAuth()
   return useQuery({
     enabled: Boolean(id),
     queryKey: ['oportunidade', id],
     queryFn: async (): Promise<OpportunityDetail> => {
+      if (usesBackendDomainData) {
+        const row = await getBackendOpportunity(id as string, user?.tenantId ?? null)
+        const insured = row.segurado_id ? await getBackendInsuredPerson(row.segurado_id, row.tenant_id) : null
+        const lookup = <T,>(table: string, value: string | null): T | null =>
+          (getTable(table).find(item => item.id === value) as T | undefined) ?? null
+        return {
+          ...row,
+          segurados: insured,
+          ramos: lookup<RamoLite>('ramos', row.ramo_id),
+          origens: lookup<LookupLite>('origens', row.origem_id),
+          motivos_perda: lookup<LookupLite>('motivos_perda', row.motivo_perda_id),
+          profiles: lookup<ProfileLite>('profiles', row.responsavel_id),
+          pipeline_stage: lookup<StageRow>('pipeline_stages', row.stage_id),
+        }
+      }
       const { data, error } = await supabase
         .from('oportunidades')
         .select(`

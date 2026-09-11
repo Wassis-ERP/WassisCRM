@@ -1,3 +1,4 @@
+import { usesBackendDomainData } from '../lib/backendDomainApi'
 import { opportunityPermissionContext } from '../modules/plataforma/platformDomain'
 import { useState, type ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -80,7 +81,7 @@ function toDraft(row: OpportunityDetail): OpportunityDraft {
     ramoId: row.ramo_id ?? '',
     origemId: row.origem_id ?? '',
     responsavelId: row.responsavel_id ?? '',
-    prioridade: row.prioridade ?? 'media',
+    prioridade: row.prioridade ?? '',
     premioEstimado: row.valor_premio_estimado?.toString() ?? '',
     comissaoEstimada: row.valor_comissao_estimada?.toString() ?? '',
     comissaoPercentual: row.comissao_estimada_pct?.toString() ?? '',
@@ -458,21 +459,21 @@ function OpportunityOverviewEditor({
       icon={Edit3}
       action={<div className="flex items-center gap-2"><button type="button" onClick={onCancel} disabled={isSaving} className="rounded-[6px] px-3 py-2 text-xs font-black text-fg-3 hover:bg-bg-surface-2 disabled:opacity-40"><X size={14} className="inline" /> Cancelar</button><button type="button" onClick={onSave} disabled={isSaving} className="inline-flex items-center gap-2 rounded-full bg-accent-primary px-4 py-2 text-xs font-black text-fg-on-brand shadow-[var(--shadow-brand)] disabled:opacity-40"><Save size={14} /> {isSaving ? 'Salvando…' : 'Salvar alterações'}</button></div>}
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <p className="mb-4 text-sm text-fg-3" hidden={!usesBackendDomainData}>Os campos desabilitados aguardam suporte da integração. A data de abertura é definida no cadastro.</p><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Field label="Título" span="lg:col-span-2"><input value={draft.titulo} onChange={(event) => change('titulo', event.target.value)} className={inputClass} /></Field>
-        <Field label="Prioridade"><select value={draft.prioridade} onChange={(event) => change('prioridade', event.target.value)} className={inputClass}><option value="baixa">Baixa</option><option value="media">Média</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></Field>
+        <Field label="Prioridade"><select disabled={usesBackendDomainData} value={draft.prioridade} onChange={(event) => change('prioridade', event.target.value)} className={inputClass}><option value="">Não informada</option><option value="baixa">Baixa</option><option value="media">Média</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></Field>
         <Field label="Ramo"><select value={draft.ramoId} onChange={(event) => change('ramoId', event.target.value)} className={inputClass}><option value="">Não informado</option>{ramos.map((row) => <option key={row.id} value={row.id}>{row.nome}</option>)}</select></Field>
         <Field label="Origem"><select value={draft.origemId} onChange={(event) => change('origemId', event.target.value)} className={inputClass}><option value="">Não informada</option>{origens.map((row) => <option key={row.id} value={row.id}>{row.nome}</option>)}</select></Field>
         <Field label="Responsável"><select value={draft.responsavelId} onChange={(event) => change('responsavelId', event.target.value)} className={inputClass}><option value="">Não atribuído</option>{profiles.map((row) => <option key={row.id} value={row.id}>{row.nome_completo ?? 'Usuário sem nome'}</option>)}</select></Field>
         <Field label="Prêmio estimado"><input inputMode="decimal" value={draft.premioEstimado} onChange={(event) => change('premioEstimado', event.target.value)} className={`${inputClass} font-mono`} /></Field>
-        <Field label="Comissão estimada"><input inputMode="decimal" value={draft.comissaoEstimada} onChange={(event) => change('comissaoEstimada', event.target.value)} className={`${inputClass} font-mono`} /></Field>
+        <Field label="Comissão estimada"><input inputMode="decimal" disabled={usesBackendDomainData} value={draft.comissaoEstimada} onChange={(event) => change('comissaoEstimada', event.target.value)} className={`${inputClass} font-mono`} /></Field>
         <Field label="Comissão estimada (%)"><input inputMode="decimal" value={draft.comissaoPercentual} onChange={(event) => change('comissaoPercentual', event.target.value)} className={`${inputClass} font-mono`} /></Field>
         {showAgenciamento && <Field label="Agenciamento (%)"><input inputMode="decimal" value={draft.agenciamentoPercentual} onChange={(event) => change('agenciamentoPercentual', event.target.value)} className={`${inputClass} font-mono`} /></Field>}
-        <Field label="Data de abertura"><input type="date" value={draft.dataAbertura} onChange={(event) => change('dataAbertura', event.target.value)} className={inputClass} /></Field>
-        <Field label="Fechamento previsto"><input type="date" value={draft.fechamentoPrevisto} onChange={(event) => change('fechamentoPrevisto', event.target.value)} className={inputClass} /></Field>
-        <Field label="Campanha"><input value={draft.campanha} onChange={(event) => change('campanha', event.target.value)} className={inputClass} /></Field>
+        <Field label="Data de abertura"><input type="date" disabled={usesBackendDomainData} value={draft.dataAbertura} onChange={(event) => change('dataAbertura', event.target.value)} className={inputClass} /></Field>
+        <Field label="Fechamento previsto"><input type="date" disabled={usesBackendDomainData} value={draft.fechamentoPrevisto} onChange={(event) => change('fechamentoPrevisto', event.target.value)} className={inputClass} /></Field>
+        <Field label="Campanha"><input disabled={usesBackendDomainData} value={draft.campanha} onChange={(event) => change('campanha', event.target.value)} className={inputClass} /></Field>
         <Field label="Descrição" span="sm:col-span-2 lg:col-span-3"><textarea rows={3} value={draft.descricao} onChange={(event) => change('descricao', event.target.value)} className={`${inputClass} resize-none`} /></Field>
-        <Field label="Observações internas" span="sm:col-span-2 lg:col-span-3"><textarea rows={3} value={draft.observacoes} onChange={(event) => change('observacoes', event.target.value)} className={`${inputClass} resize-none`} /></Field>
+        <Field label="Observações internas" span="sm:col-span-2 lg:col-span-3"><textarea rows={3} disabled={usesBackendDomainData} value={draft.observacoes} onChange={(event) => change('observacoes', event.target.value)} className={`${inputClass} resize-none`} /></Field>
       </div>
     </DetailCard>
   )

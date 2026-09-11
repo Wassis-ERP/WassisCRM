@@ -8,6 +8,8 @@
 
 - [~] 11/09/2026 — Publicação consolidada com DBML v3.1 e conciliação das integrações remotas. Micro-plano: `micro-plano-publicacao-consolidada-2026-09-11.md`.
 
+  Exceção autorizada nesta conciliação: preservar as integrações HTTP de Segurados/Oportunidades já implementadas pela outra equipe em main. Isso não amplia o escopo para construir backend ou novas APIs; limitações do DTO remoto constam de `resultado-publicacao-2026-09-11.md`.
+
 - [x] 11/09/2026 — Reconciliadas todas as diferenças de nulabilidade: 86 campos no inventário (resumo anterior dizia 87), zero divergências restantes; validações de escrita preservadas. Micro-plano: `micro-plano-nulabilidade-2026-09-11.md`.
 
 - [x] 11/09/2026 — Aplicar recomendações da auditoria visual: reconciliação de plataforma/cadastros, acesso, permissões, contrato aditivo v3.1 e documentação. Micro-plano: `micro-plano-reconciliacao-front-2026-09-11.md`.

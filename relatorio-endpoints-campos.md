@@ -460,3 +460,6 @@ Segurado preserva campos opcionais não editados. Celular e WhatsApp agora são 
 - Pos-venda permanece no produto para onboarding do segurado e acompanhamentos
   mensais de ramos faturaveis; o legado deve migrar de `oportunidade_id` para
   `apolice_id` na Fase 4.2.
+# Nota de integração — 11/09/2026
+
+A conciliação com main preserva a integração HTTP existente de Segurados e Oportunidades, cujo DTO ainda é anterior ao DBML v3.1. A tipagem canônica foi mantida e a tradução fica em `backendDomainApi.ts`. Campos sem suporte não são descartados em gravações: há bloqueio explícito. Matriz de limitações e responsabilidades em `resultado-publicacao-2026-09-11.md`. Multicalculo e demais módulos continuam em memória.

@@ -13,10 +13,6 @@ on:
         options:
           - hml
           - prod
-      api_base_url:
-        description: "WAssisBE API base URL baked into the CRM build"
-        required: true
-        default: "https://api20-hml.wassis.com.br"
 
 permissions:
   contents: read
@@ -26,6 +22,8 @@ env:
   IMAGE_NAME: ghcr.io/wassis-erp/wassis-crm
   HML_API_BASE_URL: https://api20-hml.wassis.com.br
   PROD_API_BASE_URL: https://api20.wassis.com.br
+  HML_CRM_BASE_URL: https://crm20-hml.wassis.com.br
+  PROD_CRM_BASE_URL: https://crm20.wassis.com.br
 
 jobs:
   publish:
@@ -43,17 +41,21 @@ jobs:
           PROD_WEBHOOK_URL: ${{ secrets.PORTAINER_CRM_PROD_WEBHOOK_URL }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "api_base_url=${{ inputs.api_base_url }}" >> "$GITHUB_OUTPUT"
             if [ "${{ inputs.environment }}" = "prod" ]; then
               echo "tag=latest" >> "$GITHUB_OUTPUT"
+              echo "api_base_url=${PROD_API_BASE_URL}" >> "$GITHUB_OUTPUT"
+              echo "health_url=${PROD_CRM_BASE_URL}" >> "$GITHUB_OUTPUT"
               echo "webhook_url=${PROD_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
             else
               echo "tag=hml" >> "$GITHUB_OUTPUT"
+              echo "api_base_url=${HML_API_BASE_URL}" >> "$GITHUB_OUTPUT"
+              echo "health_url=${HML_CRM_BASE_URL}" >> "$GITHUB_OUTPUT"
               echo "webhook_url=${HML_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
             fi
           else
             echo "tag=hml" >> "$GITHUB_OUTPUT"
             echo "api_base_url=${{ env.HML_API_BASE_URL }}" >> "$GITHUB_OUTPUT"
+            echo "health_url=${{ env.HML_CRM_BASE_URL }}" >> "$GITHUB_OUTPUT"
             echo "webhook_url=${HML_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
           fi
 
@@ -77,6 +79,8 @@ jobs:
           build-args: |
             VITE_API_BASE_URL=${{ steps.meta.outputs.api_base_url }}
             VITE_AUTH_MODE=backend
+            VITE_DATA_MODE=backend
+            VITE_BUILD_SHA=${{ github.sha }}
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -110,9 +114,18 @@ jobs:
             --write-out '%{http_code}' \
             "${WEBHOOK_URL}${separator}tag=${IMAGE_TAG}")"
 
-          cat "$response_file"
+          response_body="$(cat "$response_file")"
+          rm -f "$response_file"
+          printf '%s\n' "$response_body"
           if [ "$status_code" != "202" ]; then
-            echo "::error::Expected HTTP 202 from a Portainer service webhook, received ${status_code}. Configure a service webhook instead of a stack GitOps webhook."
+            case "$response_body" in
+              *unauthorized*|*Unauthorized*)
+                echo "::error::Portainer reached the service webhook but GHCR rejected the image pull. Configure the ghcr.io registry on the Portainer endpoint with a GitHub user and a token that has read:packages, then associate that registry credential with the service."
+                ;;
+              *)
+                echo "::error::Expected HTTP 202 from a Portainer service webhook, received ${status_code}. Verify the service webhook URL and the image tag."
+                ;;
+            esac
             exit 1
           fi
 
@@ -122,3 +135,19 @@ jobs:
             echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
             echo "- Webhook response: HTTP ${status_code}"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify deployed CRM
+        env:
+          HEALTH_URL: ${{ steps.meta.outputs.health_url }}
+        run: |
+          for attempt in $(seq 1 18); do
+            response_body="$(curl --fail --silent --show-error --location --max-time 10 "${HEALTH_URL}?build=${GITHUB_SHA}" || true)"
+            if printf '%s' "$response_body" | grep --fixed-strings --quiet "content=\"${GITHUB_SHA}\""; then
+              echo "CRM build ${GITHUB_SHA} is healthy at ${HEALTH_URL}."
+              exit 0
+            fi
+            echo "Waiting for CRM redeploy (${attempt}/18)..."
+            sleep 5
+          done
+          echo "::error::CRM did not become healthy after the Portainer redeploy."
+          exit 1

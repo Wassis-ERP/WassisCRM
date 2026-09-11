@@ -15,8 +15,8 @@ interface UseKanbanCardsArgs {
  * Retorna o shape generico `KanbanCard` pronto para render.
  */
 export function useKanbanCards({ pipelineId, module, includeConcluded }: UseKanbanCardsArgs) {
-  const { session, activeBranchId } = useAuth();
-  const tenantLike = session?.user?.id ?? '';
+  const { user, activeBranchId } = useAuth();
+  const tenantLike = user?.tenantId ?? '';
 
   return useQuery({
     enabled: !!pipelineId && !!module,

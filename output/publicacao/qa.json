@@ -1,0 +1,125 @@
+{
+  "mockEdit": true,
+  "apiInsuredEdit": true,
+  "apiOpportunityEdit": true,
+  "apiOpportunityCreate": true,
+  "unsupportedLeadDisabled": true,
+  "desktop": "1440x1000",
+  "mobile": "390x844",
+  "zoom": 1,
+  "requests": [
+    {
+      "path": "/api/identity/me",
+      "method": "GET"
+    },
+    {
+      "path": "/api/identity/me",
+      "method": "GET"
+    },
+    {
+      "path": "/api/segurados",
+      "method": "GET"
+    },
+    {
+      "path": "/api/segurados/mock-segurado-joao",
+      "method": "GET"
+    },
+    {
+      "path": "/api/segurados/mock-segurado-joao",
+      "method": "GET"
+    },
+    {
+      "path": "/api/segurados/mock-segurado-joao",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/segurados",
+      "method": "GET"
+    },
+    {
+      "path": "/api/segurados/mock-segurado-joao",
+      "method": "GET"
+    },
+    {
+      "path": "/api/segurados/mock-segurado-joao",
+      "method": "GET"
+    },
+    {
+      "path": "/api/identity/me",
+      "method": "GET"
+    },
+    {
+      "path": "/api/identity/me",
+      "method": "GET"
+    },
+    {
+      "path": "/api/segurados",
+      "method": "GET"
+    },
+    {
+      "path": "/api/oportunidades",
+      "method": "GET"
+    },
+    {
+      "path": "/api/segurados",
+      "method": "GET"
+    },
+    {
+      "path": "/api/oportunidades/op-1",
+      "method": "GET"
+    },
+    {
+      "path": "/api/segurados/mock-segurado-joao",
+      "method": "GET"
+    },
+    {
+      "path": "/api/oportunidades/op-1",
+      "method": "GET"
+    },
+    {
+      "path": "/api/oportunidades/op-1",
+      "method": "PUT"
+    },
+    {
+      "path": "/api/oportunidades/op-1",
+      "method": "GET"
+    },
+    {
+      "path": "/api/segurados/mock-segurado-joao",
+      "method": "GET"
+    },
+    {
+      "path": "/api/identity/me",
+      "method": "GET"
+    },
+    {
+      "path": "/api/identity/me",
+      "method": "GET"
+    },
+    {
+      "path": "/api/segurados",
+      "method": "GET"
+    },
+    {
+      "path": "/api/oportunidades",
+      "method": "GET"
+    },
+    {
+      "path": "/api/segurados",
+      "method": "GET"
+    },
+    {
+      "path": "/api/oportunidades",
+      "method": "POST"
+    },
+    {
+      "path": "/api/oportunidades",
+      "method": "GET"
+    },
+    {
+      "path": "/api/segurados",
+      "method": "GET"
+    }
+  ],
+  "errors": []
+}

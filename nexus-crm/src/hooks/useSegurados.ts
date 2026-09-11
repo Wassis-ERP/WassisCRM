@@ -8,6 +8,13 @@ import { mapPessoaContatoRowToView } from '../lib/seguradoMapper';
 import type { PessoaContato } from '../contexts/seguradosCore';
 import { useMemo } from 'react';
 import { onlyDigits } from '../utils/documento';
+import {
+  createBackendInsuredPerson,
+  getBackendInsuredPerson,
+  listBackendInsuredPeople,
+  updateBackendInsuredPerson,
+  usesBackendDomainData,
+} from '../lib/backendDomainApi';
 
 type SeguradoRow = Database['public']['Tables']['segurados']['Row'];
 type SeguradoUpdate = Database['public']['Tables']['segurados']['Update'];
@@ -29,7 +36,7 @@ const SEGURADO_WITH_JOINS_SELECT =
  * sem precisar de hidratar separadamente.
  */
 export function useSegurados() {
-  const { session, loading: authLoading, activeBranchId } = useAuth();
+  const { session, user, loading: authLoading, activeBranchId } = useAuth();
   const authReady = !authLoading && !!session;
 
   return useQuery({
@@ -37,6 +44,10 @@ export function useSegurados() {
     queryKey: [...SEGURADOS_KEY, 'branch', activeBranchId ?? '__all__'] as const,
     enabled: authReady,
     queryFn: async (): Promise<SeguradoRow[]> => {
+      if (usesBackendDomainData) {
+        return listBackendInsuredPeople(user?.tenantId ?? null, activeBranchId);
+      }
+
       let builder = supabase
         .from('segurados')
         .select(SEGURADO_WITH_JOINS_SELECT)
@@ -77,18 +88,24 @@ export function useCreateSegurado() {
       if (!input.nome?.trim()) throw new Error('Nome é obrigatório.');
       if (!cpfCnpj && input.status !== 'Prospecto') throw new Error('CPF/CNPJ é obrigatório para cadastrar segurado');
 
+      const payload: SeguradoInsert = {
+        ...input,
+        cpf_cnpj: cpfCnpj,
+        nome: input.nome.trim(),
+        tipo: input.tipo ?? 'PF',
+        status: input.status ?? 'Ativo',
+        lgpd_autorizado: input.lgpd_autorizado ?? false,
+        tenant_id: user.tenantId,
+        filial_id: filialId,
+      };
+
+      if (usesBackendDomainData) {
+        return createBackendInsuredPerson(payload, user.tenantId);
+      }
+
       const { data, error } = await supabase
         .from('segurados')
-        .insert({
-          ...input,
-          cpf_cnpj: cpfCnpj,
-          nome: input.nome.trim(),
-          tipo: input.tipo ?? 'PF',
-          status: input.status ?? 'Ativo',
-          lgpd_autorizado: input.lgpd_autorizado ?? false,
-          tenant_id: user.tenantId,
-          filial_id: filialId,
-        })
+        .insert(payload)
         .select('*')
         .single();
 
@@ -105,13 +122,17 @@ export function useCreateSegurado() {
  * Detalhe de um segurado por id (com joins de produtor/gerente).
  */
 export function useSegurado(id: string | undefined) {
-  const { session, loading: authLoading } = useAuth();
+  const { session, loading: authLoading, user } = useAuth();
   const authReady = !authLoading && !!session;
 
   return useQuery({
     queryKey: [...SEGURADOS_KEY, id] as const,
     enabled: Boolean(id) && authReady,
     queryFn: async (): Promise<SeguradoRow> => {
+      if (usesBackendDomainData) {
+        return getBackendInsuredPerson(id as string, user?.tenantId ?? null);
+      }
+
       const { data, error } = await supabase
         .from('segurados')
         .select(SEGURADO_WITH_JOINS_SELECT)
@@ -130,9 +151,14 @@ export function useSegurado(id: string | undefined) {
  */
 export function useUpdateSegurado() {
   const qc = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (args: { id: string; patch: SeguradoUpdate }): Promise<SeguradoRow> => {
+      if (usesBackendDomainData) {
+        return updateBackendInsuredPerson(args.id, args.patch, user?.tenantId ?? null);
+      }
+
       const { data, error } = await supabase
         .from('segurados')
         .update(args.patch)

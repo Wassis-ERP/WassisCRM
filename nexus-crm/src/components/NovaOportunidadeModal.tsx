@@ -5,6 +5,7 @@ import { useCreateOportunidade } from '../hooks/useOportunidades'
 import { useOrigens, useRamos } from '../hooks/useLookups'
 import { usePipelineStages } from '../hooks/usePipelineStages'
 import { useSegurados } from '../hooks/useSegurados'
+import { usesBackendDomainData } from '../lib/backendDomainApi'
 import { formatCpfCnpj, isValidCnpj, isValidCpf, onlyDigits } from '../utils/documento'
 
 interface Props {
@@ -32,7 +33,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
   const origens = useOrigens()
   const createOpportunity = useCreateOportunidade()
 
-  const [mode, setMode] = useState<CaptureMode>('lead')
+  const [mode, setMode] = useState<CaptureMode>(usesBackendDomainData ? 'segurado' : 'lead')
   const [titulo, setTitulo] = useState('')
   const [leadNome, setLeadNome] = useState('')
   const [leadDocumento, setLeadDocumento] = useState('')
@@ -42,7 +43,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
   const [seguradoSearch, setSeguradoSearch] = useState('')
   const [ramoId, setRamoId] = useState('')
   const [origemId, setOrigemId] = useState('')
-  const [prioridade, setPrioridade] = useState('media')
+  const [prioridade, setPrioridade] = useState(usesBackendDomainData ? '' : 'media')
   const [fechamentoPrevisto, setFechamentoPrevisto] = useState('')
   const [descricao, setDescricao] = useState('')
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -68,12 +69,13 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
   const canSubmit = Boolean(
     firstStage &&
     ramoId &&
+    (!usesBackendDomainData || titulo.trim()) &&
     (mode === 'segurado' ? seguradoId : leadNome.trim() && leadHasContact && validOptionalDocument(leadDocumento)) &&
     !createOpportunity.isPending,
   )
 
   const reset = () => {
-    setMode('lead')
+    setMode(usesBackendDomainData ? 'segurado' : 'lead')
     setTitulo('')
     setLeadNome('')
     setLeadDocumento('')
@@ -83,7 +85,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
     setSeguradoSearch('')
     setRamoId('')
     setOrigemId('')
-    setPrioridade('media')
+    setPrioridade(usesBackendDomainData ? '' : 'media')
     setFechamentoPrevisto('')
     setDescricao('')
     setSubmitError(null)
@@ -113,7 +115,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
         origemId: origemId || null,
         titulo: titulo || null,
         descricao: descricao || null,
-        prioridade,
+        prioridade: prioridade || null,
         leadNome: mode === 'lead' ? leadNome : null,
         leadDocumento: mode === 'lead' ? leadDocumento : null,
         leadEmail: mode === 'lead' ? leadEmail : null,
@@ -133,7 +135,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-4 py-8">
       <button type="button" aria-label="Fechar cadastro de oportunidade" className="fixed inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm" onClick={close} />
-      <section role="dialog" aria-modal="true" aria-labelledby="nova-oportunidade-title" className="relative w-full max-w-2xl overflow-hidden rounded-[8px] border border-border-1 bg-bg-surface shadow-[var(--shadow-3)]">
+      <section role="dialog" aria-modal="true" aria-labelledby="nova-oportunidade-title" className="relative max-h-[calc(100dvh-4rem)] w-full max-w-2xl overflow-y-auto rounded-[8px] border border-border-1 bg-bg-surface shadow-[var(--shadow-3)]">
         <header className="flex items-start justify-between gap-4 border-b border-border-1 px-5 py-4">
           <div className="flex min-w-0 items-start gap-3">
             <span className="rounded-[8px] bg-accent-primary-soft p-2 text-accent-primary"><BriefcaseBusiness size={19} /></span>
@@ -150,8 +152,9 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
         </header>
 
         <div className="space-y-5 p-5">
+          {usesBackendDomainData && <p className="text-sm text-fg-3" role="note">Nesta versão conectada, selecione um segurado cadastrado e informe o título. Novos leads, prioridade e previsão de fechamento aguardam atualização da integração.</p>}
           <div className="grid grid-cols-2 gap-1 rounded-[8px] bg-bg-surface-2 p-1" aria-label="Tipo de identificação da oportunidade">
-            <button type="button" onClick={() => setMode('lead')} className={`flex items-center justify-center gap-2 rounded-[6px] px-3 py-2 text-sm font-bold transition-colors ${mode === 'lead' ? 'bg-bg-surface text-accent-primary shadow-[var(--shadow-1)]' : 'text-fg-3 hover:text-fg-1'}`}>
+            <button type="button" disabled={usesBackendDomainData} onClick={() => setMode('lead')} className={`flex items-center justify-center gap-2 rounded-[6px] px-3 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${mode === 'lead' ? 'bg-bg-surface text-accent-primary shadow-[var(--shadow-1)]' : 'text-fg-3 hover:text-fg-1'}`}>
               <UserRound size={16} /> Novo lead
             </button>
             <button type="button" onClick={() => setMode('segurado')} className={`flex items-center justify-center gap-2 rounded-[6px] px-3 py-2 text-sm font-bold transition-colors ${mode === 'segurado' ? 'bg-bg-surface text-accent-primary shadow-[var(--shadow-1)]' : 'text-fg-3 hover:text-fg-1'}`}>
@@ -223,7 +226,8 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
             </label>
             <label className="space-y-1.5">
               <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Prioridade</span>
-              <select value={prioridade} onChange={(event) => setPrioridade(event.target.value)} className={inputClass}>
+              <select disabled={usesBackendDomainData} value={prioridade} onChange={(event) => setPrioridade(event.target.value)} className={inputClass}>
+                {usesBackendDomainData && <option value="">Indisponível na integração</option>}
                 <option value="baixa">Baixa</option>
                 <option value="media">Média</option>
                 <option value="alta">Alta</option>
@@ -232,7 +236,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
             </label>
             <label className="space-y-1.5">
               <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Fechamento previsto</span>
-              <input type="date" value={fechamentoPrevisto} onChange={(event) => setFechamentoPrevisto(event.target.value)} className={inputClass} />
+              <input disabled={usesBackendDomainData} type="date" value={fechamentoPrevisto} onChange={(event) => setFechamentoPrevisto(event.target.value)} className={inputClass} />
             </label>
           </div>
 
