@@ -101,40 +101,55 @@ jobs:
           esac
 
           response_file="$(mktemp)"
+          set +e
           status_code="$(curl \
             --silent \
             --show-error \
             --location \
             --request POST \
-            --retry 3 \
+            --retry 5 \
+            --retry-delay 5 \
+            --retry-max-time 240 \
             --retry-all-errors \
-            --connect-timeout 10 \
-            --max-time 90 \
+            --connect-timeout 20 \
+            --max-time 60 \
             --output "$response_file" \
             --write-out '%{http_code}' \
             "${WEBHOOK_URL}${separator}tag=${IMAGE_TAG}")"
+          curl_exit_code=$?
+          set -e
 
           response_body="$(cat "$response_file")"
           rm -f "$response_file"
           printf '%s\n' "$response_body"
-          if [ "$status_code" != "202" ]; then
-            case "$response_body" in
-              *unauthorized*|*Unauthorized*)
-                echo "::error::Portainer reached the service webhook but GHCR rejected the image pull. Configure the ghcr.io registry on the Portainer endpoint with a GitHub user and a token that has read:packages, then associate that registry credential with the service."
-                ;;
-              *)
-                echo "::error::Expected HTTP 202 from a Portainer service webhook, received ${status_code}. Verify the service webhook URL and the image tag."
-                ;;
-            esac
-            exit 1
-          fi
 
           {
             echo "### Portainer redeploy"
             echo "- Image: \`${IMAGE_NAME}:${IMAGE_TAG}\`"
             echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
-            echo "- Webhook response: HTTP ${status_code}"
+            echo "- Webhook response: HTTP ${status_code:-unavailable}"
           } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$curl_exit_code" -ne 0 ]; then
+            echo "::error::Could not reach the Portainer service webhook after retries (curl exit ${curl_exit_code}). Verify public HTTPS availability and retry the workflow."
+            exit 1
+          fi
+
+          case "$status_code" in
+            2??)
+              ;;
+            *)
+            case "$response_body" in
+              *unauthorized*|*Unauthorized*)
+                echo "::error::Portainer reached the service webhook but GHCR rejected the image pull. Configure the ghcr.io registry on the Portainer endpoint with a GitHub user and a token that has read:packages, then associate that registry credential with the service."
+                ;;
+              *)
+                echo "::error::Expected a successful HTTP 2xx response from the Portainer service webhook, received ${status_code}. Verify the service webhook URL and the image tag."
+                ;;
+            esac
+            exit 1
+              ;;
+          esac
 
       - name: Verify deployed CRM
         env:
