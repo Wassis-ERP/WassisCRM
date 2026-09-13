@@ -211,7 +211,7 @@ export function usePessoaContatos(pessoaId: string | undefined) {
 
   return useQuery({
     queryKey: [...PESSOA_CONTATO_KEY, pessoaId] as const,
-    enabled: Boolean(pessoaId) && authReady,
+    enabled: Boolean(pessoaId) && authReady && !usesBackendDomainData,
     queryFn: async (): Promise<PessoaContato[]> => {
       const { data, error } = await supabase
         .from('pessoa_contato')

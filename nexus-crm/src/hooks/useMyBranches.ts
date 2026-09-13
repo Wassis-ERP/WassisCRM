@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { usesBackendData } from '../lib/dataMode';
 import { useAuth } from './useAuth';
 import { useFiliais } from './useFiliais';
 import { useProfileFiliais } from './useProfileFiliais';
@@ -22,6 +23,7 @@ export function useMyBranches() {
   const { vinculos, isLoading } = useProfileFiliais(user?.id);
 
   const branches = useMemo<MyBranch[]>(() => {
+    if (usesBackendData) return (filiais ?? []).map(row => ({ id: row.id, label: row.label, principal: row.id === user?.branchId }));
     const labelById = new Map((filiais ?? []).map((f) => [f.id, f.label]));
     const allowed = new Set(user ? activeProfileLinks(user.id).map(v => v.id) : []);
     return vinculos

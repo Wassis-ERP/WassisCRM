@@ -9,20 +9,25 @@ import { AuthProvider } from './contexts/AuthContext'
 import { PropostasProvider } from './contexts/PropostasContext'
 import { queryClient } from './lib/queryClient'
 import { ConfirmProvider } from './components/feedback/ConfirmProvider'
+import { validateEnvironment } from './lib/environmentPolicy'
+import { usesBackendData } from './lib/dataMode'
 
-// Modo "frontend puro": estado em memória, sem backend.
-// O AuthProvider entrega um usuário admin fixo; dados de domínio vivem em
-// lib/inMemoryDb.ts e zeram a cada reload da página.
+validateEnvironment({
+  VITE_AUTH_MODE: import.meta.env.VITE_AUTH_MODE,
+  VITE_DATA_MODE: import.meta.env.VITE_DATA_MODE,
+  VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+}, import.meta.env.PROD)
+
+const application = <ConfirmProvider><App /></ConfirmProvider>
+
+// O provider demonstrativo só existe no desenvolvimento explícito em memória.
+// A aplicação conectada usa os hooks HTTP e não inicializa dados locais de negócio.
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <PropostasProvider>
-            <ConfirmProvider>
-              <App />
-            </ConfirmProvider>
-          </PropostasProvider>
+          {usesBackendData ? application : <PropostasProvider>{application}</PropostasProvider>}
         </AuthProvider>
       </BrowserRouter>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />}

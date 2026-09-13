@@ -1,5 +1,5 @@
 import { createBackendOpportunity, getBackendInsuredPerson, getBackendOpportunity, updateBackendOpportunity, usesBackendDomainData } from '../lib/backendDomainApi'
-import { getTable } from '../lib/inMemoryDb'
+import { listBackendCatalog, currentIdentityProfile } from '../lib/backendLookups'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { Database } from '../types/database'
@@ -93,16 +93,15 @@ export function useOportunidade(id: string | undefined) {
       if (usesBackendDomainData) {
         const row = await getBackendOpportunity(id as string, user?.tenantId ?? null)
         const insured = row.segurado_id ? await getBackendInsuredPerson(row.segurado_id, row.tenant_id) : null
-        const lookup = <T,>(table: string, value: string | null): T | null =>
-          (getTable(table).find(item => item.id === value) as T | undefined) ?? null
+        const [ramos, origens, reasons, stages] = await Promise.all([listBackendCatalog('ramos'), listBackendCatalog('origens'), listBackendCatalog('motivos_perda'), listBackendCatalog('pipeline_stages')])
         return {
           ...row,
           segurados: insured,
-          ramos: lookup<RamoLite>('ramos', row.ramo_id),
-          origens: lookup<LookupLite>('origens', row.origem_id),
-          motivos_perda: lookup<LookupLite>('motivos_perda', row.motivo_perda_id),
-          profiles: lookup<ProfileLite>('profiles', row.responsavel_id),
-          pipeline_stage: lookup<StageRow>('pipeline_stages', row.stage_id),
+          ramos: (ramos.find(item => item.id === row.ramo_id) as RamoLite | undefined) ?? null,
+          origens: origens.find(item => item.id === row.origem_id) ?? null,
+          motivos_perda: reasons.find(item => item.id === row.motivo_perda_id) ?? null,
+          profiles: currentIdentityProfile().find(item => item.id === row.responsavel_id) ?? null,
+          pipeline_stage: (stages.find(item => item.id === row.stage_id) as StageRow | undefined) ?? null,
         }
       }
       const { data, error } = await supabase
@@ -150,6 +149,7 @@ export function useOpportunityProfiles() {
   return useQuery({
     queryKey: ['profiles', 'opportunity-lookup'],
     queryFn: async (): Promise<ProfileLite[]> => {
+      if (usesBackendDomainData) return currentIdentityProfile()
       const { data, error } = await supabase.from('profiles').select('id, nome_completo, avatar_url').order('nome_completo')
       if (error) throw error
       return (data ?? []) as ProfileLite[]

@@ -126,22 +126,50 @@ function normalizeCurrentUser(raw: unknown): BackendCurrentUser {
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   ensureApiBaseUrl();
+  if (!path.startsWith('/api/') || path.includes('..') || path.includes('\\')) {
+    throw new Error('Caminho de API inválido.');
+  }
   const headers = new Headers(init?.headers);
   if (!headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers,
-  });
+  headers.set('X-Correlation-ID', crypto.randomUUID());
+  const timeout = new AbortController();
+  const timer = setTimeout(() => timeout.abort(), 15_000);
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      headers,
+      signal: init?.signal ? AbortSignal.any([init.signal, timeout.signal]) : timeout.signal,
+    });
 
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || `WAssisBE respondeu ${response.status}.`);
+    if (!response.ok) {
+      if (response.status === 401) {
+        clearBackendSession();
+        throw new Error(path === '/api/identity/login' ? 'Usuário ou senha inválidos.' : 'Sessão expirada. Entre novamente.');
+      }
+      const messages: Record<number, string> = {
+        400: 'Não foi possível salvar. Revise os campos informados.',
+        403: 'Sua conta não tem permissão para esta operação.',
+        404: 'Registro não encontrado ou indisponível para sua conta.',
+        409: path === '/api/identity/login' ? 'Autenticação indisponível neste ambiente. Contate o administrador.' : 'Os dados foram alterados ou já existem. Atualize a consulta antes de continuar.',
+        429: 'Muitas tentativas. Aguarde antes de tentar novamente.',
+        501: 'Integração pendente. Esta operação ainda não está disponível.',
+      };
+      // Never display arbitrary response bodies, stack traces, or proxy HTML.
+      throw new Error(messages[response.status] ?? 'Serviço indisponível. Tente novamente mais tarde.');
+    }
+
+    return await response.json() as T;
+  } catch (error) {
+    if (timeout.signal.aborted) throw new Error('Tempo de resposta excedido. Consulte os dados antes de repetir um salvamento.');
+    if (init?.signal?.aborted) throw new Error('Consulta cancelada.');
+    if (error instanceof TypeError) throw new Error('Não foi possível conectar ao serviço. Verifique sua conexão.');
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
-
-  return response.json() as Promise<T>;
 }
 
 export async function requestAuthenticatedBackendJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -168,6 +196,10 @@ export async function loginToBackend(username: string, password: string): Promis
   );
 
   const snapshot: BackendSessionSnapshot = { ...result, username };
+  if (!result.accessToken || !result.userId || !result.tenantId || !result.userType || !result.roles.length || isExpired(result.expiresAtUtc)) {
+    clearBackendSession();
+    throw new Error('Resposta de autenticação inválida. Nenhuma sessão foi criada.');
+  }
   localStorage.setItem(BACKEND_ACCESS_TOKEN_KEY, result.accessToken);
   localStorage.setItem(BACKEND_SESSION_KEY, JSON.stringify(snapshot));
   markBackendActivity();

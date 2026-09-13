@@ -90,3 +90,5 @@ body {
   transform: scale(1.03) rotate(1deg);
   box-shadow: var(--shadow-3);
 }
+@font-face { font-family: 'Rubik'; font-style: normal; font-weight: 300 900; font-display: swap; src: url('@fontsource-variable/rubik/files/rubik-latin-wght-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Mulish'; font-style: normal; font-weight: 200 1000; font-display: swap; src: url('@fontsource-variable/mulish/files/mulish-latin-wght-normal.woff2') format('woff2'); }

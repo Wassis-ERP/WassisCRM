@@ -29,6 +29,33 @@ describe('backendApi', () => {
     installLocalStorage();
   });
 
+  it('não exibe corpo bruto do backend nem cria sessão em falha', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500, text: async () => 'sensitive internal payload' }));
+    const { loginToBackend } = await importBackendApi();
+    await expect(loginToBackend('test@example.invalid', 'fixture')).rejects.toThrow('Serviço indisponível');
+    expect(storage.has('wassis.backend.accessToken')).toBe(false);
+  });
+
+  it('recusa resposta de autenticação incompleta', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ accessToken: 'invalid' }) }));
+    const { loginToBackend } = await importBackendApi();
+    await expect(loginToBackend('test@example.invalid', 'fixture')).rejects.toThrow('Resposta de autenticação inválida');
+    expect(storage.has('wassis.backend.accessToken')).toBe(false);
+  });
+
+  it('encerra requisição quando estoura timeout sem repetição de escrita', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn((_url: string, options: RequestInit) => new Promise((_resolve, reject) => {
+      options.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { loginToBackend } = await importBackendApi();
+    const result = expect(loginToBackend('test@example.invalid', 'fixture')).rejects.toThrow('Tempo de resposta excedido');
+    await vi.advanceTimersByTimeAsync(15_000);
+    await result;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('normaliza login do BE e persiste dados de filial na sessao local', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-23T12:00:00Z'));

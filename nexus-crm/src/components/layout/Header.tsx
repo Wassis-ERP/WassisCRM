@@ -9,6 +9,8 @@ import { useProfileFiliais } from '../../hooks/useProfileFiliais'
 import { usePerfis } from '../../hooks/usePerfis'
 import { useNotifications } from '../../hooks/useNotifications'
 import { fmtDateTime } from '../../utils/date'
+import { usesBackendData } from '../../lib/dataMode'
+import { sameOriginImage } from '../../lib/safeUrl'
 
 /**
  * Header principal do CRM.
@@ -38,7 +40,7 @@ export default function Header() {
     ? vinculos.find((v) => v.filial_id === activeBranchId)
     : vinculos.find((v) => v.principal) ?? vinculos[0]
   const roleLabel =
-    (activeVinculo && (perfis ?? []).find((p) => p.id === activeVinculo.perfil_id)?.nome) || 'Sem perfil'
+    (usesBackendData ? user?.role : activeVinculo && (perfis ?? []).find((p) => p.id === activeVinculo.perfil_id)?.nome) || 'Sem perfil'
   const { branches } = useMyBranches()
   const branchIds = branches.map((b) => b.id)
   const canSelectAllBranches = branches.length > 1
@@ -79,6 +81,8 @@ export default function Header() {
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-4" />
           <input
             type="text"
+            disabled={usesBackendData}
+            title={usesBackendData ? 'Busca global: integração pendente' : undefined}
             placeholder="Buscar por nome, CPF, e-mail..."
             className="w-full pl-12 pr-4 py-2 bg-bg-surface-2 text-fg-1 placeholder:text-fg-4 border border-transparent focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 rounded-full text-sm transition-all"
           />
@@ -122,6 +126,7 @@ export default function Header() {
               className="relative p-2 text-fg-4 hover:text-accent-primary hover:bg-bg-surface-2 rounded-xl transition-all"
               title="Notificações"
               aria-label="Notificações"
+              disabled={usesBackendData}
               aria-expanded={notificationsOpen}
             >
               <Bell size={18} />
@@ -186,12 +191,14 @@ export default function Header() {
             )}
           </div>
           <button
+            disabled={usesBackendData}
+            title={usesBackendData ? 'Edição de perfil: integração pendente' : undefined}
             onClick={() => setIsProfileModalOpen(true)}
             className="flex items-center gap-3 p-1.5 pr-3 hover:bg-bg-surface-2 rounded-full transition-all group"
           >
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-primary to-brand-primary-deep flex items-center justify-center text-fg-on-brand font-semibold text-sm shadow-[var(--shadow-1)] group-hover:shadow-[var(--shadow-2)] transition-shadow">
-              {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt={displayName} className="h-full w-full rounded-full object-cover" />
+              {sameOriginImage(user?.avatarUrl) ? (
+                <img src={sameOriginImage(user?.avatarUrl)} alt={displayName} className="h-full w-full rounded-full object-cover" />
               ) : (
                 initials || 'U'
               )}

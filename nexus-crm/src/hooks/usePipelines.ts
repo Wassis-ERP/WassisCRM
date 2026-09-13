@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import { usesBackendData } from '../lib/dataMode';
+import { listBackendCatalog } from '../lib/backendLookups';
 import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryClient';
 import type { PipelineDbRow, PipelineRow, PipelineStageDbRow, PipelineStageRow } from '../modules/types';
@@ -22,6 +24,12 @@ export function usePipelines() {
     queryKey: [...queryKeys.pipelines, activeBranchId ?? 'all'],
     enabled: authReady,
     queryFn: async (): Promise<PipelineWithStages[]> => {
+      if (usesBackendData) {
+        const [pipelines, stages] = await Promise.all([listBackendCatalog('pipelines'), listBackendCatalog('pipeline_stages')]);
+        return pipelines.filter(row => row.entidade_tipo === 'oportunidade' && isPipelineVisibleForBranch(normalizePipelineRow(row), activeBranchId))
+          .map(row => ({ ...normalizePipelineRow(row), stages: stages.filter(stage => stage.pipeline_id === row.id).map(normalizePipelineStageRow) }))
+          .sort((a, b) => comparePipelinesForBranch(activeBranchId, a, b));
+      }
       const { data, error } = await supabase
         .from('pipelines')
         .select(`
@@ -46,7 +54,7 @@ export function usePipelines() {
               .sort((a, b) => (a.ordem ?? Number.MAX_SAFE_INTEGER) - (b.ordem ?? Number.MAX_SAFE_INTEGER)),
           };
         })
-        .filter((row) => isPipelineVisibleForBranch(row, activeBranchId))
+        .filter((row) => isPipelineVisibleForBranch(normalizePipelineRow(row), activeBranchId))
         .sort((a: PipelineRow, b: PipelineRow) => comparePipelinesForBranch(activeBranchId, a, b)) as PipelineWithStages[];
       
       return rows;

@@ -1,6 +1,7 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { ComponentType } from 'react';
+import { sameOriginImage } from '../lib/safeUrl';
 import { Calendar, Check, X } from 'lucide-react';
-import { getDateStatus } from '../utils/date';
+import { fmtDate, getDateStatus } from '../utils/date';
 import type { KanbanCardProps } from './types';
 
 export type CardAccent = 'primary' | 'danger' | 'success' | 'warning' | 'info';
@@ -57,14 +58,14 @@ export function KanbanCardShell({
   const extraTags = (card.tags ?? []).filter((t) => t !== primaryTag && t !== infoTag);
 
   const dateText = card.dueDate
-    ? new Date(card.dueDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    ? fmtDate(card.dueDate)
     : '-';
 
   const valueText = typeof card.primaryValue === 'number'
     ? card.primaryValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
     : '-';
 
-  const avatarUrl = card.responsavelAvatar ?? `https://i.pravatar.cc/150?u=${card.responsavelId ?? card.id}`;
+  const avatarUrl = sameOriginImage(card.responsavelAvatar);
   const firstName = card.responsavelName?.split(' ')[0] ?? '';
 
   const stopAnd = (e: React.MouseEvent, fn?: () => void) => {
@@ -152,11 +153,11 @@ export function KanbanCardShell({
 
       <div className="flex items-center justify-between pt-2 border-t border-border-1">
         <div className="flex items-center gap-2 min-w-0">
-          <img
+          {avatarUrl ? <img
             src={avatarUrl}
             alt={card.responsavelName ?? 'Responsavel'}
             className="w-6 h-6 rounded-full border border-border-1 shadow-[var(--shadow-1)] shrink-0"
-          />
+          /> : <span aria-label={card.responsavelName ?? 'Responsável'} className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border-1 bg-accent-primary-soft text-[10px] font-bold text-accent-primary">{card.responsavelName?.[0]?.toUpperCase() ?? 'U'}</span>}
           <div className="flex flex-col min-w-0">
             {infoTag && (
               <span className="text-[9px] font-black text-fg-4 uppercase leading-none truncate">{infoTag.label}</span>
@@ -177,11 +178,4 @@ export function KanbanCardShell({
       </div>
     </div>
   );
-}
-
-/** Helper para criar um CardComponent com opcoes pre-configuradas. */
-export function makeKanbanCard(options: ShellOptions): ComponentType<KanbanCardProps> {
-  return function BoundCard(props: KanbanCardProps): ReactNode {
-    return <KanbanCardShell {...props} {...options} />;
-  };
 }

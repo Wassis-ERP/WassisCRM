@@ -1,5 +1,5 @@
 import { listBackendInsuredPeople, listBackendOpportunities, updateBackendOpportunity, usesBackendDomainData } from '../../lib/backendDomainApi'
-import { getTable } from '../../lib/inMemoryDb'
+import { listBackendCatalog, currentIdentityProfile } from '../../lib/backendLookups'
 import { supabase } from '../../lib/supabase'
 import { genericUpdateStage } from '../shared'
 import { normalizePipelineStageRow, type ModuleAdapter, type PipelineStageDbRow } from '../types'
@@ -23,6 +23,20 @@ export const comercialAdapter: ModuleAdapter = {
   module: 'comercial',
 
   async fetchCards({ pipelineId, tenantId, includeConcluded, filialId }) {
+    if (usesBackendDomainData) {
+      const [opportunities, insuredPeople, stages, ramos, origens, reasons] = await Promise.all([
+        listBackendOpportunities({ pipelineId, status: includeConcluded ? null : 'pending', officeBranchId: filialId }, tenantId),
+        listBackendInsuredPeople(tenantId, filialId), listBackendCatalog('pipeline_stages'),
+        listBackendCatalog('ramos'), listBackendCatalog('origens'), listBackendCatalog('motivos_perda'),
+      ])
+      return opportunities.map(row => mapOpportunityToKanbanCard(row, {
+        segurado: insuredPeople.find(item => item.id === row.segurado_id) ?? null,
+        ramo: ramos.find(item => item.id === row.ramo_id) ?? null,
+        origem: origens.find(item => item.id === row.origem_id) ?? null,
+        motivoPerda: reasons.find(item => item.id === row.motivo_perda_id) ?? null,
+        responsavel: currentIdentityProfile().find(item => item.id === row.responsavel_id) ?? null,
+      }, stages.filter(item => item.id === row.stage_id).map(normalizePipelineStageRow)[0]))
+    }
     const [stagesResult, profilesResult] = await Promise.all([
       supabase
         .from('pipeline_stages')
@@ -42,25 +56,6 @@ export const comercialAdapter: ModuleAdapter = {
         (profile) => [profile.id, profile],
       ),
     )
-
-    if (usesBackendDomainData) {
-      const [opportunities, insuredPeople] = await Promise.all([
-        listBackendOpportunities({ pipelineId, status: includeConcluded ? null : 'pending', officeBranchId: filialId }, tenantId),
-        listBackendInsuredPeople(tenantId, filialId),
-      ])
-      const insuredById = new Map(insuredPeople.map(row => [row.id, row]))
-      const lookup = <T,>(table: string, id: string | null): T | null =>
-        (getTable(table).find(row => row.id === id) as T | undefined) ?? null
-      return opportunities.map(row => mapOpportunityToKanbanCard(row, {
-        segurado: row.segurado_id ? insuredById.get(row.segurado_id) ?? null : null,
-        ramo: lookup<OpportunityJoin['ramo']>('ramos', row.ramo_id),
-        origem: lookup<OpportunityJoin['origem']>('origens', row.origem_id),
-        motivoPerda: lookup<OpportunityJoin['motivoPerda']>('motivos_perda', row.motivo_perda_id),
-        responsavel: row.responsavel_id ? profileById.get(row.responsavel_id) ?? null : null,
-      }, stageById.get(row.stage_id)))
-        .map(card => ({ ...card, pipelineId: card.pipelineId ?? pipelineId }))
-        .filter(card => includeConcluded || card.status === 'pending')
-    }
 
     let builder = supabase
       .from('oportunidades')

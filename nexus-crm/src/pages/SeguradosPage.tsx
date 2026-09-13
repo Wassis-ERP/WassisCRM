@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, UserPlus, Edit, Eye, Loader2, Building2, User, Users } from 'lucide-react'
 import { useSegurados, useCreateSegurado, useUpdateSegurado } from '../hooks/useSegurados'
+import { useActiveFilialId } from '../hooks/useActiveFilial'
 import type { Segurado, StatusPessoa } from '../contexts/seguradosCore'
 import {
   mapSeguradoRowToView,
@@ -30,6 +31,7 @@ export default function SeguradosPage() {
 
   const { data: rows, isLoading, isError, error, refetch } = useSegurados()
   const createSegurado = useCreateSegurado()
+  const activeFilialId = useActiveFilialId()
   const updateSegurado = useUpdateSegurado()
 
   const segurados = useMemo(() => (rows ?? []).map(mapSeguradoRowToView), [rows])
@@ -107,7 +109,9 @@ export default function SeguradosPage() {
         <button
           type="button"
           onClick={handleOpenNovo}
-          className="flex items-center gap-2 px-6 py-2.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-semibold hover:bg-accent-primary-hover transition-colors shadow-[var(--shadow-brand)]"
+          disabled={!activeFilialId}
+          title={!activeFilialId ? 'Aguarde o carregamento ou selecione uma corretora disponível.' : undefined}
+          className="flex items-center gap-2 px-6 py-2.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-semibold hover:bg-accent-primary-hover transition-colors shadow-[var(--shadow-brand)] disabled:opacity-50"
         >
           <UserPlus size={16} />
           Novo Segurado

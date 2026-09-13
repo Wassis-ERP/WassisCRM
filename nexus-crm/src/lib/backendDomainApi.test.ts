@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createBackendInsuredPerson, createBackendOpportunity, mapInsuredPerson, mapOpportunity,
-  updateBackendOpportunity, type BackendInsuredPerson, type BackendOpportunity,
+  updateBackendOpportunity, updateBackendInsuredPerson, type BackendInsuredPerson, type BackendOpportunity,
 } from './backendDomainApi'
 
 const { request } = vi.hoisted(() => ({ request: vi.fn<(path: string, init?: RequestInit) => Promise<unknown>>() }))
@@ -9,7 +9,7 @@ vi.mock('./backendApi', () => ({
   requestAuthenticatedBackendJson: request,
   getBackendSessionSnapshot: () => ({ tenantId: 'tenant-1' }),
 }))
-vi.mock('./inMemoryDb', () => ({ getTable: () => [{ id: 'stage-1', pipeline_id: 'pipeline-1' }] }))
+vi.mock('./backendLookups', () => ({ listBackendCatalog: async () => [{ id: 'stage-1', pipeline_id: 'pipeline-1' }] }))
 
 const insured: BackendInsuredPerson = {
   id: 'person-1', officeBranchId: 'branch-1', name: 'Pessoa de teste', personType: 'PF', status: 'Ativo',
@@ -43,6 +43,13 @@ describe('fronteira HTTP legada × DBML v3.1', () => {
     expect(() => mapOpportunity({ ...opportunity, stageId: null }, 'tenant-1')).toThrow('Etapa')
   })
 
+  it('preserva campos fora da edição, inclusive propriedades futuras do BE', async () => {
+    const raw = { ...insured, socialName: 'Nome social', monthlyIncome: 1500, futureProperty: 'Preservar' }
+    request.mockResolvedValueOnce(raw).mockResolvedValueOnce({ ...raw, name: 'Editado' })
+    await updateBackendInsuredPerson(raw.id, { nome: 'Editado' }, 'tenant-1')
+    expect(JSON.parse(String(request.mock.calls[1][1]?.body))).toMatchObject({ name: 'Editado', socialName: 'Nome social', monthlyIncome: 1500, futureProperty: 'Preservar' })
+  })
+
   it('não confunde fim da vigência com previsão de fechamento nem reinsere colunas aposentadas', () => {
     const row = mapOpportunity(opportunity, 'tenant-1')
     expect(row).toMatchObject({ titulo: 'Seguro teste', valor_premio_estimado: 1000, data_fechamento_prevista: null })
@@ -68,6 +75,13 @@ describe('fronteira HTTP legada × DBML v3.1', () => {
     expect(JSON.parse(String(request.mock.calls[1][1]?.body))).toMatchObject({ status: 'pending', concludedAtUtc: null, productionAmount: 1200 })
   })
 
+  it('preserva o vínculo de renovação v3.1 ao editar outro campo', async () => {
+    const raw = { ...opportunity, originPolicyId: 'policy-1' }
+    request.mockResolvedValueOnce(raw).mockResolvedValueOnce({ ...raw, title: 'Atualizado' })
+    await updateBackendOpportunity('op-1', { titulo: 'Atualizado' }, 'tenant-1')
+    expect(JSON.parse(String(request.mock.calls[1][1]?.body))).toMatchObject({ title: 'Atualizado', originPolicyId: 'policy-1' })
+  })
+
   it('mantém criação pelos endpoints existentes com nomes HTTP separados dos nomes DBML', async () => {
     request.mockResolvedValueOnce(insured).mockResolvedValueOnce(opportunity)
     await createBackendInsuredPerson(mapInsuredPerson(insured, 'tenant-1'), 'tenant-1')
@@ -77,9 +91,11 @@ describe('fronteira HTTP legada × DBML v3.1', () => {
     expect(JSON.parse(String(request.mock.calls[1][1]?.body))).toMatchObject({ name: 'Seguro teste', pipelineId: 'pipeline-1', status: 'pending' })
   })
 
-  it('bloqueia campos ainda não suportados antes de enviar gravação', async () => {
-    await expect(createBackendInsuredPerson({ ...mapInsuredPerson(insured, 'tenant-1'), whatsapp: '11999998888' }, 'tenant-1')).rejects.toThrow('whatsapp')
-    await expect(createBackendOpportunity({ tenant_id: 'tenant-1', filial_id: 'branch-1', stage_id: 'stage-1', lead_nome: 'Lead', lead_email: 'lead@example.test' }, 'tenant-1')).rejects.toThrow('lead_email')
-    expect(request).not.toHaveBeenCalled()
+  it('persiste campos explícitos v3.1 sem dados de negócio em JSON', async () => {
+    request.mockResolvedValueOnce(insured).mockResolvedValueOnce(opportunity)
+    await createBackendInsuredPerson({ ...mapInsuredPerson(insured, 'tenant-1'), whatsapp: '11999998888' }, 'tenant-1')
+    await createBackendOpportunity({ tenant_id: 'tenant-1', filial_id: 'branch-1', stage_id: 'stage-1', lead_nome: 'Lead', lead_email: 'lead@example.invalid', data_fechamento_prevista: '2026-10-20' }, 'tenant-1')
+    expect(JSON.parse(String(request.mock.calls[0][1]?.body))).toMatchObject({ whatsAppNumber: '11999998888' })
+    expect(JSON.parse(String(request.mock.calls[1][1]?.body))).toMatchObject({ leadEmail: 'lead@example.invalid', expectedCloseDate: '2026-10-20', metadata: {} })
   })
 })

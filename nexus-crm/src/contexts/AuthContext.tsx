@@ -153,7 +153,7 @@ async function loadBackendAuthState(): Promise<AuthState | null> {
   }
 
   const email = snapshot.username;
-  const roles = currentUser.roles.length > 0 ? currentUser.roles : snapshot.roles;
+  const roles = currentUser.roles;
   const user: UserProfile = {
     id: currentUser.userId,
     email,
@@ -162,9 +162,9 @@ async function loadBackendAuthState(): Promise<AuthState | null> {
     fullName: email,
     tenantId: currentUser.tenantId,
     brokerageId: currentUser.brokerageId,
-    branchId: currentUser.branchId ?? snapshot.branchId,
-    branchIds: currentUser.branchIds.length > 0 ? currentUser.branchIds : snapshot.branchIds,
-    hasAllBranchesAccess: currentUser.hasAllBranchesAccess || snapshot.hasAllBranchesAccess,
+    branchId: currentUser.branchId,
+    branchIds: currentUser.branchIds,
+    hasAllBranchesAccess: currentUser.hasAllBranchesAccess,
   };
   const activeBranchId = resolveInitialActiveBranchId(user);
 
@@ -238,6 +238,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      queryClient.clear();
       await loginToBackend(username, password);
       await refreshSession();
     },
@@ -248,6 +249,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Sempre encerra a sessão de fato — inclusive no modo mock, para que o
     // botão "Sair" leve de volta à tela de login.
     clearBackendSession();
+    queryClient.clear();
     setAuthState({ session: null, user: null, activeBranchId: null, loading: false });
   }, []);
 
@@ -290,6 +292,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const updateProfile = useCallback((patch: ProfilePatch) => {
+    if (REQUIRE_BACKEND_AUTH) throw new Error('Integração de edição do perfil pendente. Nenhuma alteração foi salva.');
     setAuthState((current) => {
       if (!current.user) return current;
 

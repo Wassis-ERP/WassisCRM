@@ -24,10 +24,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
@@ -46,9 +46,24 @@ jobs:
         run: npm run build
         env:
           VITE_API_BASE_URL: https://localhost:54269
+          VITE_AUTH_MODE: backend
+          VITE_DATA_MODE: backend
+          VITE_BUILD_SHA: ${{ github.sha }}
+
+      - name: Build CRM image
+        run: docker build -f nexus-crm/Dockerfile --build-arg VITE_API_BASE_URL=https://api20-hml.wassis.com.br --build-arg VITE_BUILD_SHA=${{ github.sha }} -t wassis-crm:${{ github.sha }} .
+        working-directory: .
+
+      - name: Scan CRM image
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          image-ref: wassis-crm:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
 
       - name: Upload dist artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: wassis-crm-dist
           path: nexus-crm/dist

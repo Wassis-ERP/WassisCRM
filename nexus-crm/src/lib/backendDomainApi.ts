@@ -1,7 +1,7 @@
 import { getBackendSessionSnapshot, requestAuthenticatedBackendJson } from './backendApi'
 import type { Database, Json } from '../types/database'
 import { platformDefaults } from '../types/platformRows'
-import { getTable } from './inMemoryDb'
+import { listBackendCatalog } from './backendLookups'
 
 type SeguradoRow = Database['public']['Tables']['segurados']['Row']
 type SeguradoInsert = Database['public']['Tables']['segurados']['Insert']
@@ -13,6 +13,22 @@ type OportunidadeUpdate = Database['public']['Tables']['oportunidades']['Update'
 export const usesBackendDomainData = import.meta.env.VITE_DATA_MODE === 'backend'
 
 export interface BackendInsuredPerson {
+  [key: string]: unknown
+  socialName?: string | null
+  identityDocument?: string | null
+  municipalRegistration?: string | null
+  economicActivity?: string | null
+  profession?: string | null
+  monthlyIncome?: number | null
+  driverLicenseNumber?: string | null
+  driverLicenseCategory?: string | null
+  driverLicenseExpirationDate?: string | null
+  mobilePhoneNumber?: string | null
+  secondaryPhoneNumber?: string | null
+  whatsAppNumber?: string | null
+  country?: string | null
+  lgpdAuthorizedAtUtc?: string | null
+  importOrigin?: string | null
   id: string
   officeBranchId: string | null
   name: string
@@ -46,6 +62,25 @@ export interface BackendInsuredPerson {
 }
 
 export interface BackendOpportunity {
+  [key: string]: unknown
+  originPolicyId?: string | null
+  leadName?: string | null
+  leadDocumentNumber?: string | null
+  leadEmail?: string | null
+  leadPhoneNumber?: string | null
+  title?: string | null
+  description?: string | null
+  priority?: string | null
+  estimatedPremiumAmount?: number | null
+  estimatedCommissionAmount?: number | null
+  estimatedCommissionPercentage?: number | null
+  openedOn?: string | null
+  expectedCloseDate?: string | null
+  wonAtUtc?: string | null
+  lostAtUtc?: string | null
+  lossReasonNotes?: string | null
+  campaign?: string | null
+  internalNotes?: string | null
   id: string
   officeBranchId: string | null
   name: string
@@ -82,20 +117,30 @@ function requireId(value: string | null | undefined, label: string): string {
 
 const resolveTenant = (tenantId: string | null) => requireId(tenantId ?? getBackendSessionSnapshot()?.tenantId, 'Grupo')
 
-const unsupportedInsuredFields = ['nome_social', 'rg_ie', 'inscricao_municipal', 'atividade_economica', 'profissao', 'renda_mensal', 'cnh_numero', 'cnh_categoria', 'cnh_vencimento', 'celular', 'telefone2', 'whatsapp', 'pais', 'lgpd_autorizado_em', 'origem_importacao'] as const
-
-function rejectUnsupported<T extends object>(source: T, fields: readonly (keyof T)[]) {
-  const pending = fields.filter(key => source[key] != null && source[key] !== '')
-  if (pending.length) throw new Error('A integração atual ainda não permite salvar estes campos: ' + pending.join(', ') + '. Nenhum dado foi enviado.')
-}
-
 export function mapInsuredPerson(source: BackendInsuredPerson, tenantId: string | null): SeguradoRow {
+  if (!source || typeof source.id !== 'string' || typeof source.name !== 'string' || !['PF', 'PJ'].includes(source.personType)
+    || !['Ativo', 'Inativo', 'Prospecto'].includes(source.status) || typeof source.lgpdAuthorized !== 'boolean') throw new Error('Cadastro inválido retornado pelo backend.')
   return {
     ...platformDefaults.segurados,
     id: source.id,
     tenant_id: resolveTenant(tenantId),
     filial_id: requireId(source.officeBranchId, 'Corretora'),
     nome: source.name,
+    nome_social: source.socialName ?? null,
+    rg_ie: source.identityDocument ?? null,
+    inscricao_municipal: source.municipalRegistration ?? null,
+    atividade_economica: source.economicActivity ?? null,
+    profissao: source.profession ?? null,
+    renda_mensal: source.monthlyIncome ?? null,
+    cnh_numero: source.driverLicenseNumber ?? null,
+    cnh_categoria: source.driverLicenseCategory ?? null,
+    cnh_vencimento: source.driverLicenseExpirationDate ?? null,
+    celular: source.mobilePhoneNumber ?? null,
+    telefone2: source.secondaryPhoneNumber ?? null,
+    whatsapp: source.whatsAppNumber ?? null,
+    pais: source.country ?? null,
+    lgpd_autorizado_em: source.lgpdAuthorizedAtUtc ?? null,
+    origem_importacao: source.importOrigin ?? null,
     tipo: source.personType as SeguradoRow['tipo'],
     status: source.status as SeguradoRow['status'],
     cpf_cnpj: source.documentNumber,
@@ -127,13 +172,27 @@ export function mapInsuredPerson(source: BackendInsuredPerson, tenantId: string 
 }
 
 function insuredRequest(source: SeguradoInsert | SeguradoRow) {
-  rejectUnsupported(source, unsupportedInsuredFields)
   if (!source.nome?.trim() || !source.tipo || !source.status) throw new Error('Informe nome, tipo e status antes de salvar.')
   if (source.lgpd_autorizado == null) throw new Error('Informe a decisão de autorização LGPD antes de salvar.')
   requireId(source.filial_id, 'Corretora')
   return {
     officeBranchId: source.filial_id ?? null,
     name: source.nome,
+    socialName: source.nome_social ?? null,
+    identityDocument: source.rg_ie ?? null,
+    municipalRegistration: source.inscricao_municipal ?? null,
+    economicActivity: source.atividade_economica ?? null,
+    profession: source.profissao ?? null,
+    monthlyIncome: source.renda_mensal ?? null,
+    driverLicenseNumber: source.cnh_numero ?? null,
+    driverLicenseCategory: source.cnh_categoria ?? null,
+    driverLicenseExpirationDate: source.cnh_vencimento ?? null,
+    mobilePhoneNumber: source.celular ?? null,
+    secondaryPhoneNumber: source.telefone2 ?? null,
+    whatsAppNumber: source.whatsapp ?? null,
+    country: source.pais ?? null,
+    lgpdAuthorizedAtUtc: source.lgpd_autorizado_em ?? null,
+    importOrigin: source.origem_importacao ?? null,
     personType: source.tipo,
     status: source.status,
     documentNumber: source.cpf_cnpj ?? null,
@@ -193,10 +252,11 @@ export async function updateBackendInsuredPerson(
   patch: SeguradoUpdate,
   tenantId: string | null,
 ): Promise<SeguradoRow> {
-  const current = await getBackendInsuredPerson(id, tenantId)
+  const raw = await requestAuthenticatedBackendJson<BackendInsuredPerson>(`/api/segurados/${id}`)
+  const current = mapInsuredPerson(raw, tenantId)
   const response = await requestAuthenticatedBackendJson<BackendInsuredPerson>(`/api/segurados/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(insuredRequest({ ...current, ...patch })),
+    body: JSON.stringify({ ...raw, ...insuredRequest({ ...current, ...patch }) }),
   })
   return mapInsuredPerson(response, tenantId)
 }
@@ -209,6 +269,7 @@ function metadataObject(metadata: Json): Record<string, Json | undefined> {
 
 // O DTO HTTP legado fica nesta fronteira; não reintroduz colunas antigas no DBML.
 export function mapOpportunity(source: BackendOpportunity, tenantId: string | null): OportunidadeRow {
+  if (!source || typeof source.id !== 'string' || typeof source.name !== 'string') throw new Error('Oportunidade inválida retornada pelo backend.')
   const metadata = metadataObject(source.metadata)
   if (!['pending', 'won', 'lost'].includes(source.status)) throw new Error('Status da oportunidade não reconhecido pela integração.')
   if (source.status !== 'pending' && !source.concludedAtUtc) throw new Error('Oportunidade concluída sem data informada pela integração.')
@@ -222,48 +283,60 @@ export function mapOpportunity(source: BackendOpportunity, tenantId: string | nu
     ramo_id: source.insuranceLineId,
     origem_id: source.originId,
     motivo_perda_id: source.lossReasonId,
-    apolice_origem_id: typeof metadata.apoliceOrigemId === 'string' ? metadata.apoliceOrigemId : null,
-    lead_nome: source.insuredPersonId ? null : source.name,
-    lead_documento: null,
-    lead_email: null,
-    lead_telefone: null,
-    titulo: source.name,
-    descricao: source.notes,
-    prioridade: null,
-    valor_premio_estimado: source.netPremium,
-    valor_comissao_estimada: null,
-    comissao_estimada_pct: source.commissionPercentage,
+    apolice_origem_id: source.originPolicyId ?? (typeof metadata.apoliceOrigemId === 'string' ? metadata.apoliceOrigemId : null),
+    lead_nome: source.insuredPersonId ? null : source.leadName ?? source.name,
+    lead_documento: source.leadDocumentNumber ?? null,
+    lead_email: source.leadEmail ?? null,
+    lead_telefone: source.leadPhoneNumber ?? null,
+    titulo: source.title ?? source.name,
+    descricao: source.description ?? source.notes,
+    prioridade: source.priority ?? null,
+    valor_premio_estimado: source.estimatedPremiumAmount ?? source.netPremium,
+    valor_comissao_estimada: source.estimatedCommissionAmount ?? null,
+    comissao_estimada_pct: source.estimatedCommissionPercentage ?? source.commissionPercentage,
     agenciamento_pct: source.agencyPercentage,
-    data_abertura: source.createdAtUtc?.slice(0, 10) ?? null,
-    data_fechamento_prevista: null,
-    ganha_em: source.status === 'won' ? source.concludedAtUtc : null,
-    perdida_em: source.status === 'lost' ? source.concludedAtUtc : null,
-    motivo_perda_observacao: null,
-    campanha: null,
-    observacoes: null,
+    data_abertura: source.openedOn ?? source.createdAtUtc?.slice(0, 10) ?? null,
+    data_fechamento_prevista: source.expectedCloseDate ?? null,
+    ganha_em: source.status === 'won' ? source.wonAtUtc ?? source.concludedAtUtc : null,
+    perdida_em: source.status === 'lost' ? source.lostAtUtc ?? source.concludedAtUtc : null,
+    motivo_perda_observacao: source.lossReasonNotes ?? null,
+    campanha: source.campaign ?? null,
+    observacoes: source.internalNotes ?? null,
   }
 }
 
-function opportunityRequest(source: OportunidadeInsert | OportunidadeRow, previous?: BackendOpportunity) {
-  if (previous && source.data_abertura !== undefined && source.data_abertura !== previous.createdAtUtc?.slice(0, 10)) {
-    throw new Error('A data de abertura é definida pela integração e não pode ser alterada.')
-  }
-  rejectUnsupported(source, ['lead_documento', 'lead_email', 'lead_telefone', 'prioridade', 'valor_comissao_estimada', 'data_fechamento_prevista', 'motivo_perda_observacao', 'campanha', 'observacoes'])
-  if (!source.segurado_id && source.titulo && source.lead_nome && source.titulo !== source.lead_nome && (!previous || source.lead_nome !== previous.name)) {
-    throw new Error('A integração atual usa um único nome para o lead e o título. Informe o mesmo valor nos dois campos.')
-  }
+async function opportunityRequest(source: OportunidadeInsert | OportunidadeRow, previous?: BackendOpportunity) {
   const previousMetadata = metadataObject(previous?.metadata ?? null)
-  const previousOrigin = typeof previousMetadata.apoliceOrigemId === 'string' ? previousMetadata.apoliceOrigemId : null
+  const previousOrigin = previous?.originPolicyId ?? (typeof previousMetadata.apoliceOrigemId === 'string' ? previousMetadata.apoliceOrigemId : null)
   if (source.apolice_origem_id !== undefined && source.apolice_origem_id !== previousOrigin) {
     throw new Error('O vínculo de renovação aguarda atualização da integração para o contrato v3.1.')
   }
-  const stage = getTable('pipeline_stages').find(row => row.id === source.stage_id)
+  const stage = previous?.stageId === source.stage_id ? null : (await listBackendCatalog('pipeline_stages')).find(row => row.id === source.stage_id)
   const pipelineId = typeof stage?.pipeline_id === 'string' ? stage.pipeline_id : source.stage_id === previous?.stageId ? previous?.pipelineId : null
   const name = source.titulo?.trim() || source.lead_nome?.trim() || previous?.name
   if (!name) throw new Error('Informe o título da oportunidade antes de salvar.')
   return {
+    ...previous,
     officeBranchId: requireId(source.filial_id, 'Corretora'),
     name,
+    originPolicyId: source.apolice_origem_id ?? null,
+    leadName: source.lead_nome ?? null,
+    leadDocumentNumber: source.lead_documento ?? null,
+    leadEmail: source.lead_email ?? null,
+    leadPhoneNumber: source.lead_telefone ?? null,
+    title: source.titulo ?? null,
+    description: source.descricao ?? null,
+    priority: source.prioridade ?? null,
+    estimatedPremiumAmount: source.valor_premio_estimado ?? null,
+    estimatedCommissionAmount: source.valor_comissao_estimada ?? null,
+    estimatedCommissionPercentage: source.comissao_estimada_pct ?? null,
+    openedOn: source.data_abertura ?? null,
+    expectedCloseDate: source.data_fechamento_prevista ?? null,
+    wonAtUtc: source.ganha_em ?? null,
+    lostAtUtc: source.perdida_em ?? null,
+    lossReasonNotes: source.motivo_perda_observacao ?? null,
+    campaign: source.campanha ?? null,
+    internalNotes: source.observacoes ?? null,
     responsibleId: source.responsavel_id ?? null,
     insuredPersonId: source.segurado_id ?? null,
     pipelineId: requireId(pipelineId, 'Funil da etapa'),
@@ -323,7 +396,7 @@ export async function createBackendOpportunity(
 ): Promise<OportunidadeRow> {
   const response = await requestAuthenticatedBackendJson<BackendOpportunity>('/api/oportunidades', {
     method: 'POST',
-    body: JSON.stringify(opportunityRequest(input)),
+    body: JSON.stringify(await opportunityRequest(input)),
   })
   return mapOpportunity(response, tenantId)
 }
@@ -337,7 +410,7 @@ export async function updateBackendOpportunity(
   const current = mapOpportunity(previous, tenantId)
   const response = await requestAuthenticatedBackendJson<BackendOpportunity>(`/api/oportunidades/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(opportunityRequest({ ...current, ...patch }, previous)),
+    body: JSON.stringify(await opportunityRequest({ ...current, ...patch }, previous)),
   })
   return mapOpportunity(response, tenantId)
 }
