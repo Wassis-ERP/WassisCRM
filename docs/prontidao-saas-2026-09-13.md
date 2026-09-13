@@ -2,6 +2,8 @@
 
 ## Resultado
 
+PRs separados: [CRM #50](https://github.com/Wassis-ERP/WassisCRM/pull/50) e [BE #30](https://github.com/Wassis-ERP/WAssisBE/pull/30), sem merge ou deploy. A lista exata de arquivos e commits está no diff de cada PR.
+
 Segurados e depois Oportunidades passaram pela jornada em PostgreSQL descartável: login, criar/editar, reload, vínculo do negócio ao segurado, valores/data e ganho. **Layout original preservado**: Sidebar/Header, páginas, modais, lista, Kanban e detalhes. ConnectedWorkspace/ConnectedOpportunities não integram a entrega. Funcionalidades sem endpoint informam integração pendente, sem simular salvamento.
 
 O aplicativo inteiro ainda não está pronto para produção. Repositórios separados em `C:\dev\WassisCRM` e `C:\dev\WAssisBE`, preservando caminhos existentes. Nenhum deploy, alteração em banco publicado ou rotação de secrets foi feito.
