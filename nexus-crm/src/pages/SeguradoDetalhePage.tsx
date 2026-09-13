@@ -35,6 +35,9 @@ import ObservacoesTab from '../components/detail/tabs/ObservacoesTab'
 import ApolicesTab from '../components/detail/tabs/ApolicesTab'
 import { usePropostas } from '../contexts/usePropostas'
 import { useConfirm } from '../components/feedback/systemFeedbackContext'
+import { usesBackendData } from '../lib/dataMode'
+import { IntegrationPending } from '../components/IntegrationPending'
+import { externalWebUrl } from '../lib/safeUrl'
 
 const ESTADO_CIVIL_LABEL: Record<NonNullable<Segurado['estadoCivil']>, string> = {
   Solteiro: 'Solteiro(a)',
@@ -320,6 +323,7 @@ export default function SeguradoDetalhePage() {
       <EntityTabsBar tabs={tabs} active={activeTab} onChange={handleTabChange} />
 
       <div role="tabpanel">
+        {usesBackendData && !['visao', 'cadastrais', 'corretora'].includes(activeTab) ? <IntegrationPending /> : <>
         {activeTab === 'visao' && (
           <TabVisaoGeral
             s={segurado}
@@ -370,6 +374,7 @@ export default function SeguradoDetalhePage() {
             mentionCandidates={tabsState.mentionCandidates}
           />
         )}
+        </>}
       </div>
 
       <SeguradoModal
@@ -469,7 +474,7 @@ function TabVisaoGeral({
         >
           {oportunidades.length === 0 && apolices.length === 0 ? (
             <p className="text-sm text-fg-3 italic">
-              Não há apólices ou oportunidades vinculadas a este segurado no momento.
+              {usesBackendData ? 'Nenhuma oportunidade vinculada. Consulta de apólices: integração pendente.' : 'Não há apólices ou oportunidades vinculadas a este segurado no momento.'}
             </p>
           ) : (
             <div className="space-y-2">
@@ -524,7 +529,7 @@ function TabVisaoGeral({
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-fg-3 italic">Sem atividade registrada ainda.</p>
+            <p className="text-sm text-fg-3 italic">{usesBackendData ? 'Histórico de atividades: integração pendente.' : 'Sem atividade registrada ainda.'}</p>
           )}
         </DetailCard>
       </div>
@@ -781,7 +786,7 @@ function TabCadastrais({
             <DetailField label="Site">
               {s.site ? (
                 <a
-                  href={s.site.startsWith('http') ? s.site : `https://${s.site}`}
+                  href={externalWebUrl(s.site) ?? undefined}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-accent-primary hover:underline"
@@ -798,12 +803,12 @@ function TabCadastrais({
         title={isPJ ? 'Pessoas de contato' : 'Empresas vinculadas'}
         icon={isPJ ? Users : Building2}
         action={
-          <GhostButton icon={Plus} onClick={onAddVinculo}>
+          <GhostButton icon={Plus} disabled={usesBackendData} onClick={onAddVinculo}>
             {isPJ ? 'Adicionar contato' : 'Vincular empresa'}
           </GhostButton>
         }
       >
-        {vinculos.length === 0 ? (
+        {usesBackendData ? <IntegrationPending /> : vinculos.length === 0 ? (
           <EmptyState
             icon={Link2}
             title={isPJ ? 'Nenhum contato vinculado' : 'Nenhuma empresa vinculada'}

@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryClient';
+import { usesBackendData } from '../lib/dataMode';
+import { listBackendBranches } from '../lib/backendLookups';
 
 export interface FilialOption {
   id: string;
@@ -16,6 +18,7 @@ export function useFiliais() {
   return useQuery({
     queryKey: queryKeys.lookups.filiais,
     queryFn: async (): Promise<FilialOption[]> => {
+      if (usesBackendData) return (await listBackendBranches()).filter(row => row.isActive).map(row => ({ id: row.id, label: row.name, matriz_id: null }));
       const { data, error } = await supabase
         .from('filiais')
         .select('id, fantasia, razao_social, matriz_id, ativo')

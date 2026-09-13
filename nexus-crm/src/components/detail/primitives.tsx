@@ -157,15 +157,18 @@ export function GhostButton({
   children,
   onClick,
   type = 'button',
+  disabled = false,
 }: {
   icon?: LucideIcon
   children: ReactNode
   onClick?: () => void
   type?: 'button' | 'submit'
+  disabled?: boolean
 }) {
   return (
     <button
       type={type}
+      disabled={disabled}
       onClick={onClick}
       className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary-soft text-accent-primary rounded-lg text-xs font-semibold hover:brightness-95 transition-colors"
     >

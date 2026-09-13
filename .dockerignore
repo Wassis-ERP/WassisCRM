@@ -1,0 +1,11 @@
+.git
+.codex
+.agents
+.contextos-mercado
+**/node_modules
+**/dist
+**/.screens
+**/test-results
+**/.env
+**/.env.*
+**/*.log

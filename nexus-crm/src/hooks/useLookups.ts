@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryClient';
+import { usesBackendData } from '../lib/dataMode';
+import { listBackendCatalog } from '../lib/backendLookups';
 
 interface LookupRow {
   id: string;
@@ -89,6 +91,7 @@ export interface RamoRow extends LookupRow {
 }
 
 async function fetchLookup(table: 'ramos' | 'origens' | 'seguradoras' | 'motivos_perda'): Promise<LookupRow[]> {
+  if (usesBackendData) return (await listBackendCatalog(table)).map(row => ({ id: row.id, nome: row.nome ?? 'Cadastro sem nome' }));
   const query = supabase
     .from(table)
     .select('id, nome')
@@ -101,6 +104,7 @@ async function fetchLookup(table: 'ramos' | 'origens' | 'seguradoras' | 'motivos
 }
 
 async function fetchRamos(): Promise<RamoRow[]> {
+  if (usesBackendData) return (await listBackendCatalog('ramos')).map(row => ({ ...row, nome: row.nome ?? 'Ramo sem nome' })) as RamoRow[];
   const { data, error } = await supabase
     .from('ramos')
     .select('id, nome, codigo_susep, risk_type, grupo_operacional, forma_calculo, is_monthly, renovavel, permite_endosso, exige_item, exige_coberturas, ordem, ativo, observacoes')

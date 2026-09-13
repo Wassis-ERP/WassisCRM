@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { usesBackendData } from '../lib/dataMode'
 import { getTable } from '../lib/inMemoryDb'
 import { queryKeys } from '../lib/queryClient'
 import { useAuth } from './useAuth'
@@ -9,7 +10,7 @@ export function useProfileFiliais(profileId: string | undefined) {
   const queryClient = useQueryClient()
   const { user } = useAuth()
   const key = queryKeys.profileFiliais(profileId ?? '')
-  const query = useQuery({queryKey:key,enabled:!!profileId,queryFn:(): ProfileFilial[] => getTable('profile_filiais').filter(v => v.profile_id === profileId).map(v => ({ ...v })) as ProfileFilial[]})
+  const query = useQuery({queryKey:key,enabled:!!profileId && !usesBackendData,queryFn:(): ProfileFilial[] => getTable('profile_filiais').filter(v => v.profile_id === profileId).map(v => ({ ...v })) as ProfileFilial[]})
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: key })
     void queryClient.invalidateQueries({ queryKey: queryKeys.team })

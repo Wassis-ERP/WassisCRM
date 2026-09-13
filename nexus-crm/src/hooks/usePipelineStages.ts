@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import { usesBackendData } from '../lib/dataMode';
+import { listBackendCatalog } from '../lib/backendLookups';
 import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryClient';
 import type { PipelineStageDbRow, PipelineStageRow } from '../modules/types';
@@ -12,6 +14,7 @@ export function usePipelineStages(pipelineId: string | null | undefined) {
     enabled: !!pipelineId,
     queryKey: queryKeys.stages(pipelineId),
     queryFn: async (): Promise<PipelineStageRow[]> => {
+      if (usesBackendData) return (await listBackendCatalog('pipeline_stages')).filter(row => row.pipeline_id === pipelineId).map(normalizePipelineStageRow).sort((a, b) => a.order - b.order);
       const { data, error } = await supabase
         .from('pipeline_stages')
         .select('*')

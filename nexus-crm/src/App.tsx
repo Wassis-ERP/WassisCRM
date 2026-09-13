@@ -1,37 +1,40 @@
-import ProdutoresPage from './pages/ProdutoresPage'
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+const ProdutoresPage = lazy(() => import('./pages/ProdutoresPage'))
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import Sidebar from './components/layout/Sidebar'
 import Header from './components/layout/Header'
-import DashboardPage from './pages/DashboardPage'
-import SeguradosPage from './pages/SeguradosPage'
-import SeguradoDetalhePage from './pages/SeguradoDetalhePage'
-import OportunidadesPage from './pages/OportunidadesPage'
-import OportunidadeDetalhePage from './pages/OportunidadeDetalhePage'
-import CalculoOportunidadePage from './pages/CalculoOportunidadePage'
-import CommercialPresentationPage from './pages/CommercialPresentationPage'
-import ManualQuotePage from './pages/ManualQuotePage'
-import ModuleKanbanPage from './pages/ModuleKanbanPage'
-import SinistroDetalhePage from './pages/SinistroDetalhePage'
-import NovoSinistroPage from './pages/NovoSinistroPage'
-import FinanceiroPage from './pages/FinanceiroPage'
-import FinanceiroDetalhePage from './pages/FinanceiroDetalhePage'
-import ImportacaoDemonstrativoComissoesPage from './pages/ImportacaoDemonstrativoComissoesPage'
-import FinanceiroExtratosPage from './pages/FinanceiroExtratosPage'
-import FinanceiroExtratoDetalhePage from './pages/FinanceiroExtratoDetalhePage'
-import PosVendaDetalhePage from './pages/PosVendaDetalhePage'
-import NovoPosVendaPage from './pages/NovoPosVendaPage'
-import PropostasPage from './pages/PropostasPage'
-import NovaPropostaApolicePage from './pages/NovaPropostaApolicePage'
-import ImportacaoDocumentosPage from './pages/ImportacaoDocumentosPage'
-import ApoliceDetalhePage from './pages/ApoliceDetalhePage'
-import SettingsPage from './pages/SettingsPage'
-import NotificacoesPage from './pages/NotificacoesPage'
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const SeguradosPage = lazy(() => import('./pages/SeguradosPage'))
+const SeguradoDetalhePage = lazy(() => import('./pages/SeguradoDetalhePage'))
+const OportunidadesPage = lazy(() => import('./pages/OportunidadesPage'))
+const OportunidadeDetalhePage = lazy(() => import('./pages/OportunidadeDetalhePage'))
+const CalculoOportunidadePage = lazy(() => import('./pages/CalculoOportunidadePage'))
+const CommercialPresentationPage = lazy(() => import('./pages/CommercialPresentationPage'))
+const ManualQuotePage = lazy(() => import('./pages/ManualQuotePage'))
+const ModuleKanbanPage = lazy(() => import('./pages/ModuleKanbanPage'))
+const SinistroDetalhePage = lazy(() => import('./pages/SinistroDetalhePage'))
+const NovoSinistroPage = lazy(() => import('./pages/NovoSinistroPage'))
+const FinanceiroPage = lazy(() => import('./pages/FinanceiroPage'))
+const FinanceiroDetalhePage = lazy(() => import('./pages/FinanceiroDetalhePage'))
+const ImportacaoDemonstrativoComissoesPage = lazy(() => import('./pages/ImportacaoDemonstrativoComissoesPage'))
+const FinanceiroExtratosPage = lazy(() => import('./pages/FinanceiroExtratosPage'))
+const FinanceiroExtratoDetalhePage = lazy(() => import('./pages/FinanceiroExtratoDetalhePage'))
+const PosVendaDetalhePage = lazy(() => import('./pages/PosVendaDetalhePage'))
+const NovoPosVendaPage = lazy(() => import('./pages/NovoPosVendaPage'))
+const PropostasPage = lazy(() => import('./pages/PropostasPage'))
+const NovaPropostaApolicePage = lazy(() => import('./pages/NovaPropostaApolicePage'))
+const ImportacaoDocumentosPage = lazy(() => import('./pages/ImportacaoDocumentosPage'))
+const ApoliceDetalhePage = lazy(() => import('./pages/ApoliceDetalhePage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const NotificacoesPage = lazy(() => import('./pages/NotificacoesPage'))
 import { useAuth } from './hooks/useAuth'
 import wassisMark from './assets/brand/wassis-mark.png'
 import wassisLogoDark from './assets/brand/wassis-logo-full_sidebar_dark.png'
+import { usesBackendData } from './lib/dataMode'
+
+import { IntegrationPending } from './components/IntegrationPending'
 
 function LoginPage() {
   const { signIn } = useAuth()
@@ -168,6 +171,8 @@ function LoginPage() {
  * Só é renderizado para usuários autenticados.
  */
 function AppLayout() {
+  const { pathname } = useLocation()
+  const supported = /^\/(segurados|oportunidades)(\/[^/]+)?$/.test(pathname)
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('nexus-crm-theme')
     if (saved) return saved === 'dark'
@@ -199,7 +204,8 @@ function AppLayout() {
       <main className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Header />
         <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4 md:p-6 xl:p-8">
-          <Routes>
+          <Suspense fallback={<p role="status">Carregando...</p>}>
+          {usesBackendData && !supported && pathname !== '/' ? <IntegrationPending /> : <Routes>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/segurados" element={<SeguradosPage />} />
             <Route path="/segurados/:id" element={<SeguradoDetalhePage />} />
@@ -239,8 +245,9 @@ function AppLayout() {
             <Route path="/apolices/:id" element={<ApoliceDetalhePage />} />
             <Route path="/notificacoes" element={<NotificacoesPage />} />
             <Route path="/configuracoes" element={<SettingsPage />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+            <Route path="*" element={<Navigate to={usesBackendData ? '/segurados' : '/dashboard'} replace />} />
+          </Routes>}
+          </Suspense>
         </div>
       </main>
     </div>

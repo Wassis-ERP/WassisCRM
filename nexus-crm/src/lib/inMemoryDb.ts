@@ -9,6 +9,8 @@
  * podem ser deletados; o adapter em lib/supabase.ts volta a apontar para HTTP.
  */
 
+import { requireMemoryMode, usesBackendData } from './dataMode';
+
 // O mock in-memory precisa aceitar linhas heterogeneas de todas as tabelas.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Row = Record<string, any>;
@@ -91,6 +93,7 @@ TABLES.forEach((t) => {
 });
 
 export function getTable(name: string): Row[] {
+  requireMemoryMode();
   if (!db[name]) db[name] = [];
   return db[name];
 }
@@ -684,6 +687,7 @@ let seeded = false;
  * Chamado uma única vez na primeira carga do módulo.
  */
 export function seed(): void {
+  if (usesBackendData || import.meta.env.PROD) return;
   if (seeded) return;
   seeded = true;
 

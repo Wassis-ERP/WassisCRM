@@ -1,4 +1,4 @@
-FROM node:22-alpine AS build
+FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS build
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY nexus-crm/ ./
 
 ARG VITE_API_BASE_URL
 ARG VITE_AUTH_MODE=backend
-ARG VITE_DATA_MODE=memory
+ARG VITE_DATA_MODE=backend
 ARG VITE_BUILD_SHA=local
 ARG VITE_BACKEND_IDLE_TIMEOUT_MINUTES=120
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
@@ -20,9 +20,10 @@ ENV VITE_BACKEND_IDLE_TIMEOUT_MINUTES=$VITE_BACKEND_IDLE_TIMEOUT_MINUTES
 
 RUN npm run build
 
-FROM nginx:1.27-alpine
+FROM nginxinc/nginx-unprivileged:stable-alpine@sha256:442753882674b49ae2c1de83ed67896131c0777f56df5005e356e62bc3f7e7ce
 
 COPY nexus-crm/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 
-EXPOSE 80
+USER 101
+EXPOSE 8080

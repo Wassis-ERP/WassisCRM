@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { Database } from '../types/database'
 import { useAuth } from './useAuth'
+import { usesBackendDomainData, listBackendOpportunities } from '../lib/backendDomainApi'
 
 type CardStatus = Database['public']['Enums']['card_status']
 
@@ -46,6 +47,7 @@ export function useOportunidadesBySegurado(seguradoId: string | undefined) {
     queryKey: [...NEGOCIOS_KEY, 'oportunidades', seguradoId] as const,
     enabled: Boolean(seguradoId) && authReady,
     queryFn: async (): Promise<OportunidadeResumo[]> => {
+      if (usesBackendDomainData) return (await listBackendOpportunities({}, null)).filter(row => row.segurado_id === seguradoId).map(row => ({ id: row.id, nome: row.titulo ?? 'Oportunidade', premio: row.valor_premio_estimado, status: row.ganha_em ? 'won' : row.perdida_em ? 'lost' : 'pending' }));
       const { data, error } = await supabase.from('oportunidades').select(`
           id,
           titulo,

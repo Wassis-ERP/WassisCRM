@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryClient';
 import type { Produtor } from '../types/platform';
+import { usesBackendData } from '../lib/dataMode';
+import { listBackendCatalog } from '../lib/backendLookups';
 
 export interface ProdutorOption {
   id: string;
@@ -18,6 +20,7 @@ export function useProdutores() {
   return useQuery({
     queryKey: queryKeys.lookups.produtores,
     queryFn: async (): Promise<ProdutorOption[]> => {
+      if (usesBackendData) return (await listBackendCatalog('produtores')).map(row => ({ id: row.id, nome: row.nome ?? 'Produtor sem nome', profile_id: row.profile_id, ativo: row.ativo === true }));
       const { data, error } = await supabase
         .from('produtores')
         .select('id, nome, profile_id, ativo')

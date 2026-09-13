@@ -1,3 +1,4 @@
+import { usesBackendData } from '../lib/dataMode'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '../lib/queryClient'
 import { supabase } from '../lib/supabase'
@@ -102,7 +103,7 @@ export function useNotifications() {
 
   const query = useQuery({
     queryKey,
-    enabled: Boolean(profileId) && Boolean(session) && !loading,
+    enabled: !usesBackendData && Boolean(profileId) && Boolean(session) && !loading,
     queryFn: () => fetchNotifications(profileId as string),
   })
 

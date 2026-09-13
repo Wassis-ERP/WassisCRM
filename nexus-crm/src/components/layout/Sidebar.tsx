@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
+import { usesBackendData } from '../../lib/dataMode'
 import {
   LayoutDashboard,
   Users,
@@ -69,10 +70,13 @@ export default function Sidebar({ collapsed, onToggleCollapse, onToggleTheme, da
       <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto custom-scrollbar">
         {navItems.map((item) => {
           const isActive = location.pathname.startsWith(item.path)
+          const pending = usesBackendData && !['/segurados', '/oportunidades'].includes(item.path)
           return (
             <NavLink
               key={item.path}
               to={item.path}
+              aria-disabled={pending || undefined}
+              onClick={event => { if (pending) event.preventDefault() }}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-[6px] transition-colors text-sm ${
                 collapsed ? 'justify-center' : ''
               } ${
@@ -80,7 +84,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, onToggleTheme, da
                   ? 'bg-accent-primary-soft text-accent-primary font-semibold'
                   : 'text-fg-3 font-medium hover:bg-bg-surface-2 hover:text-fg-2'
               }`}
-              title={collapsed ? item.label : undefined}
+              title={pending ? `${item.label}: integração pendente` : collapsed ? item.label : undefined}
             >
               <item.icon size={20} className="shrink-0" />
               {!collapsed && <span className="animate-fade-in">{item.label}</span>}

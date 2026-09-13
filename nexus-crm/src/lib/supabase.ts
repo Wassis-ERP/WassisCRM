@@ -13,13 +13,16 @@
 import { InMemoryQueryBuilder, type QueryResult } from './inMemoryQueryBuilder';
 import { getTable } from './inMemoryDb';
 import { activeProfileLinks } from '../modules/plataforma/platformCommands';
+import { requireMemoryMode } from './dataMode';
 
 export const supabase = {
-  from<T = any>(table: string) {
-    return new InMemoryQueryBuilder<T>(table);
+  from(table: string) {
+    requireMemoryMode();
+    return new InMemoryQueryBuilder(table);
   },
 
-  async rpc<T = any>(name: string, _params?: Record<string, unknown>): Promise<QueryResult<T>> {
+  async rpc<T = unknown>(name: string, _params?: Record<string, unknown>): Promise<QueryResult<T>> {
+    requireMemoryMode();
     if (name === 'get_team_members') {
       const profiles = getTable('profiles').filter(p => !_params?.tenantId || p.tenant_id === _params.tenantId);
       const perfis = getTable('perfis');
@@ -42,18 +45,20 @@ export const supabase = {
           perfil_principal: perfilNome,
         };
       });
-      return { data: members as any, error: null };
+      return { data: members as unknown as T, error: null };
     }
     return { data: null, error: { message: `RPC nao implementada no modo offline: ${name}` } };
   },
 
   functions: {
-    async invoke<T = any>(name: string, _options?: { body?: unknown }): Promise<QueryResult<T>> {
+    async invoke<T = unknown>(name: string, _options?: { body?: unknown }): Promise<QueryResult<T>> {
+      void _options;
+      requireMemoryMode();
       // Sem backend: aceita a chamada como no-op para nao quebrar a UI.
       // Em particular, 'invite-user' (useTeamAdmin) cai aqui — o convite nao
       // eh realmente enviado.
       if (name === 'invite-user') {
-        return { data: { ok: true } as any, error: null };
+        return { data: { ok: true } as T, error: null };
       }
       return { data: null, error: null };
     },

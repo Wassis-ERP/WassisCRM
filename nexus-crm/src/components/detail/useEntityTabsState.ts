@@ -1,3 +1,4 @@
+import { usesBackendData } from '../../lib/dataMode'
 /**
  * Hook das guias transversais. A origem agora é o mock in-memory via contrato
  * polimórfico `entidade_tipo + entidade_id`, igual ao DBML v2.0.
@@ -428,7 +429,7 @@ export function useEntityTabsState(
   const { user, activeBranchId, session, loading } = useAuth()
   const queryClient = useQueryClient()
   const [showAuditLogs, setShowAuditLogs] = useState(false)
-  const enabled = Boolean(entidadeId) && !loading && Boolean(session)
+  const enabled = !usesBackendData && Boolean(entidadeId) && !loading && Boolean(session)
   const context: EntidadeContexto | null = entidadeId
     ? {
         entidadeTipo,

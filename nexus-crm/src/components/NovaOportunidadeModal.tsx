@@ -152,9 +152,8 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
         </header>
 
         <div className="space-y-5 p-5">
-          {usesBackendDomainData && <p className="text-sm text-fg-3" role="note">Nesta versão conectada, selecione um segurado cadastrado e informe o título. Novos leads, prioridade e previsão de fechamento aguardam atualização da integração.</p>}
           <div className="grid grid-cols-2 gap-1 rounded-[8px] bg-bg-surface-2 p-1" aria-label="Tipo de identificação da oportunidade">
-            <button type="button" disabled={usesBackendDomainData} onClick={() => setMode('lead')} className={`flex items-center justify-center gap-2 rounded-[6px] px-3 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${mode === 'lead' ? 'bg-bg-surface text-accent-primary shadow-[var(--shadow-1)]' : 'text-fg-3 hover:text-fg-1'}`}>
+            <button type="button" onClick={() => setMode('lead')} className={`flex items-center justify-center gap-2 rounded-[6px] px-3 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${mode === 'lead' ? 'bg-bg-surface text-accent-primary shadow-[var(--shadow-1)]' : 'text-fg-3 hover:text-fg-1'}`}>
               <UserRound size={16} /> Novo lead
             </button>
             <button type="button" onClick={() => setMode('segurado')} className={`flex items-center justify-center gap-2 rounded-[6px] px-3 py-2 text-sm font-bold transition-colors ${mode === 'segurado' ? 'bg-bg-surface text-accent-primary shadow-[var(--shadow-1)]' : 'text-fg-3 hover:text-fg-1'}`}>
@@ -226,8 +225,8 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
             </label>
             <label className="space-y-1.5">
               <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Prioridade</span>
-              <select disabled={usesBackendDomainData} value={prioridade} onChange={(event) => setPrioridade(event.target.value)} className={inputClass}>
-                {usesBackendDomainData && <option value="">Indisponível na integração</option>}
+              <select value={prioridade} onChange={(event) => setPrioridade(event.target.value)} className={inputClass}>
+                <option value="">Não informada</option>
                 <option value="baixa">Baixa</option>
                 <option value="media">Média</option>
                 <option value="alta">Alta</option>
@@ -236,7 +235,7 @@ export default function NovaOportunidadeModal({ isOpen, onClose, onCreated }: Pr
             </label>
             <label className="space-y-1.5">
               <span className="text-[10px] font-black uppercase tracking-widest text-fg-4">Fechamento previsto</span>
-              <input disabled={usesBackendDomainData} type="date" value={fechamentoPrevisto} onChange={(event) => setFechamentoPrevisto(event.target.value)} className={inputClass} />
+              <input type="date" value={fechamentoPrevisto} onChange={(event) => setFechamentoPrevisto(event.target.value)} className={inputClass} />
             </label>
           </div>
 
