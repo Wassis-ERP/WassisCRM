@@ -6,6 +6,14 @@ import type { Perfil } from '../types/platform';
 import type { RolePermissionRow } from '../types/platformRows';
 import { createCustomProfile } from '../modules/plataforma/platformCommands';
 import type { PermissionScope } from '../modules/plataforma/platformDomain';
+import { usesBackendData } from '../lib/dataMode';
+import {
+  createAdministrationAccessProfile,
+  listAdministrationAccessProfiles,
+  listAdministrationPermissions,
+  updateAdministrationAccessProfile,
+  updateAdministrationPermission,
+} from '../lib/backendAdministrationApi';
 
 export type PermissionRow = RolePermissionRow;
 export type PermField = 'can_read' | 'can_create' | 'can_update' | 'can_delete' | 'can_export' | 'can_manage';
@@ -24,6 +32,7 @@ export function usePerfisAdmin() {
   const perfisQuery = useQuery({
     queryKey: queryKeys.perfis,
     queryFn: async (): Promise<Perfil[]> => {
+      if (usesBackendData) return (await listAdministrationAccessProfiles()).filter((profile) => profile.ativo !== false);
       const { data, error } = await supabase
         .from('perfis')
         .select('*')
@@ -37,6 +46,7 @@ export function usePerfisAdmin() {
   const permsQuery = useQuery({
     queryKey: queryKeys.permissions,
     queryFn: async (): Promise<PermissionRow[]> => {
+      if (usesBackendData) return listAdministrationPermissions();
       const { data, error } = await supabase
         .from('role_permissions')
         .select('*')
@@ -58,6 +68,7 @@ export function usePerfisAdmin() {
   const createPerfil = useMutation({
     mutationFn: async (nome: string): Promise<Perfil> => {
       if (!tenantId) throw new Error('Tenant não encontrado');
+      if (usesBackendData) return createAdministrationAccessProfile(nome);
       const perfil = createCustomProfile(tenantId, nome, modules);
       await supabase.from('audit_logs').insert({
         action: 'CREATE_PERFIL',
@@ -72,6 +83,12 @@ export function usePerfisAdmin() {
 
   const renamePerfil = useMutation({
     mutationFn: async ({ id, nome }: { id: string; nome: string }) => {
+      if (usesBackendData) {
+        const current = perfisQuery.data?.find((profile) => profile.id === id);
+        if (!current) throw new Error('Perfil não encontrado.');
+        await updateAdministrationAccessProfile({ ...current, nome: nome.trim() });
+        return;
+      }
       const { error } = await supabase.from('perfis').update({ nome: nome.trim() }).eq('id', id);
       if (error) throw error;
     },
@@ -80,6 +97,12 @@ export function usePerfisAdmin() {
 
   const removePerfil = useMutation({
     mutationFn: async (id: string) => {
+      if (usesBackendData) {
+        const current = perfisQuery.data?.find((profile) => profile.id === id);
+        if (!current) throw new Error('Perfil não encontrado.');
+        await updateAdministrationAccessProfile({ ...current, ativo: false });
+        return;
+      }
       const { error } = await supabase.from('perfis').update({ ativo: false }).eq('id', id);
       if (error) throw error;
       await supabase.from('audit_logs').insert({
@@ -93,6 +116,12 @@ export function usePerfisAdmin() {
 
   const togglePermission = useMutation({
     mutationFn: async ({ id, field, value }: { id: string; field: PermField; value: boolean }) => {
+      if (usesBackendData) {
+        const current = permsQuery.data?.find((permission) => permission.id === id);
+        if (!current) throw new Error('Permissão não encontrada.');
+        await updateAdministrationPermission({ ...current, [field]: value });
+        return;
+      }
       const { error } = await supabase.from('role_permissions').update({ [field]: value }).eq('id', id);
       if (error) throw error;
       await supabase.from('audit_logs').insert({
@@ -106,6 +135,12 @@ export function usePerfisAdmin() {
   });
 
   const setScope = useMutation({ mutationFn: async ({ id, escopo }: { id: string; escopo: PermissionScope }) => {
+    if (usesBackendData) {
+      const current = permsQuery.data?.find((permission) => permission.id === id);
+      if (!current) throw new Error('Permissão não encontrada.');
+      await updateAdministrationPermission({ ...current, escopo });
+      return;
+    }
     const { error } = await supabase.from('role_permissions').update({ escopo }).eq('id', id);
     if (error) throw error;
   }, onSuccess: invalidatePerfis });

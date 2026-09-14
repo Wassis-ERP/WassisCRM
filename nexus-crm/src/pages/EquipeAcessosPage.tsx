@@ -11,8 +11,8 @@ import { isActiveLink } from '../modules/plataforma/platformDomain'
 import './EquipeAcessosPage.css'
 
 /**
- * Modal de membro. Convite = nome + e-mail (o CARGO global foi aposentado — D18).
- * Depois de convidar, o modal entra em modo edição e revela "Corretoras & Perfil"
+ * Modal de membro. Cadastro = nome + e-mail (o CARGO global foi aposentado — D18).
+ * Depois de cadastrar, o modal entra em modo edição e revela "Corretoras & Perfil"
  * para atribuir o acesso (perfil por corretora).
  */
 const ProdutorModal = ({
@@ -44,7 +44,7 @@ const ProdutorModal = ({
     <div className="team-access-modal"><AppModal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditing ? 'Editar Membro' : 'Convidar Membro'}
+      title={isEditing ? 'Editar Membro' : 'Adicionar Usuário'}
       icon={isEditing ? <Edit size={20} /> : <UserPlus size={20} />}
       size="md"
       isDismissDisabled={isSaving}
@@ -89,7 +89,7 @@ const ProdutorModal = ({
           ) : (
             <div className="mt-6 bg-bg-surface-2 rounded-[8px] p-4 border border-border-1 flex items-center gap-2 text-xs text-fg-3">
               <ShieldCheck size={14} className="text-accent-primary shrink-0" />
-              Após convidar, defina as <strong>corretoras e o perfil de acesso</strong> do membro.
+              Após adicionar, defina as <strong>corretoras e o perfil de acesso</strong>. O envio do convite depende do provedor de identidade.
             </div>
           )}
         </div>
@@ -108,7 +108,7 @@ const ProdutorModal = ({
               onClick={() => onInvite(formData.email, formData.nome_completo)}
               className="px-8 py-2.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black hover:bg-accent-primary-hover transition-all shadow-[var(--shadow-brand)] disabled:opacity-50"
             >
-              {isSaving ? 'Convidando...' : 'Enviar Convite'}
+              {isSaving ? 'Adicionando...' : 'Adicionar Usuário'}
             </button>
           )}
       </div>
@@ -284,7 +284,7 @@ export default function EquipeAcessosPage() {
           onClick={() => handleOpenModal()}
           className="flex items-center gap-2 px-6 py-2.5 bg-accent-primary text-fg-on-brand rounded-full text-sm font-black hover:bg-accent-primary-hover transition-all shadow-[var(--shadow-brand)]"
         >
-          <UserPlus size={18} /> Convidar Membro
+          <UserPlus size={18} /> Adicionar Usuário
         </button>
       </div>
 
