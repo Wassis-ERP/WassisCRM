@@ -6,6 +6,8 @@
 
 ## Norte do plano
 
+- [~] 15/09/2026 — Gestão administrativa SaaS conectada: contrato, identidade/RBAC, testes e gates operacionais em andamento. Micro-plano: `micro-plano-gestao-administrativa-saas-2026-09-15.md`.
+
 - [~] 13/09/2026 — Prontidão SaaS com WAssisBE: Segurados e Oportunidades persistidos e validados por Playwright nas telas originais; build/adapter impedem falso modo conectado. ADRs, inventário de memória e runbooks entregues; módulos restantes e operação publicada pendentes. Backend em repositório separado. Micro-plano: `micro-plano-prontidao-saas-2026-09-13.md`. Aceite anterior era frontend demonstrativo, não SaaS integrado completo.
 
 - [x] 11/09/2026 — Encerramento documental da primeira versão concluído: hand-off consolidado, checklists históricos reconciliados e aceite de escopo registrado com limites explícitos. Micro-plano: `micro-plano-encerramento-frontend-v1-2026-09-11.md`.

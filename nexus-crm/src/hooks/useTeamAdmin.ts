@@ -2,6 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryClient';
 import { useAuth } from './useAuth';
+import { usesBackendData } from '../lib/dataMode';
+import {
+  inviteAdministrationUser,
+  listAdministrationUsers,
+  setAdministrationUserStatus,
+} from '../lib/backendAdministrationApi';
 
 export interface TeamMember {
   id: string;
@@ -29,6 +35,20 @@ export function useTeamAdmin() {
   const membersQuery = useQuery({
     queryKey: queryKeys.team,
     queryFn: async () => {
+      if (usesBackendData) {
+        return (await listAdministrationUsers()).map((member) => ({
+          id: member.id,
+          nome_completo: member.name,
+          email: member.email,
+          avatar_url: member.avatarUrl,
+          ativo: member.isActive,
+          status: member.status,
+          convite_status: member.invitationStatus,
+          convite_enviado_em: member.invitationSentAt,
+          corretoras_count: member.branchCount,
+          perfil_principal: member.primaryAccessProfile,
+        }));
+      }
       const { data, error } = await supabase.rpc('get_team_members', {tenantId});
       if (error) throw error;
       return data as TeamMember[];
@@ -39,6 +59,15 @@ export function useTeamAdmin() {
     mutationFn: async ({ email, nome_completo }: { email: string; nome_completo: string }): Promise<TeamMember> => {
       if (!tenantId) throw new Error('Tenant não encontrado');
       if (!nome_completo.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new Error('Informe nome e email válidos.');
+      if (usesBackendData) {
+        const member = await inviteAdministrationUser(nome_completo.trim(), email.trim());
+        return {
+          id: member.id, nome_completo: member.name, email: member.email,
+          avatar_url: member.avatarUrl, ativo: member.isActive, status: member.status,
+          convite_status: member.invitationStatus, convite_enviado_em: member.invitationSentAt,
+          corretoras_count: member.branchCount, perfil_principal: member.primaryAccessProfile,
+        };
+      }
       // Cria o membro no mock (profiles). O acesso (perfil por corretora) é
       // atribuído depois em profile_filiais. No backend real isto vira convite.
       const { data, error } = await supabase
@@ -70,6 +99,10 @@ export function useTeamAdmin() {
   });
 
   const setActive = useMutation({ mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+    if (usesBackendData) {
+      await setAdministrationUserStatus(id, ativo);
+      return;
+    }
     const { error } = await supabase.from('profiles').update({ ativo, status: ativo ? 'ATIVO' : 'INATIVO' }).eq('id', id).eq('tenant_id', tenantId);
     if (error) throw error;
   }, onSuccess: () => {

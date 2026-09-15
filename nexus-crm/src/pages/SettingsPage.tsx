@@ -31,6 +31,7 @@ import EquipeAcessosPage from './EquipeAcessosPage'
 import ProdutoresPage from './ProdutoresPage'
 import StepsConfigModal from '../components/modals/StepsConfigModal'
 import { PermissionsMatrix } from '../components/admin/PermissionsMatrix'
+import OrganizationManagementTab from '../components/settings/OrganizationManagementTab'
 import CamposPersonalizadosTab from '../components/settings/CamposPersonalizadosTab'
 import CoberturasCatalogoTab from '../components/settings/CoberturasCatalogoTab'
 import CatalogoEnxutoTab from '../components/settings/CatalogoEnxutoTab'
@@ -424,6 +425,14 @@ export default function SettingsPage() {
       title: 'Organização',
       description: 'Estrutura jurídica, unidades e força comercial do grupo.',
       tabs: [
+        {
+          id: 'empresa',
+          label: 'Empresa e Indicadores',
+          description: 'Atualize os dados do grupo e acompanhe usuários, unidades e operação.',
+          icon: Building2,
+          component: <OrganizationManagementTab />,
+          meta: 'gestão do grupo',
+        },
         {
           id: 'corretoras',
           label: 'Corretoras/Filiais',

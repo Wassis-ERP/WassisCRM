@@ -4,6 +4,8 @@ import { queryKeys } from '../lib/queryClient';
 import { useAuth } from './useAuth';
 import { onlyDigits } from '../utils/documento';
 import type { Filial, FilialInput } from '../types/platform';
+import { usesBackendData } from '../lib/dataMode';
+import { createAdministrationBranch, listAdministrationBranches, updateAdministrationBranch } from '../lib/backendAdministrationApi';
 
 /**
  * CRUD das corretoras (filiais). Segue o padrão de useLookupsAdmin, mas com
@@ -18,6 +20,7 @@ export function useFiliaisAdmin() {
   const listQuery = useQuery({
     queryKey: queryKeys.filiais,
     queryFn: async (): Promise<Filial[]> => {
+      if (usesBackendData) return (await listAdministrationBranches()).filter((branch) => branch.ativo !== false);
       const { data, error } = await supabase
         .from('filiais')
         .select('*')
@@ -54,11 +57,18 @@ export function useFiliaisAdmin() {
     desired: string | null | undefined,
     selfId?: string,
   ): Promise<string | null> => {
-    const { data } = await supabase
-      .from('filiais')
-      .select('id, matriz_id, fantasia, razao_social')
-      .eq('ativo', true);
-    const all = (data ?? []) as Array<Record<string, unknown>>;
+    const all = usesBackendData
+      ? (listQuery.data ?? []).map((branch) => ({
+          id: branch.id, matriz_id: branch.matriz_id,
+          fantasia: branch.fantasia, razao_social: branch.razao_social,
+        })) as Array<Record<string, unknown>>
+      : await (async () => {
+          const { data } = await supabase
+            .from('filiais')
+            .select('id, matriz_id, fantasia, razao_social')
+            .eq('ativo', true);
+          return (data ?? []) as Array<Record<string, unknown>>;
+        })();
     const otherMatriz = all.find((f) => !f.matriz_id && f.id !== selfId);
     if (!desired) {
       if (otherMatriz) {
@@ -78,6 +88,7 @@ export function useFiliaisAdmin() {
     mutationFn: async (input: FilialInput): Promise<Filial> => {
       if (!tenantId) throw new Error('Tenant não encontrado');
       const matriz_id = await resolveMatrizId(input.matriz_id);
+      if (usesBackendData) return createAdministrationBranch({ ...input, matriz_id, ativo: true });
       const { data, error } = await supabase
         .from('filiais')
         .insert({ ...normalize(input), matriz_id, tenant_id: tenantId, ativo: true })
@@ -116,6 +127,13 @@ export function useFiliaisAdmin() {
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<FilialInput> }): Promise<Filial> => {
       const norm = normalize(patch);
       if ('matriz_id' in patch) norm.matriz_id = await resolveMatrizId(patch.matriz_id, id);
+      if (usesBackendData) {
+        const current = listQuery.data?.find((branch) => branch.id === id);
+        if (!current) throw new Error('Corretora não encontrada.');
+        const { id: _id, tenant_id: _tenantId, ...editable } = current;
+        void _id; void _tenantId;
+        return updateAdministrationBranch(id, { ...editable, ...norm });
+      }
       const { data, error } = await supabase
         .from('filiais')
         .update(norm)
@@ -136,6 +154,14 @@ export function useFiliaisAdmin() {
 
   const removeMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (usesBackendData) {
+        const current = listQuery.data?.find((branch) => branch.id === id);
+        if (!current) throw new Error('Corretora não encontrada.');
+        const { id: _id, tenant_id: _tenantId, ...editable } = current;
+        void _id; void _tenantId;
+        await updateAdministrationBranch(id, { ...editable, ativo: false });
+        return;
+      }
       const { error } = await supabase.from('filiais').update({ ativo: false }).eq('id', id);
       if (error) throw error;
       await supabase.from('audit_logs').insert({
