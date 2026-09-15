@@ -44,6 +44,7 @@ export interface AdministrationStatistics {
 
 interface BackendAccessProfile {
   id: string
+  tenantId: string
   name: string
   description: string | null
   isSystem: boolean
@@ -89,7 +90,7 @@ interface BackendAdministrationBranch {
 
 const toPerfil = (row: BackendAccessProfile): Perfil => ({
   id: row.id,
-  tenant_id: '',
+  tenant_id: row.tenantId,
   nome: row.name,
   descricao: row.description,
   sistema: row.isSystem,
@@ -102,7 +103,7 @@ const toPermission = (row: BackendPermission): RolePermissionRow => ({
   id: row.id,
   perfil_id: row.accessProfileId,
   modulo: row.module,
-  escopo: row.scope === 'GRUPO' || row.scope === 'PROPRIO' ? row.scope : 'CORRETORA',
+  escopo: permissionScope(row.scope),
   can_read: row.canRead,
   can_create: row.canCreate,
   can_update: row.canUpdate,
@@ -110,6 +111,11 @@ const toPermission = (row: BackendPermission): RolePermissionRow => ({
   can_export: row.canExport,
   can_manage: row.canManage,
 })
+
+const permissionScope = (scope: string): RolePermissionRow['escopo'] => {
+  if (scope === 'GRUPO' || scope === 'CORRETORA' || scope === 'PROPRIO') return scope
+  throw new Error('Escopo de permissão inválido no backend.')
+}
 
 const toBranchAccess = (row: BackendBranchAccess): ProfileFilial => ({
   id: row.id,

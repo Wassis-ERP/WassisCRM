@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { requestAuthenticatedBackendJson } from './backendApi'
-import { createAdministrationBranch, listAdministrationPermissions } from './backendAdministrationApi'
+import { createAdministrationBranch, listAdministrationAccessProfiles, listAdministrationPermissions } from './backendAdministrationApi'
 import { platformDefaults } from '../types/platformRows'
 
 vi.mock('./backendApi', () => ({ requestAuthenticatedBackendJson: vi.fn() }))
@@ -10,15 +10,29 @@ const request = vi.mocked(requestAuthenticatedBackendJson)
 describe('backendAdministrationApi', () => {
   beforeEach(() => request.mockReset())
 
-  it('mapeia permissões para o contrato canônico e fecha escopo desconhecido em CORRETORA', async () => {
+  it('falha fechado quando o backend devolve escopo de permissão desconhecido', async () => {
     request.mockResolvedValueOnce([{
       id: 'permission-1', accessProfileId: 'profile-1', module: 'segurados', scope: 'INVALIDO',
       canRead: true, canCreate: false, canUpdate: true, canDelete: false, canExport: false, canManage: false,
     }])
 
+    await expect(listAdministrationPermissions()).rejects.toThrow('Escopo de permissão inválido')
+  })
+
+  it('preserva o tenant do perfil e as seis ações independentes', async () => {
+    request.mockResolvedValueOnce([{ id: 'profile-1', tenantId: 'tenant-1', name: 'Financeiro',
+      description: null, isSystem: false, accessLevel: 'OPERACIONAL', order: 2, isActive: true }])
+    request.mockResolvedValueOnce([{ id: 'permission-1', accessProfileId: 'profile-1', module: 'financeiro',
+      scope: 'PROPRIO', canRead: true, canCreate: false, canUpdate: false,
+      canDelete: false, canExport: true, canManage: false }])
+
+    await expect(listAdministrationAccessProfiles()).resolves.toMatchObject([{
+      tenant_id: 'tenant-1', nome: 'Financeiro', nivel_acesso: 'OPERACIONAL',
+    }])
     await expect(listAdministrationPermissions()).resolves.toEqual([{
-      id: 'permission-1', perfil_id: 'profile-1', modulo: 'segurados', escopo: 'CORRETORA',
-      can_read: true, can_create: false, can_update: true, can_delete: false, can_export: false, can_manage: false,
+      id: 'permission-1', perfil_id: 'profile-1', modulo: 'financeiro', escopo: 'PROPRIO',
+      can_read: true, can_create: false, can_update: false, can_delete: false,
+      can_export: true, can_manage: false,
     }])
   })
 
