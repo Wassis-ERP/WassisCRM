@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Building2, CheckCircle2, Clock3, Loader2, Save, ShieldCheck, Target, Users } from 'lucide-react'
+import { Building2, Clock3, Loader2, Save, ShieldCheck, Target, Users } from 'lucide-react'
 import {
   getAdministrationOrganization,
   getAdministrationStatistics,
@@ -41,6 +41,10 @@ export default function OrganizationManagementTab() {
 
   if (organization.isLoading) return <div className="flex justify-center gap-2 py-12 text-fg-3"><Loader2 className="animate-spin" size={18} /> Carregando empresa...</div>
 
+  if (organization.isError) return <div role="alert" className="rounded-[8px] border border-signal-danger/30 bg-signal-danger/10 p-5 text-sm text-fg-2">
+    Não foi possível carregar a empresa. <button type="button" onClick={() => void organization.refetch()} className="font-bold text-accent-primary underline">Tentar novamente</button>
+  </div>
+
   return (
     <div className="animate-fade-in space-y-6">
       <div>
@@ -48,12 +52,15 @@ export default function OrganizationManagementTab() {
         <p className="text-sm text-fg-3 font-medium">Dados do grupo contratante e visão rápida da utilização do CRM.</p>
       </div>
 
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3" aria-label="Indicadores da empresa">
+      {statistics.isError && <div role="alert" className="rounded-[8px] border border-signal-danger/30 bg-signal-danger/10 p-4 text-sm text-fg-2">
+        Indicadores indisponíveis. <button type="button" onClick={() => void statistics.refetch()} className="font-bold text-accent-primary underline">Tentar novamente</button>
+      </div>}
+      {!statistics.isError && <div className="grid grid-cols-2 xl:grid-cols-4 gap-3" aria-label="Indicadores da empresa">
         <Metric icon={Users} label="Usuários ativos" value={statistics.data?.activeUsers} detail={`${statistics.data?.inactiveUsers ?? 0} inativos`} />
-        <Metric icon={Clock3} label="Convites pendentes" value={statistics.data?.pendingInvitations} detail="aguardando identidade" />
+        <Metric icon={Clock3} label="Usuários pendentes" value={statistics.data?.pendingInvitations} detail="convite ainda não enviado" />
         <Metric icon={Building2} label="Corretoras ativas" value={statistics.data?.activeBranches} detail="matriz e filiais" />
         <Metric icon={Target} label="Oportunidades abertas" value={statistics.data?.openOpportunities} detail={`${statistics.data?.wonOpportunities ?? 0} ganhas`} />
-      </div>
+      </div>}
 
       {organization.data && <OrganizationForm organization={organization.data} />}
     </div>
@@ -146,7 +153,7 @@ function Field({ label, span = '', children }: { label: string; span?: string; c
 
 function Metric({ icon: Icon, label, value, detail }: { icon: typeof Users; label: string; value?: number; detail: string }) {
   return <div className="bg-bg-surface border border-border-1 rounded-[8px] p-4 shadow-[var(--shadow-1)]">
-    <div className="flex items-center justify-between gap-2"><Icon size={18} className="text-accent-primary" /><CheckCircle2 size={13} className="text-signal-success" /></div>
+    <div className="flex items-center justify-between gap-2"><Icon size={18} className="text-accent-primary" /></div>
     <div className="mt-3 text-2xl font-black text-fg-1">{value ?? '—'}</div>
     <div className="text-xs font-bold text-fg-2">{label}</div>
     <div className="text-[10px] text-fg-4 mt-1">{detail}</div>
