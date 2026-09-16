@@ -1,10 +1,12 @@
-const DEFAULT_IDLE_TIMEOUT_MINUTES = 120;
+const DEFAULT_IDLE_TIMEOUT_MINUTES = 30;
 let backendSession: BackendSessionSnapshot | null = null;
 let backendLastActivityAt = 0;
 let csrfToken: string | null = null;
 let selectedBranchId: string | null = null;
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '');
+export const usesExternalIdentity = import.meta.env.VITE_AUTH_MODE === 'backend'
+  && import.meta.env.VITE_AUTH_PROVIDER === 'auth0';
 const configuredIdleTimeoutMinutes = Number(import.meta.env.VITE_BACKEND_IDLE_TIMEOUT_MINUTES);
 const BACKEND_IDLE_TIMEOUT_MINUTES = Number.isFinite(configuredIdleTimeoutMinutes)
   ? configuredIdleTimeoutMinutes
@@ -205,6 +207,16 @@ export async function loginToBackend(username: string, password: string): Promis
   markBackendActivity();
 
   return result;
+}
+
+export function beginExternalLogin() {
+  ensureApiBaseUrl();
+  window.location.assign(`${API_BASE_URL}/api/identity/external/login`);
+}
+
+export function finishExternalLogout() {
+  ensureApiBaseUrl();
+  window.location.assign(`${API_BASE_URL}/api/identity/external/logout`);
 }
 
 export function getBackendAccessToken(): string | null {

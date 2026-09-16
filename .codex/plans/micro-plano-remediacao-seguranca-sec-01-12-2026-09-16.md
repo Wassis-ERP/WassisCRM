@@ -21,13 +21,13 @@ negócio. Backend, migrations e enforcement serão implementados no WAssisBE.
 
 ## Etapas
 
-- [~] Substituir a action Gitleaks que exige licença por CLI oficial com versão e
+- [x] Substituir a action Gitleaks que exige licença por CLI oficial com versão e
   checksum fixos; manter scanner e falha de CI em achados.
-- [ ] Corrigir transição de identidade/CSRF, recuperação de sessão e filiais
+- [x] Corrigir transição de identidade/CSRF, recuperação de sessão e filiais
   disponíveis no adapter/AuthContext quando comprovadas regressões.
-- [ ] Alinhar gating PROPRIO com enforcement do backend e testes negativos.
-- [ ] Validar testes, lint e build afetados; registrar limites da validação real.
-- [ ] Preparar checkpoint e prompt de continuação, sem declarar Production pronta.
+- [x] Alinhar gating PROPRIO com enforcement do backend e testes negativos.
+- [x] Validar testes, lint e build afetados; registrar limites da validação real.
+- [x] Preparar checkpoint e prompt de continuação, sem declarar Production pronta.
 
 Arquivos prováveis: workflows, scripts de segurança, backendApi.ts/testes,
 AuthContext.tsx, usePermission.ts e documentação de remediação.
@@ -69,3 +69,21 @@ Demais frentes e prompt: RENATO_CONTINUATION.md e SECURITY_FOLLOWUP.md no backen
 - Pendente: smoke no navegador, matriz completa de módulos, Auth0 e demais
   bloqueadores listados em SECURITY_FOLLOWUP.md do backend.
 - RENATO_CONTINUATION.md atualizado nos dois repositórios para o segundo checkpoint.
+
+## Terceiro checkpoint — BFF Auth0 e smoke local
+
+- O CRM ganhou modo `VITE_AUTH_PROVIDER=auth0`: em modo conectado apresenta apenas
+  o redirecionamento corporativo e nunca recebe client secret ou token. Logout revoga
+  primeiro a sessão interna e então segue para o logout OIDC do BFF; o estado local
+  é limpo mesmo se a primeira chamada falhar, e o endpoint externo tenta novamente a
+  revogação antes de apagar o cookie.
+- Idle timeout local foi alinhado ao limite server-side de 30 minutos. O contrato
+  funcional v3.1 e `database.ts` permaneceram inalterados.
+- CI da branch passou a disparar automaticamente em push. Build publicado sem
+  `VITE_AUTH_PROVIDER=auth0` agora falha. Lint sem avisos, 335/335 testes, auditoria
+  npm e build Production com backend/Auth0 foram aprovados localmente.
+- Smoke em navegador local carregou Dashboard e Segurados em modo mock; o health
+  mínimo do BE respondeu 200. Login Auth0/backend não foi simulado: faltam tenant e
+  PostgreSQL/Docker neste host, portanto essa jornada continua pendente.
+- A integração BFF, RLS de quotes/worker, resultados e bloqueadores estão detalhados
+  em `SECURITY_FOLLOWUP.md` e `SECURITY_REMEDIATION.md` do backend.

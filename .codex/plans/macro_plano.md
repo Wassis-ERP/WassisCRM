@@ -1244,3 +1244,10 @@ filiais vigentes por sessão, ownership concorrente e testes HTTP com PostgreSQL
 TLS e RLS reais. Evidências e pendências no micro-plano
 `micro-plano-remediacao-seguranca-sec-01-12-2026-09-16.md` e em
 `RENATO_CONTINUATION.md`; não representa liberação de Production.
+
+### Continuação de segurança — terceiro checkpoint de 16/09/2026
+
+Frontend preparado para BFF Auth0 sem token/segredo no browser, com timeout de
+sessão alinhado ao servidor. Gates locais (lint, 335 testes, audit e build conectado)
+e smoke mock foram aprovados. Login real depende do tenant Auth0 e PostgreSQL; o
+sistema permanece não liberado para Production. Detalhes no micro-plano de segurança.

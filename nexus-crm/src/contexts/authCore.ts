@@ -3,6 +3,7 @@ import type { AuthState, UserProfile } from '../types/auth';
 
 export interface AuthContextType extends AuthState {
   signIn: (username: string, password: string) => Promise<void>;
+  signInExternal: () => void;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
   setActiveBranchId: (branchId: string | null) => void;

@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { AuthState, Session, UserProfile } from '../types/auth';
 import {
+  beginExternalLogin,
   clearBackendSession,
+  finishExternalLogout,
   getBackendCurrentUser,
   getBackendEffectivePermissions,
   getBackendSessionSnapshot,
@@ -10,6 +12,7 @@ import {
   logoutBackend,
   markBackendActivity,
   setBackendActiveBranch,
+  usesExternalIdentity,
 } from '../lib/backendApi';
 import { queryClient } from '../lib/queryClient';
 import { getTable } from '../lib/inMemoryDb';
@@ -250,10 +253,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = useCallback(async () => {
     // Sempre encerra a sessão de fato — inclusive no modo mock, para que o
     // botão "Sair" leve de volta à tela de login.
-    if (REQUIRE_BACKEND_AUTH) await logoutBackend();
-    else clearBackendSession();
-    queryClient.clear();
-    setAuthState({ session: null, user: null, activeBranchId: null, loading: false });
+    try {
+      if (REQUIRE_BACKEND_AUTH) await logoutBackend();
+      else clearBackendSession();
+    } finally {
+      queryClient.clear();
+      setAuthState({ session: null, user: null, activeBranchId: null, loading: false });
+      if (REQUIRE_BACKEND_AUTH && usesExternalIdentity) finishExternalLogout();
+    }
   }, []);
 
   const setActiveBranchId = useCallback((branchId: string | null) => {
@@ -320,7 +327,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshSession();
   }, [refreshSession]);
 
@@ -341,6 +347,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         ...authState,
         signIn,
+        signInExternal: beginExternalLogin,
         signOut,
         refreshSession,
         setActiveBranchId,

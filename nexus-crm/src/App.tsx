@@ -33,11 +33,12 @@ import { useAuth } from './hooks/useAuth'
 import wassisMark from './assets/brand/wassis-mark.png'
 import wassisLogoDark from './assets/brand/wassis-logo-full_sidebar_dark.png'
 import { usesBackendData } from './lib/dataMode'
+import { usesExternalIdentity } from './lib/backendApi'
 
 import { IntegrationPending } from './components/IntegrationPending'
 
 function LoginPage() {
-  const { signIn } = useAuth()
+  const { signIn, signInExternal } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -107,6 +108,15 @@ function LoginPage() {
           </div>
 
           <div className="space-y-5">
+            {usesExternalIdentity ? (
+              <button
+                type="button"
+                onClick={signInExternal}
+                className="w-full rounded-xl bg-accent-primary py-3 text-sm font-semibold text-accent-primary-fg shadow-[var(--shadow-brand)] transition-all hover:bg-accent-primary-hover"
+              >
+                Entrar com a conta corporativa
+              </button>
+            ) : <>
             <label className="block space-y-1.5">
               <span className="text-xs font-semibold uppercase tracking-wider text-fg-3">Usuário</span>
               <span className="relative block">
@@ -159,6 +169,7 @@ function LoginPage() {
             >
               {submitting ? 'Entrando...' : 'Entrar'}
             </button>
+            </>}
           </div>
         </form>
       </div>
