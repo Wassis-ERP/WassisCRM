@@ -10,6 +10,12 @@ import {
   mapAtividadeToTarefa,
 } from './useEntityTabsState'
 import type { EntidadeContexto } from '../../types/entidade'
+import type { Database } from '../../types/database'
+
+type AtividadeRow = Database['public']['Tables']['atividades']['Row'] & { created_at?: string; updated_at?: string }
+type AnexoRow = Database['public']['Tables']['anexos']['Row'] & { created_at?: string; updated_at?: string }
+type AuditLogRow = Database['public']['Tables']['audit_logs']['Row'] & { created_at?: string; updated_at?: string }
+type ProfileRow = Database['public']['Tables']['profiles']['Row']
 
 const context: EntidadeContexto = {
   entidadeTipo: 'segurado',
@@ -77,7 +83,7 @@ describe('guias transversais polimorficas', () => {
   })
 
   it('mapeia atividades para view models de tarefa e observacao com autoria', () => {
-    const profiles = [{ id: 'profile-1', nome_completo: 'Dev Wassis', email: 'dev@wassis.com' }] as any[]
+    const profiles = [{ id: 'profile-1', nome_completo: 'Dev Wassis', email: 'dev@wassis.com' }] as ProfileRow[]
 
     expect(mapAtividadeToTarefa({
       id: 'atividade-1',
@@ -90,7 +96,7 @@ describe('guias transversais polimorficas', () => {
       vencimento: null,
       concluida_em: '2026-07-08T10:00:00.000Z',
       fixada_em: null,
-    } as any, profiles, 'Fallback')).toMatchObject({
+    } as unknown as AtividadeRow, profiles, 'Fallback')).toMatchObject({
       titulo: 'Retornar',
       tipo: 'Follow-up',
       status: 'Concluída',
@@ -104,7 +110,7 @@ describe('guias transversais polimorficas', () => {
       descricao: 'Nota fixada',
       fixada_em: '2026-07-08T10:00:00.000Z',
       created_at: '2026-07-08T09:00:00.000Z',
-    } as any, profiles, 'Fallback')).toMatchObject({
+    } as AtividadeRow, profiles, 'Fallback')).toMatchObject({
       texto: 'Nota fixada',
       autor: 'Dev Wassis',
       pinned: true,
@@ -112,7 +118,7 @@ describe('guias transversais polimorficas', () => {
   })
 
   it('monta timeline unificada mantendo audit_logs atras do toggle', () => {
-    const profiles = [{ id: 'profile-1', nome_completo: 'Dev Wassis', email: 'dev@wassis.com' }] as any[]
+    const profiles = [{ id: 'profile-1', nome_completo: 'Dev Wassis', email: 'dev@wassis.com' }] as ProfileRow[]
     const atividades = [{
       id: 'atividade-1',
       responsavel_id: 'profile-1',
@@ -121,12 +127,12 @@ describe('guias transversais polimorficas', () => {
       descricao: 'Contato registrado',
       fixada_em: null,
       created_at: '2026-07-08T10:00:00.000Z',
-    }] as any[]
+    }] as unknown as AtividadeRow[]
     const anexos = [{
       id: 'anexo-1',
       nome_arquivo: 'apolice.pdf',
       anexado_em: '2026-07-08T11:00:00.000Z',
-    }] as any[]
+    }] as AnexoRow[]
     const auditLogs = [{
       id: 'audit-1',
       user_id: 'profile-1',
@@ -135,7 +141,7 @@ describe('guias transversais polimorficas', () => {
       valor_antigo: '1111',
       valor_novo: '2222',
       ocorrido_em: '2026-07-08T12:00:00.000Z',
-    }] as any[]
+    }] as AuditLogRow[]
 
     expect(buildTimeline(atividades, anexos, auditLogs, profiles, 'Fallback', false)).toEqual(
       expect.not.arrayContaining([expect.objectContaining({ origem: 'audit_log' })]),
@@ -151,7 +157,7 @@ describe('guias transversais polimorficas', () => {
     const profiles = [
       { id: 'profile-1', nome_completo: 'Dev Wassis', email: 'dev@wassis.com' },
       { id: 'profile-2', nome_completo: 'Renato Assis', email: 'renato@wassis.com' },
-    ] as any[]
+    ] as ProfileRow[]
 
     expect(mergeResolvedMentions('Falar com @Dev e @Renato', profiles, [
       { profileId: 'profile-1', marcador: '@Dev' },

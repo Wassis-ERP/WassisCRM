@@ -1,7 +1,8 @@
-const BACKEND_ACCESS_TOKEN_KEY = 'wassis.backend.accessToken';
-const BACKEND_SESSION_KEY = 'wassis.backend.session';
-const BACKEND_LAST_ACTIVITY_KEY = 'wassis.backend.lastActivityAt';
 const DEFAULT_IDLE_TIMEOUT_MINUTES = 120;
+let backendSession: BackendSessionSnapshot | null = null;
+let backendLastActivityAt = 0;
+let csrfToken: string | null = null;
+let selectedBranchId: string | null = null;
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '');
 const configuredIdleTimeoutMinutes = Number(import.meta.env.VITE_BACKEND_IDLE_TIMEOUT_MINUTES);
@@ -39,25 +40,25 @@ export interface BackendCurrentUser {
   roles: BackendRoles;
 }
 
-type BackendSessionSnapshot = BackendLoginResponse & {
+export type BackendSessionSnapshot = BackendLoginResponse & {
   username: string;
 };
+
+export interface BackendEffectivePermission {
+  branchId: string;
+  module: string;
+  scope: 'GRUPO' | 'CORRETORA' | 'PROPRIO';
+  canRead: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+  canExport: boolean;
+  canManage: boolean;
+}
 
 function ensureApiBaseUrl() {
   if (!API_BASE_URL) {
     throw new Error('VITE_API_BASE_URL nao configurada para o WAssisBE.');
-  }
-}
-
-function readJson<T>(key: string): T | null {
-  const raw = localStorage.getItem(key);
-  if (!raw) return null;
-
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    localStorage.removeItem(key);
-    return null;
   }
 }
 
@@ -67,8 +68,7 @@ function isExpired(expiresAtUtc: string) {
 }
 
 function isIdleTimedOut() {
-  const lastActivityAt = Number(localStorage.getItem(BACKEND_LAST_ACTIVITY_KEY));
-  return !Number.isFinite(lastActivityAt) || Date.now() - lastActivityAt > BACKEND_IDLE_TIMEOUT_MS;
+  return !backendLastActivityAt || Date.now() - backendLastActivityAt > BACKEND_IDLE_TIMEOUT_MS;
 }
 
 function asRecord(raw: unknown): Record<string, unknown> {
@@ -135,12 +135,19 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   headers.set('X-Correlation-ID', crypto.randomUUID());
+  if (selectedBranchId) headers.set('X-Office-Branch-Id', selectedBranchId);
+  const method = (init?.method ?? 'GET').toUpperCase();
+  if (!['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method)) {
+    csrfToken ??= await fetchCsrfToken();
+    headers.set('X-CSRF-TOKEN', csrfToken);
+  }
   const timeout = new AbortController();
   const timer = setTimeout(() => timeout.abort(), 15_000);
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
       headers,
+      credentials: 'include',
       signal: init?.signal ? AbortSignal.any([init.signal, timeout.signal]) : timeout.signal,
     });
 
@@ -161,6 +168,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
       throw new Error(messages[response.status] ?? 'Serviço indisponível. Tente novamente mais tarde.');
     }
 
+    if (response.status === 204) return undefined as T;
     return await response.json() as T;
   } catch (error) {
     if (timeout.signal.aborted) throw new Error('Tempo de resposta excedido. Consulte os dados antes de repetir um salvamento.');
@@ -173,18 +181,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function requestAuthenticatedBackendJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getBackendAccessToken();
-  if (!token) {
-    throw new Error('Sessao do WAssisBE nao encontrada ou expirada.');
-  }
-
-  const headers = new Headers(init?.headers);
-  headers.set('Authorization', `Bearer ${token}`);
-
-  return requestJson<T>(path, {
-    ...init,
-    headers,
-  });
+  return requestJson<T>(path, init);
 }
 
 export async function loginToBackend(username: string, password: string): Promise<BackendLoginResponse> {
@@ -196,23 +193,22 @@ export async function loginToBackend(username: string, password: string): Promis
   );
 
   const snapshot: BackendSessionSnapshot = { ...result, username };
-  if (!result.accessToken || !result.userId || !result.tenantId || !result.userType || !result.roles.length || isExpired(result.expiresAtUtc)) {
+  if (!result.userId || !result.tenantId || !result.userType || !result.roles.length || isExpired(result.expiresAtUtc)) {
     clearBackendSession();
     throw new Error('Resposta de autenticação inválida. Nenhuma sessão foi criada.');
   }
-  localStorage.setItem(BACKEND_ACCESS_TOKEN_KEY, result.accessToken);
-  localStorage.setItem(BACKEND_SESSION_KEY, JSON.stringify(snapshot));
+  backendSession = snapshot;
   markBackendActivity();
 
   return result;
 }
 
 export function getBackendAccessToken(): string | null {
-  return localStorage.getItem(BACKEND_ACCESS_TOKEN_KEY);
+  return null;
 }
 
 export function getBackendSessionSnapshot(): BackendSessionSnapshot | null {
-  const snapshot = readJson<BackendSessionSnapshot>(BACKEND_SESSION_KEY);
+  const snapshot = backendSession;
   if (!snapshot) return null;
 
   if (isExpired(snapshot.expiresAtUtc) || isIdleTimedOut()) {
@@ -224,26 +220,57 @@ export function getBackendSessionSnapshot(): BackendSessionSnapshot | null {
 }
 
 export async function getBackendCurrentUser(): Promise<BackendCurrentUser | null> {
-  const token = getBackendAccessToken();
-  if (!token) return null;
-
   return normalizeCurrentUser(
-    await requestJson('/api/identity/me', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }),
+    await requestJson('/api/identity/me'),
   );
 }
 
+export async function getBackendEffectivePermissions(branchId?: string | null): Promise<BackendEffectivePermission[]> {
+  const query = branchId ? `?branchId=${encodeURIComponent(branchId)}` : '';
+  return requestJson<BackendEffectivePermission[]>(`/api/identity/me/permissions${query}`);
+}
+
+export function setBackendActiveBranch(branchId: string | null) {
+  selectedBranchId = branchId;
+}
+
+export async function logoutBackend() {
+  try {
+    await requestJson<void>('/api/identity/logout', { method: 'POST' });
+  } finally {
+    clearBackendSession();
+  }
+}
+
 export function clearBackendSession() {
-  localStorage.removeItem(BACKEND_ACCESS_TOKEN_KEY);
-  localStorage.removeItem(BACKEND_SESSION_KEY);
-  localStorage.removeItem(BACKEND_LAST_ACTIVITY_KEY);
+  backendSession = null;
+  backendLastActivityAt = 0;
+  csrfToken = null;
+  selectedBranchId = null;
 }
 
 export function markBackendActivity() {
-  if (localStorage.getItem(BACKEND_ACCESS_TOKEN_KEY)) {
-    localStorage.setItem(BACKEND_LAST_ACTIVITY_KEY, Date.now().toString());
+  if (backendSession) backendLastActivityAt = Date.now();
+}
+
+async function fetchCsrfToken(): Promise<string> {
+  ensureApiBaseUrl();
+  const timeout = new AbortController();
+  const timer = setTimeout(() => timeout.abort(), 15_000);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/identity/csrf`, {
+      credentials: 'include',
+      signal: timeout.signal,
+    });
+    if (!response.ok) throw new Error('Não foi possível iniciar a proteção da sessão.');
+    const payload = asRecord(await response.json());
+    const token = asString(payload.token ?? payload.Token);
+    if (!token) throw new Error('Resposta CSRF inválida.');
+    return token;
+  } catch (error) {
+    if (timeout.signal.aborted) throw new Error('Tempo de resposta excedido. Consulte os dados antes de repetir um salvamento.');
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
 }

@@ -11,17 +11,19 @@ import { getTable, newId, nowIso, RELATIONS, type Row } from './inMemoryDb';
 import { canonicalPlatformRow, isPlatformTable, validatePlatformRow } from '../modules/plataforma/platformDomain';
 
 type QueryError = { message: string; code?: string };
-export type QueryResult<T = any> = { data: T | null; error: QueryError | null; count?: number | null };
+type CellValue = Row[string];
+export type QueryResult<T = CellValue> = { data: T | null; error: QueryError | null; count?: number | null };
+type WritePayload = Row | Row[];
 
 type QueryOperation = 'select' | 'insert' | 'update' | 'delete' | 'upsert';
 
 type Filter =
-  | { op: 'eq'; column: string; value: any }
-  | { op: 'neq'; column: string; value: any }
-  | { op: 'in'; column: string; value: any[] }
+  | { op: 'eq'; column: string; value: CellValue }
+  | { op: 'neq'; column: string; value: CellValue }
+  | { op: 'in'; column: string; value: CellValue[] }
   | { op: 'ilike'; column: string; value: string }
-  | { op: 'gte'; column: string; value: any }
-  | { op: 'lte'; column: string; value: any };
+  | { op: 'gte'; column: string; value: CellValue }
+  | { op: 'lte'; column: string; value: CellValue };
 
 // ----- parser de select -----
 
@@ -193,7 +195,7 @@ function prepareRow(table: string, input: Record<string, unknown>, creating: boo
 
 // ----- builder -----
 
-export class InMemoryQueryBuilder<T = any> implements PromiseLike<QueryResult<T>> {
+export class InMemoryQueryBuilder<T = CellValue> implements PromiseLike<QueryResult<T>> {
   private readonly table: string;
   private operation: QueryOperation = 'select';
   private selection: string = '*';
@@ -201,7 +203,7 @@ export class InMemoryQueryBuilder<T = any> implements PromiseLike<QueryResult<T>
   private orderBy: Array<{ column: string; ascending: boolean }> = [];
   private limitCount?: number;
   private rangeFromTo?: { from: number; to: number };
-  private payload: any;
+  private payload?: WritePayload;
   private upsertOnConflict?: string;
   private expectsSingle = false;
   private isMaybeSingle = false;
@@ -224,19 +226,19 @@ export class InMemoryQueryBuilder<T = any> implements PromiseLike<QueryResult<T>
     return this;
   }
 
-  insert(payload: any): this {
+  insert(payload: WritePayload): this {
     this.operation = 'insert';
     this.payload = payload;
     return this;
   }
 
-  update(payload: any): this {
+  update(payload: Row): this {
     this.operation = 'update';
     this.payload = payload;
     return this;
   }
 
-  upsert(payload: any, options?: { onConflict?: string }): this {
+  upsert(payload: WritePayload, options?: { onConflict?: string }): this {
     this.operation = 'upsert';
     this.payload = payload;
     this.upsertOnConflict = options?.onConflict;
@@ -250,15 +252,15 @@ export class InMemoryQueryBuilder<T = any> implements PromiseLike<QueryResult<T>
 
   // ----- filtros -----
 
-  eq(column: string, value: any): this {
+  eq(column: string, value: CellValue): this {
     this.filters.push({ op: 'eq', column, value });
     return this;
   }
-  neq(column: string, value: any): this {
+  neq(column: string, value: CellValue): this {
     this.filters.push({ op: 'neq', column, value });
     return this;
   }
-  in(column: string, value: any[]): this {
+  in(column: string, value: CellValue[]): this {
     this.filters.push({ op: 'in', column, value });
     return this;
   }
@@ -266,11 +268,11 @@ export class InMemoryQueryBuilder<T = any> implements PromiseLike<QueryResult<T>
     this.filters.push({ op: 'ilike', column, value });
     return this;
   }
-  gte(column: string, value: any): this {
+  gte(column: string, value: CellValue): this {
     this.filters.push({ op: 'gte', column, value });
     return this;
   }
-  lte(column: string, value: any): this {
+  lte(column: string, value: CellValue): this {
     this.filters.push({ op: 'lte', column, value });
     return this;
   }
@@ -424,10 +426,10 @@ export class InMemoryQueryBuilder<T = any> implements PromiseLike<QueryResult<T>
             error: { message: 'Multiple rows returned for .single()', code: 'PGRST116' },
           };
         }
-        return { data: projected[0] as any, error: null };
+        return { data: projected[0] as T, error: null };
       }
 
-      return { data: projected as any, error: null, count: projected.length };
+      return { data: projected as T, error: null, count: projected.length };
     } catch (err) {
       return {
         data: null,

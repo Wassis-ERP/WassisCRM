@@ -3,11 +3,13 @@ import type { ReactNode } from 'react';
 import type { AuthState, Session, UserProfile } from '../types/auth';
 import {
   clearBackendSession,
-  getBackendAccessToken,
   getBackendCurrentUser,
+  getBackendEffectivePermissions,
   getBackendSessionSnapshot,
   loginToBackend,
+  logoutBackend,
   markBackendActivity,
+  setBackendActiveBranch,
 } from '../lib/backendApi';
 import { queryClient } from '../lib/queryClient';
 import { getTable } from '../lib/inMemoryDb';
@@ -143,16 +145,14 @@ function normalizeRole(roles: string[]): UserProfile['role'] {
 
 async function loadBackendAuthState(): Promise<AuthState | null> {
   const snapshot = getBackendSessionSnapshot();
-  const token = getBackendAccessToken();
-  if (!snapshot || !token) return null;
-
   const currentUser = await getBackendCurrentUser();
   if (!currentUser?.isAuthenticated || !currentUser.userId) {
     clearBackendSession();
     return null;
   }
 
-  const email = snapshot.username;
+  const permissions = await getBackendEffectivePermissions(currentUser.branchId);
+  const email = snapshot?.username ?? currentUser.userId;
   const roles = currentUser.roles;
   const user: UserProfile = {
     id: currentUser.userId,
@@ -163,18 +163,20 @@ async function loadBackendAuthState(): Promise<AuthState | null> {
     tenantId: currentUser.tenantId,
     brokerageId: currentUser.brokerageId,
     branchId: currentUser.branchId,
-    branchIds: currentUser.branchIds,
-    hasAllBranchesAccess: currentUser.hasAllBranchesAccess,
+    branchIds: Array.from(new Set(permissions.map(permission => permission.branchId))),
+    hasAllBranchesAccess: false,
+    permissions,
   };
   const activeBranchId = resolveInitialActiveBranchId(user);
+  setBackendActiveBranch(activeBranchId);
 
   return {
     loading: false,
     user: applyActiveBranch(user, activeBranchId),
     activeBranchId,
     session: {
-      access_token: token,
-      expires_at: toUnixSeconds(snapshot.expiresAtUtc),
+      access_token: '',
+      expires_at: toUnixSeconds(snapshot?.expiresAtUtc),
       user: {
         id: user.id,
         email: user.email,
@@ -248,7 +250,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = useCallback(async () => {
     // Sempre encerra a sessão de fato — inclusive no modo mock, para que o
     // botão "Sair" leve de volta à tela de login.
-    clearBackendSession();
+    if (REQUIRE_BACKEND_AUTH) await logoutBackend();
+    else clearBackendSession();
     queryClient.clear();
     setAuthState({ session: null, user: null, activeBranchId: null, loading: false });
   }, []);
@@ -268,6 +271,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, nextBranchId ?? '__all__');
+      setBackendActiveBranch(nextBranchId);
       void queryClient.invalidateQueries();
 
       return {
@@ -327,16 +331,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const handleActivity = () => markBackendActivity();
     activityEvents.forEach((eventName) => window.addEventListener(eventName, handleActivity, { passive: true }));
 
-    const intervalId = window.setInterval(() => {
-      if (!getBackendSessionSnapshot()) {
-        clearBackendSession();
-        setAuthState({ session: null, user: null, activeBranchId: null, loading: false });
-      }
-    }, 60_000);
-
     return () => {
       activityEvents.forEach((eventName) => window.removeEventListener(eventName, handleActivity));
-      window.clearInterval(intervalId);
     };
   }, [authState.session]);
 

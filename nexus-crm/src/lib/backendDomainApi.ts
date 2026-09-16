@@ -12,6 +12,29 @@ type OportunidadeUpdate = Database['public']['Tables']['oportunidades']['Update'
 
 export const usesBackendDomainData = import.meta.env.VITE_DATA_MODE === 'backend'
 
+interface BackendPagedResult<T> {
+  items: T[]
+  page: number
+  pageSize: number
+  totalCount: number
+  hasMore: boolean
+}
+
+async function listAllBackendPages<T>(path: string, query = new URLSearchParams()): Promise<T[]> {
+  const items: T[] = []
+  for (let page = 1; page <= 1_000; page += 1) {
+    const current = new URLSearchParams(query)
+    current.set('page', String(page))
+    current.set('pageSize', '100')
+    const response = await requestAuthenticatedBackendJson<BackendPagedResult<T>>(`${path}?${current.toString()}`)
+    if (!Array.isArray(response.items)) throw new Error('Resposta paginada inválida retornada pelo backend.')
+    items.push(...response.items)
+    if (!response.hasMore) return items
+    if (response.items.length === 0) throw new Error('Paginação inconsistente retornada pelo backend.')
+  }
+  throw new Error('Limite de navegação paginada excedido.')
+}
+
 export interface BackendInsuredPerson {
   [key: string]: unknown
   socialName?: string | null
@@ -224,7 +247,7 @@ export async function listBackendInsuredPeople(
   tenantId: string | null,
   officeBranchId?: string | null,
 ): Promise<SeguradoRow[]> {
-  const response = await requestAuthenticatedBackendJson<BackendInsuredPerson[]>('/api/segurados')
+  const response = await listAllBackendPages<BackendInsuredPerson>('/api/segurados')
   return response
     .map((item) => mapInsuredPerson(item, tenantId))
     .filter((item) => !officeBranchId || item.filial_id === officeBranchId)
@@ -378,8 +401,7 @@ export async function listBackendOpportunities(
   if (filters.pipelineId) query.set('pipelineId', filters.pipelineId)
   if (filters.stageId) query.set('stageId', filters.stageId)
   if (filters.status) query.set('status', filters.status)
-  const suffix = query.size > 0 ? `?${query.toString()}` : ''
-  const response = await requestAuthenticatedBackendJson<BackendOpportunity[]>(`/api/oportunidades${suffix}`)
+  const response = await listAllBackendPages<BackendOpportunity>('/api/oportunidades', query)
   return response
     .map((item) => mapOpportunity(item, tenantId))
     .filter((item) => !filters.officeBranchId || item.filial_id === filters.officeBranchId)

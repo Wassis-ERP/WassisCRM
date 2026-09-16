@@ -26,6 +26,17 @@ export interface UserProfile {
   branchId?: string | null;
   branchIds?: string[];
   hasAllBranchesAccess?: boolean;
+  permissions?: Array<{
+    branchId: string;
+    module: string;
+    scope: 'GRUPO' | 'CORRETORA' | 'PROPRIO';
+    canRead: boolean;
+    canCreate: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+    canExport: boolean;
+    canManage: boolean;
+  }>;
 }
 
 export interface AuthState {

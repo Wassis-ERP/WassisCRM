@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { useMotivosPerda } from '../../hooks/useLookups';
 import { useConcludeCard } from '../../hooks/useConcludeCard';
@@ -26,14 +26,14 @@ export default function ConcludeCardModal({ isOpen, onClose, card, module, pipel
   const [motivoId, setMotivoId] = useState<string>('');
   const [observacao, setObservacao] = useState<string>('');
   const [submitError, setSubmitError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      setMotivoId('');
-      setObservacao('');
-      setSubmitError(null);
-    }
-  }, [isOpen, card?.id, mode]);
+  const resetKey = `${isOpen}:${card?.id ?? ''}:${mode}`;
+  const [lastResetKey, setLastResetKey] = useState(resetKey);
+  if (lastResetKey !== resetKey) {
+    setLastResetKey(resetKey);
+    setMotivoId('');
+    setObservacao('');
+    setSubmitError(null);
+  }
 
   const isLost = mode === 'lost';
   const motivoRequired = isLost && (motivos.data?.length ?? 0) > 0;

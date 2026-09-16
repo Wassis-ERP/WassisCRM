@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createBackendInsuredPerson, createBackendOpportunity, mapInsuredPerson, mapOpportunity,
-  updateBackendOpportunity, updateBackendInsuredPerson, type BackendInsuredPerson, type BackendOpportunity,
+  updateBackendOpportunity, updateBackendInsuredPerson, listBackendInsuredPeople,
+  type BackendInsuredPerson, type BackendOpportunity,
 } from './backendDomainApi'
 
 const { request } = vi.hoisted(() => ({ request: vi.fn<(path: string, init?: RequestInit) => Promise<unknown>>() }))
@@ -89,6 +90,18 @@ describe('fronteira HTTP legada × DBML v3.1', () => {
     expect(request.mock.calls[0][0]).toBe('/api/segurados')
     expect(JSON.parse(String(request.mock.calls[0][1]?.body))).toMatchObject({ personType: 'PF', phoneNumber: '1133334444' })
     expect(JSON.parse(String(request.mock.calls[1][1]?.body))).toMatchObject({ name: 'Seguro teste', pipelineId: 'pipeline-1', status: 'pending' })
+  })
+
+  it('navega todas as páginas sem truncar silenciosamente', async () => {
+    request
+      .mockResolvedValueOnce({ items: [insured], page: 1, pageSize: 100, totalCount: 2, hasMore: true })
+      .mockResolvedValueOnce({ items: [{ ...insured, id: 'person-2', name: 'Segunda pessoa' }], page: 2, pageSize: 100, totalCount: 2, hasMore: false })
+    const result = await listBackendInsuredPeople('tenant-1')
+    expect(result.map(item => item.id)).toEqual(['person-1', 'person-2'])
+    expect(request.mock.calls.map(call => call[0])).toEqual([
+      '/api/segurados?page=1&pageSize=100',
+      '/api/segurados?page=2&pageSize=100',
+    ])
   })
 
   it('persiste campos explícitos v3.1 sem dados de negócio em JSON', async () => {

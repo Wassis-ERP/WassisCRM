@@ -6,6 +6,8 @@
 
 ## Norte do plano
 
+- [~] 16/09/2026 — Remediação de segurança SEC-01 a SEC-12 em conjunto com WAssisBE: sessão sem Web Storage, permissões efetivas, paginação e gates de CI em implementação. Micro-plano: `micro-plano-remediacao-seguranca-sec-01-12-2026-09-16.md`.
+
 - [~] 15/09/2026 — Gestão administrativa SaaS conectada: contrato, identidade/RBAC, testes e gates operacionais em andamento. Micro-plano: `micro-plano-gestao-administrativa-saas-2026-09-15.md`.
 
 - [~] 13/09/2026 — Prontidão SaaS com WAssisBE: Segurados e Oportunidades persistidos e validados por Playwright nas telas originais; build/adapter impedem falso modo conectado. ADRs, inventário de memória e runbooks entregues; módulos restantes e operação publicada pendentes. Backend em repositório separado. Micro-plano: `micro-plano-prontidao-saas-2026-09-13.md`. Aceite anterior era frontend demonstrativo, não SaaS integrado completo.
