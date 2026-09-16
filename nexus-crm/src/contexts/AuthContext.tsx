@@ -151,7 +151,7 @@ async function loadBackendAuthState(): Promise<AuthState | null> {
     return null;
   }
 
-  const permissions = await getBackendEffectivePermissions(currentUser.branchId);
+  const permissions = await getBackendEffectivePermissions();
   const email = snapshot?.username ?? currentUser.userId;
   const roles = currentUser.roles;
   const user: UserProfile = {

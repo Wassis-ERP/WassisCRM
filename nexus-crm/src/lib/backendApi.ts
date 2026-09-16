@@ -198,6 +198,10 @@ export async function loginToBackend(username: string, password: string): Promis
     throw new Error('Resposta de autenticação inválida. Nenhuma sessão foi criada.');
   }
   backendSession = snapshot;
+  // ASP.NET antiforgery request tokens are bound to the identity that obtained
+  // them. Discard the anonymous/previous user's token after the cookie changes.
+  csrfToken = null;
+  selectedBranchId = null;
   markBackendActivity();
 
   return result;

@@ -6,6 +6,8 @@
 
 ## Norte do plano
 
+- [~] 16/09/2026 — Continuação após revisão dos commits de segurança: corrigir CI/Gitleaks, regressões de sessão/filiais e escopo PROPRIO, validar e preparar checkpoint para Renato. Branch `codex/security-remediation-followup`; micro-plano de remediação abaixo restaurado no Git.
+
 - [~] 16/09/2026 — Remediação de segurança SEC-01 a SEC-12 em conjunto com WAssisBE: sessão sem Web Storage, permissões efetivas, paginação e gates de CI em implementação. Micro-plano: `micro-plano-remediacao-seguranca-sec-01-12-2026-09-16.md`.
 
 - [~] 15/09/2026 — Gestão administrativa SaaS conectada: contrato, identidade/RBAC, testes e gates operacionais em andamento. Micro-plano: `micro-plano-gestao-administrativa-saas-2026-09-15.md`.
