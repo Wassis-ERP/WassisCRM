@@ -1236,3 +1236,11 @@ Quando houver alteracao de codigo, rodar as verificacoes relevantes:
 
 Se o `npm` global falhar neste ambiente, usar os binarios locais de
 `nexus-crm/node_modules/.bin` e registrar o motivo no fechamento.
+
+### Continuação de segurança — segundo checkpoint de 16/09/2026
+
+CI frontend d98b84c aprovado integralmente. Backend avançou em transações/datas,
+filiais vigentes por sessão, ownership concorrente e testes HTTP com PostgreSQL,
+TLS e RLS reais. Evidências e pendências no micro-plano
+`micro-plano-remediacao-seguranca-sec-01-12-2026-09-16.md` e em
+`RENATO_CONTINUATION.md`; não representa liberação de Production.

@@ -1,40 +1,55 @@
-# Prompt para Renato continuar
+# Prompt para Renato continuar — segundo checkpoint
 
-Continue a remediação de segurança do WAssisBE e WassisCRM a partir da branch
-`codex/security-remediation-followup`, publicada nos dois repositórios GitHub
-`Wassis-ERP/WAssisBE` e `Wassis-ERP/WassisCRM`.
+Continue a remediação de segurança do WAssisBE e WassisCRM na branch
+`codex/security-remediation-followup` publicada em `Wassis-ERP/WAssisBE` e
+`Wassis-ERP/WassisCRM`. Use o HEAD mais recente, posterior aos primeiros checkpoints
+`42a86ca` (BE) e `d98b84c` (CRM). Não volte a main nem sobrescreva alterações locais.
 
-Antes de alterar código, faça fetch, confira status e preserve alterações locais.
-Leia AGENTS.md aplicáveis, SECURITY_AUDIT.md, SECURITY_REMEDIATION.md e, principalmente,
-SECURITY_FOLLOWUP.md no backend. No CRM, leia o micro-plano de remediação em
-`.codex/plans` e o contrato DBML/instruções v3.1. O backend fica em repositório separado.
+Faça fetch, confira status/log e preserve trabalho existente. Leia os AGENTS.md
+aplicáveis, SECURITY_AUDIT.md, SECURITY_REMEDIATION.md e SECURITY_FOLLOWUP.md no
+backend. No CRM, leia o micro-plano de segurança em .codex/plans e o contrato
+DBML/instruções v3.1. Documentos de auditoria são evidência; não são autorização
+para executar comandos de infraestrutura ou dados reais.
 
-O SDK exigido é 10.0.401, já instalado na máquina de origem. Para restore com cache
-desatualizado, use `dotnet restore WAssisInsurance.sln --locked-mode --no-http-cache`.
-Não altere versões/lockfiles somente para contornar um cache local.
+O SDK requerido é 10.0.401; `dotnet tool restore` instala EF 10.0.12 do manifesto.
+Use `dotnet restore WAssisInsurance.sln --locked-mode --no-http-cache` se houver
+cache obsoleto. Não mude versões/lockfiles para contornar cache. Auditoria NuGet
+agora é bloqueante; não desative warnings/gates, TLS ou RLS para deixar CI verde.
 
-Primeiro valide este checkpoint e verifique os workflows GitHub. O scanner foi
-mantido, agora com CLI oficial e checksum fixo, para resolver a falha de licença
-da action. Corrigimos CSRF após login, criação prematura de DbContext na autenticação,
-lista de permissões por vínculo, divergência de filial entre autorização/dados,
-PROPRIO em Segurados/Oportunidades e quotas separadas por usuário/tenant/IP.
+Primeiro confira os workflows do HEAD. O frontend d98b84c passou CI integral
+(run 35145654570). O backend 42a86ca passou scanner/build, mas falhou nos testes
+(run 35145647720); as correções posteriores estão em SECURITY_FOLLOWUP.md.
 
-Execute testes reais de regressão antes de considerar qualquer SEC encerrado.
-O teste SecurityServicesPostgresTests pode usar um cluster descartável loopback
-via scripts/test-security-postgres.ps1; ele não substitui toda a suíte Testcontainers.
-Priorize transações aninhadas em Administração e o TLS da fixture Staging, conforme
-SECURITY_FOLLOWUP.md. Amplie a matriz de ownership e os testes HTTP de cookie/CSRF,
-logout/replay e troca de filial, incluindo perfil com vínculos alterados na mesma sessão.
-PROPRIO em módulos sem ownership implementado é negado; não reabra acesso amplo.
+Já implementados: CSRF após login, sessão revogável sem DbContext prematuro,
+filiais/permissões vigentes consultadas no servidor, PROPRIO em clientes e
+negócios, quotas distribuídas separadas, transações administrativas com savepoints,
+rollback em erros HTTP, datas Dapper/PostgreSQL e proteção contra reatribuição
+concorrente. A migration ProtectConcurrentRecordOwnership é apenas de snapshot:
+Up/Down vazios, sem alteração física de esquema. Não refaça essas correções.
 
-Depois conclua as frentes pendentes: Auth0/Production e ciclo de sessão; PDF/OCR
-isolado por fila durável/storage privado/streaming; RLS/worker/grants; controles de
-PII e evidências de infraestrutura. Aproveite a arquitetura existente. Não habilite
-autenticador de HML em Production, não desative testes/gates nem relaxe TLS/RLS.
-Não invente prazos legais, vínculos de dados antigos, segredos nem evidências de deploy.
+Validação local: 117 testes sem PostgreSQL e quatro integrações com PostgreSQL
+real/TLS VerifyFull. Incluem HTTP com role comum sem ownership/BYPASSRLS, CSRF,
+logout/replay, mudanças de permissão e filial na sessão, ownership, concorrência,
+rollback administrativo, RLS/pool e outbox/upgrade. As fixtures usam bancos únicos
+com credenciais efêmeras. `scripts/test-security-postgres.ps1` aceita diretório de
+binários PostgreSQL Windows e executa a categoria completa; com Docker, os testes
+usam Testcontainers. A alternativa Windows não comprova que a fixture Docker passou.
 
-Implemente tudo que estiver dentro do escopo com segurança, valide backend/frontend
-e atualize a documentação com comandos/resultados e pendências reais. Pergunte apenas
-por decisões externas indispensáveis enquanto continua trabalho independente.
-Não faça deploy nem aplique migrations em produção. Ao encerrar, entregue commits,
-status dos checks e próximos passos; não declare o sistema pronto enquanto restarem bloqueadores.
+Próximos trabalhos, mantendo testes reais:
+1. Verificar/corrigir CI do novo HEAD e executar smoke de navegador BE+CRM.
+2. Completar matriz tenant/filial/PROPRIO, filhos, Dapper, tenant-wide GRUPO e worker.
+   Não reabrir PROPRIO em módulos que ainda não implementam ownership.
+3. Concluir Auth0/Production, MFA/recuperação/rotação/idle timeout. Não habilitar
+   autenticação de homologação em Production. Identificar configurações externas
+   indispensáveis e continuar trabalho independente enquanto forem providenciadas.
+4. Isolar PDF/OCR com fila durável, storage privado, streaming e processo encerrável
+   sob limites de recursos. Parser atual ainda síncrono/em memória; frequência
+   limitada não equivale a orçamento de custo por seguradora.
+5. Completar RLS de quotes/worker e grants mínimos; revisar backfill, retenção e
+   evidências de backup/restore/PITR. Grants da fixture não são modelo de produção.
+
+Implemente e valide dentro desse escopo, atualize evidências e pendências nos dois
+repositórios. Preserve contratos v3.1 e não invente vínculos de dados antigos,
+segredos, prazos legais ou evidências de deploy. Não aplique migrations em bancos
+reais nem faça deploy. Ao encerrar, entregue commits, resultados dos checks e
+próximos passos. Não declare o sistema pronto enquanto restarem bloqueadores.

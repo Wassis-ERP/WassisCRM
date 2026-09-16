@@ -54,3 +54,18 @@ login; permissões sem filtro de filial alimentam o seletor. 334 testes, lint e
 build aprovados; permanecem avisos de fontes. `database.ts` preservado e sem
 mudança de contrato v3.1. Validação HTTP/navegador completa ainda pendente.
 Demais frentes e prompt: RENATO_CONTINUATION.md e SECURITY_FOLLOWUP.md no backend.
+
+## Segundo checkpoint — continuação autorizada
+
+- Scanner: concluído; CI frontend 35145654570 passou testes, lint, build,
+  auditoria de dependências e scan de imagem no commit d98b84c.
+- CSRF/filiais: correções do adapter concluídas. Backend agora atualiza vínculos
+  de filial a cada validação de sessão, incluindo concessão/revogação após login.
+- Backend: transações administrativas/savepoints e datas corrigidas; ownership
+  protegido contra reatribuição concorrente; NuGet Audit bloqueante.
+- Integração: quatro jornadas PostgreSQL/TLS reais com role sem privilégios de
+  proprietário, cobrindo HTTP/CSRF/replay/permissões/filiais/ownership/RLS/outbox.
+- Nenhuma mudança de tela, database.ts ou contrato de payload de negócio nesta etapa.
+- Pendente: smoke no navegador, matriz completa de módulos, Auth0 e demais
+  bloqueadores listados em SECURITY_FOLLOWUP.md do backend.
+- RENATO_CONTINUATION.md atualizado nos dois repositórios para o segundo checkpoint.
