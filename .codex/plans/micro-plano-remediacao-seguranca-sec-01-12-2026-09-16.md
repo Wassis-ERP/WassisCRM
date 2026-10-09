@@ -111,3 +111,9 @@ migration em dados reais. Auth0 real/MFA/recuperação, OCR e controles/evidênc
 operacionais seguem pendentes. `database.ts` e DBML v3.1 preservados; fronteira
 public/erp das duas raízes e reprodução constam do micro-plano multicálculo e de
 `docs/e2e-local.md`.
+
+Gate adicional SEC-12: ensaio revelou zero bytes no pre-commit sem `--staged`.
+Hook corrigido, LF fixado e modo executável versionado. Regressão com Git real em
+repositório temporário bloqueou credencial sintética em stage, aceitou commit
+limpo e comprovou redação total nos dois repositórios. CI ganhou o mesmo ensaio,
+mantendo scan do histórico. Fonte oficial/reprodução: `docs/security-scanning.md`.
