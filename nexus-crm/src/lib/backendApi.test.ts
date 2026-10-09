@@ -130,6 +130,22 @@ describe('backendApi', () => {
     expect(headers.get('Authorization')).toBeNull()
   })
 
+  it('recupera contexto de tenant pelo cookie após reload e o limpa no 401', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ isAuthenticated: true, userId: 'user-2', tenantId: 'tenant-2' }) })
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+    vi.stubGlobal('fetch', fetchMock)
+    const api = await importBackendApi()
+    expect(api.getBackendSessionSnapshot()).toBeNull()
+    await api.getBackendCurrentUser()
+    expect(api.getBackendTenantId()).toBe('tenant-2')
+    expect(api.getBackendSessionSnapshot()).toBeNull()
+    expect(api.getBackendAccessToken()).toBeNull()
+    expect(localStorage.setItem).not.toHaveBeenCalled()
+    await expect(api.getBackendCurrentUser()).rejects.toThrow('Sessão expirada')
+    expect(api.getBackendTenantId()).toBeNull()
+  })
+
   it('faz logout no servidor com CSRF e limpa a sessão em memória', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(csrfResponse()).mockResolvedValueOnce(loginResponse())

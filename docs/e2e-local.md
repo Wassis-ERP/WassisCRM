@@ -1,37 +1,21 @@
 # Reproduzir a jornada real em ambiente descartável
 
-Pré-requisitos: clones irmãos WassisCRM/WAssisBE, Node compatível, .NET 8 e Docker. O teste recusa URL frontend fora de localhost/127.0.0.1. **Conferir também que VITE_API_BASE_URL aponta à API local; nunca usar dados ou credenciais de HML/PRD.** API Staging e autenticação com hash são testadas separadamente pela suíte WebApplicationFactory do BE; este E2E usa a identidade sintética de Development.
+Pré-requisitos: clones irmãos WassisCRM/WAssisBE, Node compatível com o lockfile, PowerShell 7, SDK .NET **10.0.401**, dependências restauradas e binários oficiais PostgreSQL 16 para Windows. O caminho dos binários deve conter `initdb.exe`, `pg_ctl.exe` e `psql.exe`. Este procedimento usa exclusivamente um cluster novo em loopback, com senha e certificado efêmeros e TLS `VerifyFull`; não aceita uma connection string de HML/PRD.
 
-1. Criar PostgreSQL 16 descartável com porta publicada somente em 127.0.0.1:55439, banco wassis_readiness e usuário wassis_test. Gerar senha aleatória em variável de processo, sem imprimir nem versionar. Definir ConnectionStrings__DefaultConnection no processo .NET com Host=127.0.0.1;Port=55439 e esses dados. Não alterar appsettings ou copiar env de produção.
-2. Em WAssisBE, executar `dotnet build -c Release` e a API com `--migrate`, ASPNETCORE_ENVIRONMENT=Development. Importar `tests/Fixtures/connected-ui.sql` uma vez nesse banco local via psql. A fixture não é idempotente, deliberadamente acusa banco já preparado.
-3. Iniciar API em http://127.0.0.1:5087 com as variáveis de processo abaixo. Manter o processo em terminal separado. Não iniciar workers ou integrações de seguradora.
+Em `WassisCRM/nexus-crm`, executar `npm ci` e `npx playwright install chromium`. Em `WAssisBE`, conferir o SDK e executar:
 
 ```powershell
-$env:ASPNETCORE_ENVIRONMENT='Development'
-$prefix='Identity__DevelopmentAuth__Users__0__'
-$fixture=@{
- Username='user0@example.invalid'; Password='local-integration-fixture-password'
- UserId='11111111-1111-1111-1111-111111111111'
- TenantId='22222222-2222-2222-2222-222222222222'
- BrokerageId='44444444-4444-4444-4444-444444444444'
- BranchId='44444444-4444-4444-4444-444444444444'
- BranchIds__0='44444444-4444-4444-4444-444444444444'
- UserType='brokerage_staff'; Roles__0='brokerage_admin'
-}
-foreach ($key in $fixture.Keys) { [Environment]::SetEnvironmentVariable($prefix+$key,$fixture[$key],'Process') }
-$env:Frontend__AllowedOrigins__0='http://localhost:3011'
-dotnet src/WAssis.Services.Api/bin/Release/net8.0/WAssis.Services.Api.dll --urls http://127.0.0.1:5087
+dotnet restore WAssisInsurance.sln --locked-mode --no-http-cache
+dotnet build WAssisInsurance.sln --configuration Release --no-restore
+pwsh -NoProfile -File scripts/test-security-postgres.ps1 `
+  -PostgresBinDirectory 'C:\caminho\pgsql\bin' `
+  -ConnectedCrmDirectory 'C:\caminho\WassisCRM\nexus-crm'
 ```
 
-4. Em outro terminal, na pasta WassisCRM/nexus-crm:
+O script executa a categoria PostgreSQL completa e, se aprovada, a jornada conectada. Cria um banco exclusivo para o navegador, aplica migrations somente nesse banco, importa `tests/Fixtures/connected-ui.sql` e inicia API/CRM em portas livres de `127.0.0.1`. A API usa uma role comum sem ownership nem `BYPASSRLS`; os grants amplos dessa fixture **não são o modelo de privilégios de Production**. A autenticação usa uma identidade sintética de Development. Workers e chamadas a seguradoras não são iniciados.
 
-```powershell
-npm ci
-$env:VITE_AUTH_MODE='backend'
-$env:VITE_DATA_MODE='backend'
-$env:VITE_API_BASE_URL='http://127.0.0.1:5087'
-npm run dev -- --host localhost --port 3011 --strictPort
-```
+O navegador verifica login/logout, criação/edição e persistência após reload de Segurados/Oportunidades, ganho, lista/Kanban e atualização de dados em nova sessão. Registra GET/POST/PUT ao BE e rejeita conexões fora das duas origens locais. Tarefas e Cálculos devem exibir a pendência de integração no modo conectado, sem fallback para memória. Screenshots ficam em `nexus-crm/.screens/e2e`, ignoradas no Git; traces estão desativados para evitar captura de credenciais.
 
-5. Em terceiro terminal, mesma pasta: `npx playwright install chromium`, depois `npx playwright test`. Usa usuário/IDs sintéticos acima. Cria nomes/documentos sintéticos únicos por execução; verifica persistência após reload, edição, ganho, lista/Kanban, pendências e ausência de erros JavaScript. Screenshots ficam em `.screens/e2e`, ignoradas no Git. Não enviar trace contendo login a serviços externos.
-6. Encerrar processos e remover somente o container/volume de teste criado para esta execução. Preservar outros ambientes. O Testcontainers do BE cria/remove suas próprias instâncias automaticamente e não depende desta fixture.
+Ao terminar, o script encerra apenas os seus processos, exclui seu banco/role, para o cluster e remove a senha/chave privada efêmeras. Logs permanecem no diretório temporário informado; não os publique sem sanitização. A alternativa Windows comprova PostgreSQL real/TLS, mas não comprova a fixture Docker/Testcontainers. Essa fixture continua sendo exercitada no CI do BE.
+
+O smoke separado `npx playwright test --config playwright.production.config.ts` verifica o bundle já compilado com Auth0. Ele intercepta somente a consulta de identidade com uma resposta 401 sintética e não comprova login real no IdP. A jornada conectada acima usa o BE real.

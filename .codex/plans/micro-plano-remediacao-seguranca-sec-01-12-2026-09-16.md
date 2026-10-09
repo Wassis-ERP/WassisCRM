@@ -87,3 +87,27 @@ Demais frentes e prompt: RENATO_CONTINUATION.md e SECURITY_FOLLOWUP.md no backen
   PostgreSQL/Docker neste host, portanto essa jornada continua pendente.
 - A integração BFF, RLS de quotes/worker, resultados e bloqueadores estão detalhados
   em `SECURITY_FOLLOWUP.md` e `SECURITY_REMEDIATION.md` do backend.
+
+## Continuação 09/10/2026 — jornada conectada verificada
+
+Bootstrap Production/Auth0 corrigido e smoke do bundle compilado adicionado ao CI.
+Seletor conectado consome `/api/identity/me/branches`, limitado aos vínculos vivos
+da própria sessão; o diretório administrativo continua protegido por GRUPO no BE.
+Adapters recuperam tenant do `/me` após reload, somente em memória, limpo no 401 e
+logout. Não há token em Web Storage nem expiração inventada no cliente.
+
+337 testes CRM, lint, npm audit e build aprovados; smoke Production 1/1 aprovado
+com 401 sintético de identidade. Jornada Playwright FE+BE real 1/1 aprovada em
+PostgreSQL Windows 16.15/TLS VerifyFull e role não-owner/NOBYPASSRLS, incluindo
+reload/edição/ganho/logout/nova sessão. Destinos externos rejeitados, chamadas
+GET/POST/PUT do BE observadas; Cálculos/Tarefas permanecem bloqueados. Capturas
+sintéticas 1440×900 revisadas, sem sobreposição/overflow.
+
+O arquivo `supabase.ts` é um adapter em memória; não existe client remoto no
+package/lockfile. A integração é comprovada para Segurados/Oportunidades, não para
+todos os módulos. BE passou 152 testes sem PostgreSQL e seis reais, zero ignorados.
+Gitleaks local redigido sem achados nas duas árvores/históricos. Nenhum deploy ou
+migration em dados reais. Auth0 real/MFA/recuperação, OCR e controles/evidências
+operacionais seguem pendentes. `database.ts` e DBML v3.1 preservados; fronteira
+public/erp das duas raízes e reprodução constam do micro-plano multicálculo e de
+`docs/e2e-local.md`.

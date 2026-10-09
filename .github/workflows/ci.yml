@@ -64,6 +64,12 @@ jobs:
           VITE_DATA_MODE: backend
           VITE_BUILD_SHA: ${{ github.sha }}
 
+      - name: Install browser for production smoke
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke compiled Auth0 bootstrap
+        run: npx playwright test --config playwright.production.config.ts
+
       - name: Build CRM image
         run: docker build -f nexus-crm/Dockerfile --build-arg VITE_API_BASE_URL=https://api20-hml.wassis.com.br --build-arg VITE_AUTH_PROVIDER=auth0 --build-arg VITE_BUILD_SHA=${{ github.sha }} -t wassis-crm:${{ github.sha }} .
         working-directory: .

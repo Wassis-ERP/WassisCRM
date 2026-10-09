@@ -1,5 +1,7 @@
 const DEFAULT_IDLE_TIMEOUT_MINUTES = 30;
 let backendSession: BackendSessionSnapshot | null = null;
+// Display/mapping context confirmed by the server, never an authentication credential.
+let backendTenantId: string | null = null;
 let backendLastActivityAt = 0;
 let csrfToken: string | null = null;
 let selectedBranchId: string | null = null;
@@ -200,6 +202,7 @@ export async function loginToBackend(username: string, password: string): Promis
     throw new Error('Resposta de autenticação inválida. Nenhuma sessão foi criada.');
   }
   backendSession = snapshot;
+  backendTenantId = result.tenantId;
   // ASP.NET antiforgery request tokens are bound to the identity that obtained
   // them. Discard the anonymous/previous user's token after the cookie changes.
   csrfToken = null;
@@ -236,9 +239,19 @@ export function getBackendSessionSnapshot(): BackendSessionSnapshot | null {
 }
 
 export async function getBackendCurrentUser(): Promise<BackendCurrentUser | null> {
-  return normalizeCurrentUser(
+  const currentUser = normalizeCurrentUser(
     await requestJson('/api/identity/me'),
   );
+  if (!currentUser.isAuthenticated || !currentUser.userId || !currentUser.tenantId) {
+    clearBackendSession();
+    return null;
+  }
+  backendTenantId = currentUser.tenantId;
+  return currentUser;
+}
+
+export function getBackendTenantId(): string | null {
+  return backendTenantId;
 }
 
 export async function getBackendEffectivePermissions(branchId?: string | null): Promise<BackendEffectivePermission[]> {
@@ -260,6 +273,7 @@ export async function logoutBackend() {
 
 export function clearBackendSession() {
   backendSession = null;
+  backendTenantId = null;
   backendLastActivityAt = 0;
   csrfToken = null;
   selectedBranchId = null;
