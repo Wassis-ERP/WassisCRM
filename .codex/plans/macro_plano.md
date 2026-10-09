@@ -6,7 +6,7 @@
 
 ## Norte do plano
 
-- [~] 09/10/2026 — Integridade da transmissão Auto no WAssisBE enquanto a investigação SegFy continua: snapshot de condutor/vigência/coberturas, validação e distinção entre aceite e resultado. Frontend apenas documental neste recorte; integração canônica pendente. Micro-plano: `micro-plano-multicalculo-transmissao-2026-10-09.md`.
+- [~] 09/10/2026 — Integridade da transmissão Auto no WAssisBE enquanto a investigação SegFy continua: snapshot de condutor/vigência/coberturas, validação e distinção entre aceite e resultado. Checkpoint validado em unidade, PostgreSQL/Testcontainers no CI e dependências; OCR real e integração canônica permanecem pendentes. Frontend continua sem ligação funcional ao backend. Micro-plano: `micro-plano-multicalculo-transmissao-2026-10-09.md`.
 
 - [~] 16/09/2026 — Continuação após revisão dos commits de segurança: corrigir CI/Gitleaks, regressões de sessão/filiais e escopo PROPRIO, validar e preparar checkpoint para Renato. Branch `codex/security-remediation-followup`; micro-plano de remediação abaixo restaurado no Git.
 
