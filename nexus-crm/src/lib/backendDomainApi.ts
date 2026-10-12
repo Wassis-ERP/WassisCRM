@@ -254,8 +254,8 @@ export async function listBackendInsuredPeople(
     .sort((left, right) => (left.nome ?? '').localeCompare(right.nome ?? '', 'pt-BR'))
 }
 
-export async function getBackendInsuredPerson(id: string, tenantId: string | null): Promise<SeguradoRow> {
-  const response = await requestAuthenticatedBackendJson<BackendInsuredPerson>(`/api/segurados/${id}`)
+export async function getBackendInsuredPerson(id: string, tenantId: string | null, signal?: AbortSignal): Promise<SeguradoRow> {
+  const response = await requestAuthenticatedBackendJson<BackendInsuredPerson>(`/api/segurados/${id}`, { signal })
   return mapInsuredPerson(response, tenantId)
 }
 
@@ -407,8 +407,8 @@ export async function listBackendOpportunities(
     .filter((item) => !filters.officeBranchId || item.filial_id === filters.officeBranchId)
 }
 
-export async function getBackendOpportunity(id: string, tenantId: string | null): Promise<OportunidadeRow> {
-  const response = await requestAuthenticatedBackendJson<BackendOpportunity>(`/api/oportunidades/${id}`)
+export async function getBackendOpportunity(id: string, tenantId: string | null, signal?: AbortSignal): Promise<OportunidadeRow> {
+  const response = await requestAuthenticatedBackendJson<BackendOpportunity>(`/api/oportunidades/${id}`, { signal })
   return mapOpportunity(response, tenantId)
 }
 

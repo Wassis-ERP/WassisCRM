@@ -1,5 +1,6 @@
 import { createBackendOpportunity, getBackendInsuredPerson, getBackendOpportunity, updateBackendOpportunity, usesBackendDomainData } from '../lib/backendDomainApi'
-import { listBackendCatalog, currentIdentityProfile } from '../lib/backendLookups'
+import { currentIdentityProfile } from '../lib/backendLookups'
+import { getBackendOpportunityReadContext } from '../lib/backendOpportunityContextApi'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { Database } from '../types/database'
@@ -87,21 +88,23 @@ export function useUpdateOportunidade() {
 export function useOportunidade(id: string | undefined) {
   const { user } = useAuth()
   return useQuery({
-    enabled: Boolean(id),
-    queryKey: ['oportunidade', id],
-    queryFn: async (): Promise<OpportunityDetail> => {
+    enabled: Boolean(id && (!usesBackendDomainData || user?.id && user.tenantId && user.branchId)),
+    queryKey: ['oportunidade', id, usesBackendDomainData, user?.id, user?.tenantId, user?.branchId],
+    queryFn: async ({ signal }): Promise<OpportunityDetail> => {
       if (usesBackendDomainData) {
-        const row = await getBackendOpportunity(id as string, user?.tenantId ?? null)
-        const insured = row.segurado_id ? await getBackendInsuredPerson(row.segurado_id, row.tenant_id) : null
-        const [ramos, origens, reasons, stages] = await Promise.all([listBackendCatalog('ramos'), listBackendCatalog('origens'), listBackendCatalog('motivos_perda'), listBackendCatalog('pipeline_stages')])
+        const row = await getBackendOpportunity(id as string, user?.tenantId ?? null, signal)
+        const [insured, context] = await Promise.all([
+          row.segurado_id ? getBackendInsuredPerson(row.segurado_id, row.tenant_id, signal) : null,
+          getBackendOpportunityReadContext(row, signal),
+        ])
         return {
           ...row,
           segurados: insured,
-          ramos: (ramos.find(item => item.id === row.ramo_id) as RamoLite | undefined) ?? null,
-          origens: origens.find(item => item.id === row.origem_id) ?? null,
-          motivos_perda: reasons.find(item => item.id === row.motivo_perda_id) ?? null,
+          ramos: context.insuranceBranch,
+          origens: context.origin,
+          motivos_perda: context.lossReason,
           profiles: currentIdentityProfile().find(item => item.id === row.responsavel_id) ?? null,
-          pipeline_stage: (stages.find(item => item.id === row.stage_id) as StageRow | undefined) ?? null,
+          pipeline_stage: context.stage,
         }
       }
       const { data, error } = await supabase
