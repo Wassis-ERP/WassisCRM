@@ -1,4 +1,4 @@
-import { getBackendSessionSnapshot, requestAuthenticatedBackendJson } from './backendApi'
+import { getBackendSessionSnapshot, getBackendTenantId, requestAuthenticatedBackendJson } from './backendApi'
 import type { Database, Json } from '../types/database'
 import { platformDefaults } from '../types/platformRows'
 import { listBackendCatalog } from './backendLookups'
@@ -138,7 +138,7 @@ function requireId(value: string | null | undefined, label: string): string {
   return value
 }
 
-const resolveTenant = (tenantId: string | null) => requireId(tenantId ?? getBackendSessionSnapshot()?.tenantId, 'Grupo')
+const resolveTenant = (tenantId: string | null) => requireId(tenantId ?? getBackendTenantId() ?? getBackendSessionSnapshot()?.tenantId, 'Grupo')
 
 export function mapInsuredPerson(source: BackendInsuredPerson, tenantId: string | null): SeguradoRow {
   if (!source || typeof source.id !== 'string' || typeof source.name !== 'string' || !['PF', 'PJ'].includes(source.personType)

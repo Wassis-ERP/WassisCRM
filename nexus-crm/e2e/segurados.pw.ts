@@ -4,6 +4,21 @@ test('Segurados e Oportunidades persistem na interface original', async ({ page 
   const baseUrl = process.env.WASSIS_E2E_URL ?? 'http://localhost:3011'
   if (!['localhost', '127.0.0.1'].includes(new URL(baseUrl).hostname)) throw new Error('Somente ambiente descartável local.')
   const errors: string[] = []
+  const domainRequests = new Set<string>()
+  const unexpectedConnections: string[] = []
+  const apiUrl = process.env.WASSIS_E2E_API_URL ?? 'http://127.0.0.1:5087'
+  if (!['localhost', '127.0.0.1'].includes(new URL(apiUrl).hostname)) throw new Error('Somente API descartável local.')
+  await page.route('**/*', async route => {
+    const url = new URL(route.request().url())
+    if (![new URL(baseUrl).origin, new URL(apiUrl).origin].includes(url.origin)) {
+      unexpectedConnections.push(`${url.origin}${url.pathname}`)
+      return route.abort()
+    }
+    if (url.origin === new URL(apiUrl).origin && /^\/api\/(segurados|oportunidades)/.test(url.pathname)) {
+      domainRequests.add(`${route.request().method()} ${url.pathname.split('/').slice(0, 3).join('/')}`)
+    }
+    await route.continue()
+  })
   page.on('pageerror', error => errors.push(error.message))
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto(baseUrl)
@@ -66,6 +81,8 @@ test('Segurados e Oportunidades persistem na interface original', async ({ page 
   await expect(page.getByText('Ganha', { exact: true })).toBeVisible()
   await page.getByRole('tab', { name: 'Tarefas', exact: true }).click()
   await expect(page.getByText('Integração pendente.', { exact: false })).toBeVisible()
+  await page.getByRole('tab', { name: 'Cálculos', exact: true }).click()
+  await expect(page.getByText('Integração pendente.', { exact: false })).toBeVisible()
   await page.getByRole('link', { name: 'Oportunidades', exact: true }).click()
   await page.getByRole('button', { name: 'Todas', exact: true }).click()
   await page.getByRole('button', { name: 'Exibir lista', exact: true }).click()
@@ -84,4 +101,9 @@ test('Segurados e Oportunidades persistem na interface original', async ({ page 
   await page.getByRole('link', { name: 'Segurados', exact: true }).click()
   expect((await freshInsured).ok()).toBe(true)
   expect(errors).toEqual([])
+  expect(unexpectedConnections).toEqual([])
+  expect([...domainRequests]).toEqual(expect.arrayContaining([
+    'GET /api/segurados', 'POST /api/segurados', 'PUT /api/segurados',
+    'GET /api/oportunidades', 'POST /api/oportunidades', 'PUT /api/oportunidades',
+  ]))
 })

@@ -6,8 +6,9 @@
  * memória (lib/inMemoryDb.ts). Sem rede, sem persistência: full reload zera
  * os dados de domínio.
  *
- * Não há mais a seção `auth.*`: o AuthProvider entrega um usuário admin fixo
- * direto pelo contexto (contexts/AuthContext.tsx), sem fluxo de login.
+ * Não há client remoto ou seção `auth.*`. AuthContext seleciona o modo explícito
+ * de desenvolvimento ou a sessão HTTP do BE. Este adapter recusa uso no modo
+ * conectado e em produção; módulos sem API permanecem bloqueados nesses modos.
  */
 
 import { InMemoryQueryBuilder, type QueryResult } from './inMemoryQueryBuilder';

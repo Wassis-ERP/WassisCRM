@@ -6,6 +6,16 @@
 
 ## Norte do plano
 
+- [~] 12/10/2026 — Execuções MANUAL/cotações normalizadas implementadas no WAssisBE e oito integrações PostgreSQL/TLS aprovadas; comparativo de até cinco cotações com revisão/idempotência em validação. Sem contratos específicos ou chamadas externas de seguradoras. APIs automáticas e ligação dos hooks seguem em etapas próprias. Micro-plano: `micro-plano-execucoes-manuais-2026-10-12.md`.
+
+- [~] 12/10/2026 — Segurados/Oportunidades consolidados sobre `erp.*`, CI com 160 testes aprovado; pedidos Auto canônicos criados/listados/lidos com CTI, coberturas, idempotência e calendário. Cobertura final e próximos passos de execuções/resultados/apresentações em andamento. Reset não produtivo autorizado pelo usuário. Micro-plano: `micro-plano-raizes-crm-canonicas-2026-10-12.md`.
+
+- [x] 09/10/2026 — Checkpoint FE→BE: bootstrap Auth0, filiais da própria sessão e ganho após reload corrigidos; E2E real 1/1 e smoke Production 1/1 aprovados, CRM 337 testes, BE 152 + seis PostgreSQL/TLS. Idempotência do pedido legado corrigida. Consolidação canônica permanece pendente e requer `segurados`/`oportunidades` em conjunto; demo separado. Micro-plano: `micro-plano-multicalculo-transmissao-2026-10-09.md`.
+
+- [~] 09/10/2026 — Integridade da transmissão Auto no WAssisBE enquanto a investigação SegFy continua: snapshot de condutor/vigência/coberturas, validação e distinção entre aceite e resultado. Checkpoint validado em unidade, PostgreSQL/Testcontainers no CI e dependências; OCR real e integração canônica permanecem pendentes. Frontend continua sem ligação funcional ao backend. Micro-plano: `micro-plano-multicalculo-transmissao-2026-10-09.md`.
+
+- [~] 16/09/2026 — Continuação após revisão dos commits de segurança: corrigir CI/Gitleaks, regressões de sessão/filiais e escopo PROPRIO, validar e preparar checkpoint para Renato. Branch `codex/security-remediation-followup`; micro-plano de remediação abaixo restaurado no Git.
+
 - [~] 16/09/2026 — Remediação de segurança SEC-01 a SEC-12 em conjunto com WAssisBE: sessão sem Web Storage, permissões efetivas, paginação e gates de CI em implementação. Micro-plano: `micro-plano-remediacao-seguranca-sec-01-12-2026-09-16.md`.
 
 - [~] 15/09/2026 — Gestão administrativa SaaS conectada: contrato, identidade/RBAC, testes e gates operacionais em andamento. Micro-plano: `micro-plano-gestao-administrativa-saas-2026-09-15.md`.
@@ -1234,3 +1244,18 @@ Quando houver alteracao de codigo, rodar as verificacoes relevantes:
 
 Se o `npm` global falhar neste ambiente, usar os binarios locais de
 `nexus-crm/node_modules/.bin` e registrar o motivo no fechamento.
+
+### Continuação de segurança — segundo checkpoint de 16/09/2026
+
+CI frontend d98b84c aprovado integralmente. Backend avançou em transações/datas,
+filiais vigentes por sessão, ownership concorrente e testes HTTP com PostgreSQL,
+TLS e RLS reais. Evidências e pendências no micro-plano
+`micro-plano-remediacao-seguranca-sec-01-12-2026-09-16.md` e em
+`RENATO_CONTINUATION.md`; não representa liberação de Production.
+
+### Continuação de segurança — terceiro checkpoint de 16/09/2026
+
+Frontend preparado para BFF Auth0 sem token/segredo no browser, com timeout de
+sessão alinhado ao servidor. Gates locais (lint, 335 testes, audit e build conectado)
+e smoke mock foram aprovados. Login real depende do tenant Auth0 e PostgreSQL; o
+sistema permanece não liberado para Production. Detalhes no micro-plano de segurança.

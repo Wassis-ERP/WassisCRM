@@ -5,7 +5,7 @@ type Catalog = 'ramos' | 'origens' | 'seguradoras' | 'motivos_perda' | 'produtor
 type Row<K extends Catalog> = Database['public']['Tables'][K]['Row']
 
 export async function listBackendBranches(): Promise<Array<{ id: string; name: string; isActive: boolean }>> {
-  const data = await requestAuthenticatedBackendJson<unknown>('/api/core/branches')
+  const data = await requestAuthenticatedBackendJson<unknown>('/api/identity/me/branches')
   if (!Array.isArray(data) || data.some(row => !row || typeof row.id !== 'string' || typeof row.isActive !== 'boolean' || (row.name !== null && typeof row.name !== 'string'))) throw new Error('Lista de corretoras inválida.')
   return data.map(row => ({ id: row.id, name: row.name ?? 'Corretora sem nome', isActive: row.isActive }))
 }

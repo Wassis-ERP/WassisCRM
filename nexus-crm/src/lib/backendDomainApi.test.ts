@@ -5,10 +5,15 @@ import {
   type BackendInsuredPerson, type BackendOpportunity,
 } from './backendDomainApi'
 
-const { request } = vi.hoisted(() => ({ request: vi.fn<(path: string, init?: RequestInit) => Promise<unknown>>() }))
+const { request, tenant, snapshot } = vi.hoisted(() => ({
+  request: vi.fn<(path: string, init?: RequestInit) => Promise<unknown>>(),
+  tenant: vi.fn<() => string | null>(),
+  snapshot: vi.fn<() => { tenantId: string } | null>(),
+}))
 vi.mock('./backendApi', () => ({
   requestAuthenticatedBackendJson: request,
-  getBackendSessionSnapshot: () => ({ tenantId: 'tenant-1' }),
+  getBackendSessionSnapshot: snapshot,
+  getBackendTenantId: tenant,
 }))
 vi.mock('./backendLookups', () => ({ listBackendCatalog: async () => [{ id: 'stage-1', pipeline_id: 'pipeline-1' }] }))
 
@@ -31,7 +36,21 @@ const opportunity: BackendOpportunity = {
 }
 
 describe('fronteira HTTP legada × DBML v3.1', () => {
-  beforeEach(() => request.mockReset())
+  beforeEach(() => {
+    request.mockReset()
+    tenant.mockReturnValue(null)
+    snapshot.mockReturnValue({ tenantId: 'tenant-1' })
+  })
+
+  it('conclui após reload com tenant confirmado no BE e sem snapshot de login', async () => {
+    snapshot.mockReturnValue(null)
+    tenant.mockReturnValue('tenant-1')
+    request.mockResolvedValueOnce(opportunity).mockResolvedValueOnce({ ...opportunity, status: 'won', concludedAtUtc: '2026-10-09T12:00:00Z' })
+    const result = await updateBackendOpportunity('op-1', { ganha_em: '2026-10-09T12:00:00Z', perdida_em: null }, null)
+    expect(request.mock.calls[1][0]).toBe('/api/oportunidades/op-1')
+    expect(request.mock.calls[1][1]?.method).toBe('PUT')
+    expect(result).toMatchObject({ tenant_id: 'tenant-1', ganha_em: '2026-10-09T12:00:00Z' })
+  })
 
   it('não inventa canais de contato nem inclui created_by fora do DBML', () => {
     const row = mapInsuredPerson(insured, 'tenant-1')

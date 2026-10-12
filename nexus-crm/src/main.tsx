@@ -14,6 +14,7 @@ import { usesBackendData } from './lib/dataMode'
 
 validateEnvironment({
   VITE_AUTH_MODE: import.meta.env.VITE_AUTH_MODE,
+  VITE_AUTH_PROVIDER: import.meta.env.VITE_AUTH_PROVIDER,
   VITE_DATA_MODE: import.meta.env.VITE_DATA_MODE,
   VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
 }, import.meta.env.PROD)

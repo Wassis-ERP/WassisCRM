@@ -15,12 +15,12 @@ export interface MyBranch {
  * Corretoras que o USUÁRIO LOGADO acessa, derivadas de `profile_filiais`
  * (D12/D18) cruzadas com as filiais ativas. É a fonte do seletor de corretora
  * ativa do Header: o acesso (perfil por corretora) define o que aparece.
- * No backend, o token derivaria o mesmo conjunto.
+ * No modo conectado, o servidor consulta os vínculos vigentes da sessão.
  */
 export function useMyBranches() {
   const { user } = useAuth();
-  const { data: filiais } = useFiliais();
-  const { vinculos, isLoading } = useProfileFiliais(user?.id);
+  const { data: filiais, isLoading: branchesLoading } = useFiliais();
+  const { vinculos, isLoading } = useProfileFiliais(usesBackendData ? undefined : user?.id);
 
   const branches = useMemo<MyBranch[]>(() => {
     if (usesBackendData) return (filiais ?? []).map(row => ({ id: row.id, label: row.label, principal: row.id === user?.branchId }));
@@ -38,5 +38,5 @@ export function useMyBranches() {
       );
   }, [vinculos, filiais, user]);
 
-  return { branches, isLoading };
+  return { branches, isLoading: usesBackendData ? branchesLoading : isLoading };
 }

@@ -1,5 +1,6 @@
 export interface EnvironmentSettings {
   VITE_AUTH_MODE?: string
+  VITE_AUTH_PROVIDER?: string
   VITE_DATA_MODE?: string
   VITE_API_BASE_URL?: string
 }
@@ -8,6 +9,9 @@ export interface EnvironmentSettings {
 export function validateEnvironment(settings: EnvironmentSettings, deployed: boolean): void {
   if (deployed && (settings.VITE_AUTH_MODE !== 'backend' || settings.VITE_DATA_MODE !== 'backend')) {
     throw new Error('Build de HML/PRD exige VITE_AUTH_MODE=backend e VITE_DATA_MODE=backend.')
+  }
+  if (deployed && settings.VITE_AUTH_PROVIDER !== 'auth0') {
+    throw new Error('Build de HML/PRD exige VITE_AUTH_PROVIDER=auth0; login por senha é somente local/homologação controlada.')
   }
   if (!deployed && settings.VITE_AUTH_MODE !== 'backend' && settings.VITE_DATA_MODE !== 'backend') return
   if (settings.VITE_AUTH_MODE !== 'backend' || settings.VITE_DATA_MODE !== 'backend') {
