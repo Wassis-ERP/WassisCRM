@@ -6,6 +6,8 @@
 
 ## Norte do plano
 
+- [~] 12/10/2026 — Segurados/Oportunidades consolidados sobre `erp.*`, CI com 160 testes aprovado; pedidos Auto canônicos criados/listados/lidos com CTI, coberturas, idempotência e calendário. Cobertura final e próximos passos de execuções/resultados/apresentações em andamento. Reset não produtivo autorizado pelo usuário. Micro-plano: `micro-plano-raizes-crm-canonicas-2026-10-12.md`.
+
 - [x] 09/10/2026 — Checkpoint FE→BE: bootstrap Auth0, filiais da própria sessão e ganho após reload corrigidos; E2E real 1/1 e smoke Production 1/1 aprovados, CRM 337 testes, BE 152 + seis PostgreSQL/TLS. Idempotência do pedido legado corrigida. Consolidação canônica permanece pendente e requer `segurados`/`oportunidades` em conjunto; demo separado. Micro-plano: `micro-plano-multicalculo-transmissao-2026-10-09.md`.
 
 - [~] 09/10/2026 — Integridade da transmissão Auto no WAssisBE enquanto a investigação SegFy continua: snapshot de condutor/vigência/coberturas, validação e distinção entre aceite e resultado. Checkpoint validado em unidade, PostgreSQL/Testcontainers no CI e dependências; OCR real e integração canônica permanecem pendentes. Frontend continua sem ligação funcional ao backend. Micro-plano: `micro-plano-multicalculo-transmissao-2026-10-09.md`.
