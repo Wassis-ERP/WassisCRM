@@ -122,7 +122,7 @@ describe('leitura conectada de cálculos', () => {
     expect(workspace.results[0].primaryInstallment).toBeNull()
     expect(getBackendCalculation).toHaveBeenCalledWith('calculation', controller.signal)
     expect(listBackendCalculationInsurers).toHaveBeenCalledWith('opportunity', expect.objectContaining({ signal: controller.signal }))
-    expect(listBackendCalculationCoverages).toHaveBeenCalledWith('opportunity', 'line', expect.objectContaining({ signal: controller.signal }))
+    expect(listBackendCalculationCoverages).not.toHaveBeenCalled()
   })
 
   it('separa cotações de outro pedido da mesma oportunidade e ordena prêmio zero antes dos demais', async () => {

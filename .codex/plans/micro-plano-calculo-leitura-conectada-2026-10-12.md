@@ -53,3 +53,9 @@ do cotado é provisoriamente genérico (Lead/Segurado cadastrado), sem buscar pe
 ou inventar nome; ramo Auto vem da única forma suportada pelo decoder canônico.
 Seguradora/cobertura ausente do catálogo ativo mantém os resultados históricos
 com rótulo indisponível/nome informado no resultado. `database.ts` permanece v3.1.
+
+Revisão do checkpoint: histórico usa nome/chave de cobertura registrados na
+cotação, sem chamar o lookup de coberturas do editor, que exige ramo Auto ativo.
+Assim, inativar o ramo/catálogo não impede a consulta da cotação histórica nem
+substitui seu nome informado por um rótulo atual diferente. Gate afetado repetido
+após esta correção: TypeScript, suite completa, lint do serviço/teste e build.

@@ -1,5 +1,5 @@
 import {
-  getBackendCalculation, listBackendCalculations, listBackendCalculationCoverages,
+  getBackendCalculation, listBackendCalculations,
   listBackendCalculationExecutions, listBackendCalculationInsurers, listBackendOpportunityQuotes,
   type CalculationPageOptions,
 } from './backendCalculationApi'
@@ -55,11 +55,10 @@ export async function readBackendCalculationExecutionWorkspace(
 ) {
   const aggregate = await getBackendCalculation(calculationId, signal)
   const calculation = aggregate.calculation
-  const [executions, quotes, insurers, coverageCatalog] = await Promise.all([
+  const [executions, quotes, insurers] = await Promise.all([
     readCalculationPages(options => listBackendCalculationExecutions(calculation.id, options), item => item.id, signal),
     readCalculationPages(options => listBackendOpportunityQuotes(calculation.oportunidade_id, options), item => item.quote.id, signal),
     readCalculationPages(options => listBackendCalculationInsurers(calculation.oportunidade_id, options), item => item.id, signal),
-    readCalculationPages(options => listBackendCalculationCoverages(calculation.oportunidade_id, calculation.ramo_id, options), item => item.id, signal),
   ])
   const executionById = new Map(executions.map(execution => [execution.id, execution]))
   const results = quotes.filter(result => result.execution.calculo_id === calculation.id)
@@ -74,7 +73,8 @@ export async function readBackendCalculationExecutionWorkspace(
     throw new Error('Um resultado concluído não foi retornado. Recarregue o histórico completo do pedido.')
   }
   return getCalculationExecutionWorkspace({
-    calculations: [calculation], executions, insurers, coverageCatalog,
+    // Returned coverage labels belong to the quote snapshot. An inactive line/catalog must not block history.
+    calculations: [calculation], executions, insurers, coverageCatalog: [],
     quotes: results.map(result => result.quote),
     quoteCoverages: results.flatMap(result => result.coverages),
     quoteInstallments: results.flatMap(result => result.installments),
