@@ -409,19 +409,29 @@ export function listCalculationItems(store: CalculationStore, opportunityId: str
       const aggregate = getCalculationAggregate(store, calculation.id)
       const insured = calculation.segurado_id ? store.insureds.find((row) => row.id === calculation.segurado_id) : null
       const line = store.lines.find((row) => row.id === calculation.ramo_id)
-      return {
-        id: calculation.id,
-        versionLabel: calculation.rotulo_versao || 'Versão sem rótulo',
+      return projectCalculationListItem(aggregate, {
         lineName: line?.nome ?? 'Ramo não encontrado',
         insuredName: insured?.nome ?? opportunity?.lead_nome ?? 'Lead sem nome',
-        origin: calculation.origem,
-        validityStart: calculation.vigencia_inicio,
-        validityEnd: calculation.vigencia_fim,
-        suggestedCommission: calculation.comissao_sugerida_pct,
-        riskSummary: riskSummary(aggregate.specialization),
-        coverageCount: aggregate.coverages.length,
-        createdAt: calculation.criado_em,
-      }
+      })
     })
     .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? '') || b.id.localeCompare(a.id))
+}
+
+export function projectCalculationListItem(
+  aggregate: CalculationAggregate,
+  labels: { lineName: string; insuredName: string },
+): CalculationListItem {
+  const { calculation } = aggregate
+  return {
+    id: calculation.id,
+    versionLabel: calculation.rotulo_versao || 'Versão sem rótulo',
+    ...labels,
+    origin: calculation.origem,
+    validityStart: calculation.vigencia_inicio,
+    validityEnd: calculation.vigencia_fim,
+    suggestedCommission: calculation.comissao_sugerida_pct,
+    riskSummary: riskSummary(aggregate.specialization),
+    coverageCount: aggregate.coverages.length,
+    createdAt: calculation.criado_em,
+  }
 }
