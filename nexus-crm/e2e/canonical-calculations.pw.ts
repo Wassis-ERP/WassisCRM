@@ -90,7 +90,12 @@ test('cálculo, tentativa manual e comparativo persistem pelo BE canônico', asy
   await page.getByRole('dialog').getByRole('button', { name: 'Cancelar tentativa', exact: true }).click()
   await expect(page.getByRole('status').filter({ hasText: 'cancelada' })).toBeVisible()
   await page.getByLabel('Comissão (%)', { exact: false }).fill('0')
+  const retryResponse = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith('/reexecutar'))
   await page.getByRole('button', { name: 'Preparar nova tentativa', exact: true }).click()
+  const retry = await (await retryResponse).json() as { id: string }
+  await expect(page.getByRole('status').filter({ hasText: 'Tentativa 2' })).toBeVisible()
+  await page.goto(`${base}${calculationPath}/cotacoes/nova?tentativa=${retry.id}`)
+  await expect(page.getByLabel('Comissão (%)', { exact: false })).toHaveValue('0')
   await expect(page.getByRole('status').filter({ hasText: 'Tentativa 2' })).toBeVisible()
   await page.getByLabel('Prêmio total (R$)', { exact: true }).fill('0')
   await page.getByRole('combobox', { name: 'Casco sintético', exact: true }).selectOption('true')

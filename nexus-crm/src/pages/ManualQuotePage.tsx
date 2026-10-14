@@ -84,7 +84,9 @@ function ManualQuoteForm({ calculationId, opportunityId, title, commission, insu
   const [premium, setPremium] = useState('')
   const [netPremium, setNetPremium] = useState('')
   const [iof, setIof] = useState('')
-  const [commissionPct, setCommissionPct] = useState(usesBackendDomainData ? '' : String(commission ?? 0))
+  const [commissionPct, setCommissionPct] = useState(originalExecution?.comissao_origem === 'SOBRESCRITA'
+    ? String(originalExecution.comissao_pct_aplicada ?? '')
+    : usesBackendDomainData ? '' : String(commission ?? 0))
   const [validity, setValidity] = useState('')
   const [restrictions, setRestrictions] = useState('')
   const [message, setMessage] = useState('')
@@ -185,7 +187,7 @@ function ManualQuoteForm({ calculationId, opportunityId, title, commission, insu
     } finally { actionInProgress.current = false; setSaving(false) }
   }
   const cancelAttempt = async () => {
-    if (!execution || actionInProgress.current) return
+    if (!execution || actionInProgress.current || recoveryLocked && failedAction !== 'cancel') return
     const accepted = await confirm({ title: 'Cancelar tentativa manual?', description: 'O formulário será mantido para permitir uma nova tentativa explícita.', confirmLabel: 'Cancelar tentativa', tone: 'warning' })
     if (!accepted) return
     actionInProgress.current = true
@@ -228,7 +230,7 @@ function ManualQuoteForm({ calculationId, opportunityId, title, commission, insu
   }
   return <form onSubmit={(event) => void submit(event)} className="manual-quote-page space-y-5">
     <header className="flex flex-wrap items-start justify-between gap-4"><div><button type="button" disabled={saving} onClick={() => void leave()} className={buttonClass}><ArrowLeft size={15} /> Voltar ao cálculo</button><h1 className="mt-4 text-2xl font-bold text-fg-1">Registrar cotação manual</h1><p className="mt-1 text-sm text-fg-3">{title} · informe o resultado recebido da seguradora.</p></div><button disabled={saving || (usesBackendDomainData && Boolean(execution) && !isOpen)} className={primaryButton}><Save size={16} /> {saving ? 'Processando…' : 'Registrar cotação'}</button></header>
-    {error && <div role="alert" className="rounded-[6px] border border-signal-danger/20 bg-signal-danger/10 p-4 text-sm text-signal-danger"><p className="font-bold">{error}</p>{recoveryLocked && <p className="mt-1">Os dados enviados foram preservados. Recupere a resposta antes de editar.</p>}<div className="mt-3 flex flex-wrap gap-2"><button type="button" disabled={saving} onClick={() => void ({ prepare: prepareAttempt, quote: save, cancel: cancelAttempt, retry: retryAttempt }[failedAction])()} className={buttonClass}><RefreshCw size={14} /> Tentar novamente</button>{execution && isOpen && <button type="button" disabled={saving} onClick={() => void cancelAttempt()} className={buttonClass}><Ban size={14} /> Cancelar tentativa</button>}</div></div>}
+    {error && <div role="alert" className="rounded-[6px] border border-signal-danger/20 bg-signal-danger/10 p-4 text-sm text-signal-danger"><p className="font-bold">{error}</p>{recoveryLocked && <p className="mt-1">Os dados enviados foram preservados. Recupere a resposta antes de editar.</p>}<div className="mt-3 flex flex-wrap gap-2"><button type="button" disabled={saving} onClick={() => void ({ prepare: prepareAttempt, quote: save, cancel: cancelAttempt, retry: retryAttempt }[failedAction])()} className={buttonClass}><RefreshCw size={14} /> Tentar novamente</button>{execution && isOpen && !recoveryLocked && <button type="button" disabled={saving} onClick={() => void cancelAttempt()} className={buttonClass}><Ban size={14} /> Cancelar tentativa</button>}</div></div>}
     {usesBackendDomainData && !execution && !error && <div className="flex justify-end"><button type="button" disabled={saving || !insurerId} onClick={() => void prepareAttempt()} className={buttonClass}>Preparar tentativa manual</button></div>}
     {usesBackendDomainData && execution && !error && <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] bg-accent-primary-soft p-4 text-sm text-fg-2"><span className="flex items-center gap-3">{saving && <Loader2 size={16} className="animate-spin text-accent-primary" />}<span><strong>Tentativa {execution.tentativa}</strong> · {execution.status.replaceAll('_', ' ').toLocaleLowerCase('pt-BR')}</span></span>{isOpen ? <button type="button" disabled={saving} onClick={() => void cancelAttempt()} className={buttonClass}><Ban size={14} /> Cancelar tentativa</button> : <button type="button" disabled={saving} onClick={() => void retryAttempt()} className={buttonClass}><RefreshCw size={14} /> Preparar nova tentativa</button>}</div>}
     <fieldset disabled={saving || recoveryLocked} className="min-w-0 space-y-5">

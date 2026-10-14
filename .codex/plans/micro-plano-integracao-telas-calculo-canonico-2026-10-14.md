@@ -108,7 +108,9 @@ ficam explicitamente fora do escopo.
 MANUAL preparada, cancelada e reexecutada; resposta descartada depois do commit
 real e replay com chave/payload idênticos; duas submissões compartilham uma
 gravação; seis resultados exercitam limite de cinco, remoção, reabertura e 409
-entre abas. Capturas `calculo-editor-desktop.png`, `cotacao-manual-desktop.png`,
+entre abas. A retomada por ID de tentativa conserva a sobrescrita zero e a
+recuperação ambígua impede um cancelamento concorrente. Capturas
+`calculo-editor-desktop.png`, `cotacao-manual-desktop.png`,
 `comparativo-desktop.png` e `comparativo-conflito-desktop.png` em
 `nexus-crm/.screens/e2e/canonical-calculations.pw.-95c0f--persistem-pelo-BE-canônico`.
 Inspeção visual a 1440×900, escala 1 (100%), foco/controles sem overflow horizontal;
