@@ -6,7 +6,7 @@ import type { CalculoExecucaoRow, CalculoRow } from '../types/database'
 import type { BackendPresentationAggregate, BackendQuoteAggregate } from './calculationHttpContracts'
 import {
   cancelBackendManualExecution, createBackendCalculation, createBackendManualExecution, getBackendCalculation,
-  getBackendCalculationContext, getBackendQuote, listBackendCalculations, recordBackendManualQuote,
+  getBackendCalculationContext, getBackendCalculationExecution, getBackendQuote, listBackendCalculations, recordBackendManualQuote,
   retryBackendManualExecution, saveBackendPresentation, type ManualQuoteHttpInput,
 } from './backendCalculationApi'
 
@@ -60,7 +60,7 @@ const saveInput: SaveCommercialPresentationInput = { opportunityId: opportunity,
   selectedQuoteId: quoteId, createdById: otherId, items: [{ quoteId }] }
 
 describe('adapter HTTP canônico de cálculo', () => {
-  beforeEach(() => request.mockReset())
+  beforeEach(() => { request.mockReset() })
   it('preserva bônus zero e valores desconhecidos e descarta campos fora do contrato', async () => {
     const source = aggregate(); request.mockResolvedValue({ ...source, calculation: { ...source.calculation, credencial: 'extra-fixture' } })
     const result = await getBackendCalculation(calculationId)
@@ -157,5 +157,25 @@ describe('adapter HTTP canônico de cálculo', () => {
     expect((await getBackendCalculationContext(opportunity, line)).branchDate).toBe('2028-02-29')
     request.mockResolvedValue({ ...context, branchDate: '2027-02-29' })
     await expect(getBackendCalculationContext(opportunity, line)).rejects.toThrow('contrato')
+  })
+  it('lê tentativa por ID e recusa uma execução de outro contexto', async () => {
+    request.mockResolvedValue(execution)
+    expect((await getBackendCalculationExecution(executionId)).comissao_pct_aplicada).toBe(0)
+    expect(request.mock.calls[0][0]).toBe(`/api/execucoes/${executionId}`)
+    request.mockResolvedValue({ ...execution, id: otherId })
+    await expect(getBackendCalculationExecution(executionId)).rejects.toThrow('outro contexto')
+  })
+  it('permite replay de PUT com a revisão original após perda da resposta', async () => {
+    request.mockResolvedValueOnce(presentation(2)).mockResolvedValueOnce(presentation(2))
+    const result = await saveBackendPresentation({ ...saveInput, presentationId }, 'recover-key', 1)
+    expect(result.revision).toBe(2)
+    expect(request.mock.calls[1][1]?.method).toBe('PUT')
+    expect(request.mock.calls[1][1]?.headers).toEqual({ 'Idempotency-Key': 'recover-key' })
+    expect(JSON.parse(String(request.mock.calls[1][1]?.body))).toHaveProperty('expectedRevision', 1)
+  })
+  it('delega edição obsoleta ao servidor e nunca adota a revisão mais nova silenciosamente', async () => {
+    request.mockResolvedValueOnce(presentation(2)).mockRejectedValueOnce(new Error('HTTP 409'))
+    await expect(saveBackendPresentation({ ...saveInput, presentationId }, 'stale-key', 1)).rejects.toThrow('HTTP 409')
+    expect(JSON.parse(String(request.mock.calls[1][1]?.body))).toHaveProperty('expectedRevision', 1)
   })
 })
