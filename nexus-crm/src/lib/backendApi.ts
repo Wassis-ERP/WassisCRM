@@ -128,6 +128,20 @@ function normalizeCurrentUser(raw: unknown): BackendCurrentUser {
   };
 }
 
+export class BackendRequestError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'BackendRequestError';
+    this.status = status;
+  }
+}
+
+export function isBackendRequestError(error: unknown, status?: number): error is BackendRequestError {
+  return error instanceof BackendRequestError && (status === undefined || error.status === status);
+}
+
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   ensureApiBaseUrl();
   if (!path.startsWith('/api/') || path.includes('..') || path.includes('\\')) {
@@ -158,7 +172,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
     if (!response.ok) {
       if (response.status === 401) {
         clearBackendSession();
-        throw new Error(path === '/api/identity/login' ? 'Usuário ou senha inválidos.' : 'Sessão expirada. Entre novamente.');
+        throw new BackendRequestError(401, path === '/api/identity/login' ? 'Usuário ou senha inválidos.' : 'Sessão expirada. Entre novamente.');
       }
       const messages: Record<number, string> = {
         400: 'Não foi possível salvar. Revise os campos informados.',
@@ -169,7 +183,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
         501: 'Integração pendente. Esta operação ainda não está disponível.',
       };
       // Never display arbitrary response bodies, stack traces, or proxy HTML.
-      throw new Error(messages[response.status] ?? 'Serviço indisponível. Tente novamente mais tarde.');
+      throw new BackendRequestError(response.status, messages[response.status] ?? 'Serviço indisponível. Tente novamente mais tarde.');
     }
 
     if (response.status === 204) return undefined as T;

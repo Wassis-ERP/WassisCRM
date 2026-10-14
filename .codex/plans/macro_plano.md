@@ -6,6 +6,8 @@
 
 ## Norte do plano
 
+- [x] 14/10/2026 — Telas de cálculo canônico integradas sobre FE #56 / BE #36: editor, tentativa/cotação manual e comparativo usam HTTP, revisão explícita e recuperação idempotente. Gates locais: TypeScript/build conectado, 395 testes, lint focado, audit sem vulnerabilidades, smoke Production 1/1 e jornada real PostgreSQL/TLS + navegador 2/2. BE de apoio preserva a etapa ao atualizar campos da oportunidade (161 + oito PostgreSQL aprovados). Evidência desktop 1440×900/100%; CI do HEAD publicado em acompanhamento. Transmissão, aprovação e PDF permanecem fora. Micro-plano `micro-plano-integracao-telas-calculo-canonico-2026-10-14.md`.
+
 - [x] 14/10/2026 — Camada de dados dos comandos HTTP canônicos preparada: chaves recuperáveis após erro de rede, snapshot do input, resultados manuais, dados do editor e seleção/comparação com revisão explícita. Tsc, 394 testes, lint focado e build aprovados. Cutover/jornada das telas pendentes com Renato; depende do BE `codex/calculation-historical-insurers`. Micro-plano `micro-plano-comandos-canonicos-http-2026-10-12.md`.
 
 - [x] 12/10/2026 — Camada de leitura do contexto comercial integrada: referências vinculadas deixam de exigir Configurações; Segurados mantém autorização própria. BE PR #35; FE 375 testes, tsc, lint focado e build aprovados. Sem alterações de tela; design ficou com Renato por orientação do usuário. Micro-plano `micro-plano-contexto-comercial-http-2026-10-12.md`.

@@ -146,6 +146,19 @@ describe('backendApi', () => {
     expect(api.getBackendTenantId()).toBeNull()
   })
 
+  it('preserva o status HTTP sanitizado para o conflito otimista exigir releitura', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      text: async () => JSON.stringify({ message: 'A revisão foi alterada.' }),
+    }))
+    const api = await importBackendApi()
+    const failure = await api.requestAuthenticatedBackendJson('/api/apresentacoes/presentation-id').catch((cause: unknown) => cause)
+    expect(api.isBackendRequestError(failure, 409)).toBe(true)
+    expect(failure).toMatchObject({ status: 409, message: 'Os dados foram alterados ou já existem. Atualize a consulta antes de continuar.' })
+    expect(api.isBackendRequestError(failure, 401)).toBe(false)
+  })
+
   it('faz logout no servidor com CSRF e limpa a sessão em memória', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(csrfResponse()).mockResolvedValueOnce(loginResponse())

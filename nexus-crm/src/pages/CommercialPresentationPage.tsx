@@ -3,6 +3,13 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import CommercialPresentationDocument from '../components/oportunidades/CommercialPresentationDocument'
 import { presentationCoverage, presentationPayment } from '../modules/comercial/commercialPresentationFormat'
 import { getQuoteProposalOrigin } from '../modules/comercial/quoteProposalOrigin'
+import { usesBackendDomainData } from '../lib/backendDomainApi'
+import { isBackendRequestError } from '../lib/backendApi'
+import {
+  buildCanonicalPresentationSelection,
+  type CanonicalCommercialPresentationWorkspace,
+} from '../lib/backendCommercialPresentationData'
+import type { BackendPresentationAggregate } from '../lib/calculationHttpContracts'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowDown,
@@ -25,6 +32,8 @@ import {
 } from 'lucide-react'
 import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
 import { useAuth } from '../hooks/useAuth'
+import { useCanonicalCalculationCommands } from '../hooks/useCanonicalCalculationCommands'
+import { useCanonicalCommercialPresentation } from '../hooks/useCanonicalCommercialPresentation'
 import {
   useCommercialPresentationWorkspace,
   useSaveCommercialPresentation,
@@ -47,6 +56,7 @@ import type {
 } from '../types/database'
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+const money = (value: number | null) => value === null ? 'Não informado' : currency.format(value)
 const inputClass = 'w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1 placeholder:text-fg-3 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 disabled:cursor-not-allowed disabled:opacity-60'
 const secondaryButton = 'inline-flex items-center justify-center gap-2 rounded-full border border-border-1 px-4 py-2.5 text-xs font-black text-fg-2 hover:border-accent-primary/30 hover:bg-accent-primary-soft hover:text-accent-primary disabled:cursor-not-allowed disabled:opacity-50'
 
@@ -96,6 +106,57 @@ function draftFingerprint(draft: PresentationDraft): string {
   return JSON.stringify(draft)
 }
 
+function canonicalWorkspaceFromDraft(
+  workspace: CanonicalCommercialPresentationWorkspace,
+  draft: PresentationDraft,
+): CanonicalCommercialPresentationWorkspace {
+  const candidates = new Map(workspace.candidates.map((candidate) => [candidate.quote.id, candidate]))
+  const presentationId = draft.presentationId ?? workspace.presentation?.id ?? 'novo-rascunho'
+  const items = draft.items.flatMap((item, index) => {
+    const candidate = candidates.get(item.quoteId)
+    if (!candidate) return []
+    return [{
+      item: {
+        id: `rascunho:${item.quoteId}`,
+        apresentacao_id: presentationId,
+        cotacao_id: item.quoteId,
+        parcelamento_id: item.installmentId ?? null,
+        ordem: (index + 1) * 10,
+        recomendada: item.recommended ?? false,
+        titulo_comercial: item.commercialTitle ?? null,
+        vantagens_texto: item.advantagesText ?? null,
+        observacao_comercial: item.commercialNote ?? null,
+      },
+      candidate,
+    }]
+  })
+  return { ...workspace, items, comparison: alignCommercialPresentationCoverages(items.map(({ candidate }) => candidate)) }
+}
+
+function draftFromSavedPresentation(result: BackendPresentationAggregate): PresentationDraft {
+  return {
+    presentationId: result.presentation.id,
+    selectedQuoteId: result.presentation.cotacao_escolhida_id,
+    title: result.presentation.titulo ?? 'Comparativo comercial',
+    layout: result.presentation.layout ?? 'HORIZONTAL',
+    ordering: result.presentation.criterio_ordenacao ?? 'MANUAL',
+    showFipe: result.presentation.exibir_percentual_fipe ?? true,
+    showAdvantages: result.presentation.exibir_vantagens ?? true,
+    showLegend: result.presentation.exibir_legenda ?? true,
+    showNotes: result.presentation.exibir_observacoes ?? true,
+    showCommission: result.presentation.exibir_comissao ?? false,
+    commercialNotes: result.presentation.observacoes_comerciais ?? '',
+    items: [...result.items].sort((left, right) => left.ordem - right.ordem).map((item) => ({
+      quoteId: item.cotacao_id,
+      installmentId: item.parcelamento_id,
+      recommended: item.recomendada ?? false,
+      commercialTitle: item.titulo_comercial,
+      advantagesText: item.vantagens_texto,
+      commercialNote: item.observacao_comercial,
+    })),
+  }
+}
+
 const paymentLabel = presentationPayment
 
 
@@ -107,7 +168,10 @@ export default function CommercialPresentationPage() {
   const { oportunidadeId } = useParams<{ oportunidadeId: string }>()
   const navigate = useNavigate()
   const opportunity = useOportunidade(oportunidadeId)
-  const workspace = useCommercialPresentationWorkspace(oportunidadeId)
+  const demoWorkspace = useCommercialPresentationWorkspace(oportunidadeId)
+  const canonicalWorkspace = useCanonicalCommercialPresentation(oportunidadeId)
+  const workspace = usesBackendDomainData ? canonicalWorkspace : demoWorkspace
+  const [reloadVersion, setReloadVersion] = useState(0)
   const { can } = usePermission('comercial', opportunityPermissionContext(opportunity.data))
 
   useEffect(() => {
@@ -121,20 +185,26 @@ export default function CommercialPresentationPage() {
 
   return (
     <PresentationEditor
-      key={workspace.data.presentation?.id ?? 'new-presentation'}
+      key={`${oportunidadeId}:${reloadVersion}`}
       opportunity={opportunity.data}
       initialWorkspace={workspace.data}
       canEdit={can('update')}
       onBack={() => navigate(`/oportunidades/${oportunidadeId}?tab=calculos`)}
+      onReload={async () => {
+        const result = await workspace.refetch()
+        if (result.isError) throw new Error('Não foi possível recarregar a revisão. Tente novamente.')
+        setReloadVersion((current) => current + 1)
+      }}
     />
   )
 }
 
-function PresentationEditor({ opportunity, initialWorkspace, canEdit, onBack }: {
+function PresentationEditor({ opportunity, initialWorkspace, canEdit, onBack, onReload }: {
   opportunity: NonNullable<ReturnType<typeof useOportunidade>['data']>
-  initialWorkspace: CommercialPresentationWorkspace
+  initialWorkspace: CommercialPresentationWorkspace | CanonicalCommercialPresentationWorkspace
   canEdit: boolean
   onBack: () => void
+  onReload: () => Promise<void>
 }) {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -142,11 +212,16 @@ function PresentationEditor({ opportunity, initialWorkspace, canEdit, onBack }: 
   const { notify } = useSystemFeedback()
   const toggleQuote = useToggleCommercialPresentationQuote()
   const savePresentation = useSaveCommercialPresentation()
+  const canonicalCommands = useCanonicalCalculationCommands()
   const [step, setStep] = useState<EditorStep>('COMPARAR')
   const [draft, setDraft] = useState(() => draftFromWorkspace(initialWorkspace))
   const [savedFingerprint, setSavedFingerprint] = useState(() => draftFingerprint(draftFromWorkspace(initialWorkspace)))
   const [status, setStatus] = useState<ApresentacaoStatus>(initialWorkspace.presentation?.status ?? 'RASCUNHO')
   const [generatedAt, setGeneratedAt] = useState(initialWorkspace.presentation?.gerada_em ?? null)
+  const [canonicalSnapshot, setCanonicalSnapshot] = useState<CanonicalCommercialPresentationWorkspace | null>(
+    usesBackendDomainData ? initialWorkspace as CanonicalCommercialPresentationWorkspace : null,
+  )
+  const [revisionConflict, setRevisionConflict] = useState(false)
   const candidates = initialWorkspace.candidates
   const candidateByQuote = useMemo(() => new Map(candidates.map((candidate) => [candidate.quote.id, candidate])), [candidates])
   const selectedQuoteIds = useMemo(() => new Set(draft.items.map((item) => item.quoteId)), [draft.items])
@@ -160,7 +235,8 @@ function PresentationEditor({ opportunity, initialWorkspace, canEdit, onBack }: 
   )
   const dirty = draftFingerprint(draft) !== savedFingerprint
   const canShowCommission = user?.role === 'admin'
-  const existingProposal = draft.selectedQuoteId ? getQuoteProposalOrigin(draft.selectedQuoteId).proposal : null
+  const existingProposal = !usesBackendDomainData && draft.selectedQuoteId ? getQuoteProposalOrigin(draft.selectedQuoteId).proposal : null
+  const savePending = usesBackendDomainData ? canonicalCommands.savePresentation.isPending : savePresentation.isPending
 
   const updateDraft = (updater: (current: PresentationDraft) => PresentationDraft) => {
     setDraft(updater)
@@ -188,6 +264,37 @@ function PresentationEditor({ opportunity, initialWorkspace, canEdit, onBack }: 
 
   const persist = async (nextStatus: ApresentacaoStatus, announce = true): Promise<boolean> => {
     try {
+      if (usesBackendDomainData) {
+        if (!canonicalSnapshot) throw new Error('Recarregue o comparativo antes de salvar.')
+        const result = await canonicalCommands.savePresentation.mutateAsync({
+          input: buildSaveInput('RASCUNHO'),
+          expectedRevision: canonicalSnapshot.presentation ? canonicalSnapshot.revision ?? undefined : undefined,
+        })
+        const nextDraft = draftFromSavedPresentation(result)
+        const candidateById = new Map(canonicalSnapshot.candidates.map((candidate) => [candidate.quote.id, candidate]))
+        const items = result.items.flatMap((item) => {
+          const candidate = candidateById.get(item.cotacao_id)
+          return candidate ? [{ item, candidate }] : []
+        })
+        setCanonicalSnapshot({
+          ...canonicalSnapshot,
+          presentation: result.presentation,
+          revision: result.revision,
+          items,
+          comparison: alignCommercialPresentationCoverages(items.map(({ candidate }) => candidate)),
+        })
+        setDraft(nextDraft)
+        setSavedFingerprint(draftFingerprint(nextDraft))
+        setStatus(result.presentation.status ?? 'RASCUNHO')
+        setGeneratedAt(result.presentation.gerada_em ?? null)
+        setRevisionConflict(false)
+        if (announce) notify({
+          title: 'Comparativo salvo',
+          description: `Revisão ${result.revision} gravada. A seleção não aprova a cotação nem cria proposta ou apólice.`,
+          tone: 'success',
+        })
+        return true
+      }
       const workspace = await savePresentation.mutateAsync(buildSaveInput(nextStatus))
       const nextDraft = draftFromWorkspace(workspace)
       setDraft(nextDraft)
@@ -203,6 +310,15 @@ function PresentationEditor({ opportunity, initialWorkspace, canEdit, onBack }: 
       })
       return true
     } catch (cause) {
+      if (usesBackendDomainData && isBackendRequestError(cause, 409)) {
+        setRevisionConflict(true)
+        notify({
+          title: 'O comparativo mudou em outra sessão',
+          description: 'Esta revisão não foi sobrescrita. Releia os dados e decida novamente quais alterações aplicar.',
+          tone: 'warning',
+        })
+        return false
+      }
       notify({
         title: nextStatus === 'GERADA' ? 'Não foi possível gerar' : 'Não foi possível salvar',
         description: cause instanceof Error ? cause.message : 'Revise os dados e tente novamente.',
@@ -241,6 +357,21 @@ function PresentationEditor({ opportunity, initialWorkspace, canEdit, onBack }: 
     if (!canEdit) return
     const wasSelected = selectedQuoteIds.has(quoteId)
     try {
+      if (usesBackendDomainData) {
+        if (!canonicalSnapshot) throw new Error('Recarregue o comparativo antes de alterar a seleção.')
+        const command = buildCanonicalPresentationSelection(canonicalWorkspaceFromDraft(canonicalSnapshot, draft), quoteId)
+        updateDraft((current) => ({
+          ...current,
+          selectedQuoteId: command.input.items.some((item) => item.quoteId === current.selectedQuoteId) ? current.selectedQuoteId : null,
+          items: command.input.items,
+        }))
+        notify({
+          title: wasSelected ? 'Cotação removida do rascunho' : 'Cotação adicionada ao rascunho',
+          description: `Seleção local com ${command.input.items.length} de ${MAX_PRESENTATION_QUOTES} produtos. Salve para gravar a revisão.`,
+          tone: 'success',
+        })
+        return
+      }
       const workspace = await toggleQuote.mutateAsync({ opportunityId: opportunity.id, quoteId, createdById: user?.id ?? null })
       const nextDraft = draftFromWorkspace(workspace)
       setDraft(nextDraft)
@@ -258,6 +389,22 @@ function PresentationEditor({ opportunity, initialWorkspace, canEdit, onBack }: 
         description: cause instanceof Error ? cause.message : 'Revise os produtos e tente novamente.',
         tone: 'warning',
       })
+    }
+  }
+
+  const reloadAfterConflict = async () => {
+    const confirmed = await confirm({
+      title: 'Recarregar a revisão do servidor?',
+      description: 'As alterações locais em conflito serão descartadas para que você possa revisar e decidir novamente.',
+      confirmLabel: 'Recarregar revisão',
+      cancelLabel: 'Continuar conferindo',
+      tone: 'warning',
+    })
+    if (!confirmed) return
+    try {
+      await onReload()
+    } catch (cause) {
+      notify({ title: 'Releitura indisponível', description: cause instanceof Error ? cause.message : 'Tente novamente.', tone: 'danger' })
     }
   }
 
@@ -285,24 +432,26 @@ function PresentationEditor({ opportunity, initialWorkspace, canEdit, onBack }: 
           <p className="mt-1 text-sm text-fg-3">{opportunity.titulo} · selecione resultados da mesma oportunidade sem alterar as cotações oficiais.</p>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
-          <button type="button" disabled={!canEdit || savePresentation.isPending || !dirty} onClick={() => void persist('RASCUNHO')} className={secondaryButton}>
-            {savePresentation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Salvar rascunho
+          <button type="button" disabled={!canEdit || savePending || !dirty} onClick={() => void persist('RASCUNHO')} className={secondaryButton}>
+            {savePending ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} {usesBackendDomainData ? 'Salvar comparativo' : 'Salvar rascunho'}
           </button>
-          <button type="button" disabled={!canEdit || savePresentation.isPending || draft.items.length === 0} onClick={async () => { if (await persist('GERADA')) setStep('PREVIA') }} className="inline-flex items-center justify-center gap-2 rounded-full bg-accent-primary px-5 py-2.5 text-xs font-black text-fg-on-brand shadow-[var(--shadow-brand)] hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-50">
+          {!usesBackendDomainData && <button type="button" disabled={!canEdit || savePending || draft.items.length === 0} onClick={async () => { if (await persist('GERADA')) setStep('PREVIA') }} className="inline-flex items-center justify-center gap-2 rounded-full bg-accent-primary px-5 py-2.5 text-xs font-black text-fg-on-brand shadow-[var(--shadow-brand)] hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-50">
             <FileDown size={14} /> Gerar apresentação
-          </button>
+          </button>}
         </div>
       </header>
 
       {!canEdit && <div className="mb-4 flex items-start gap-3 rounded-[8px] bg-signal-warning/10 p-4 text-sm"><Info size={17} className="mt-0.5 shrink-0 text-signal-warning" /><div><p className="font-black text-fg-1">Consulta somente leitura</p><p className="mt-1 text-xs text-fg-3">Seu perfil pode revisar a apresentação, mas não alterar a seleção nem gerar uma nova versão.</p></div></div>}
 
+      {revisionConflict && <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[8px] border border-signal-warning/30 bg-signal-warning/10 p-4"><div className="flex items-start gap-3"><RefreshCw size={17} className="mt-0.5 shrink-0 text-signal-warning" /><div><p className="text-sm font-black text-fg-1">Revisão desatualizada</p><p className="mt-1 text-xs text-fg-3">Outra sessão alterou este comparativo. Nada foi sobrescrito; releia e decida novamente.</p></div></div><button type="button" onClick={() => void reloadAfterConflict()} className={secondaryButton}>Recarregar revisão</button></div>}
+
       <StepNavigation active={step} onChange={(next) => void goToStep(next)} />
 
-      {draft.selectedQuoteId && <section className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[8px] border border-border-1 bg-bg-surface p-4 print:hidden">
+      {!usesBackendDomainData && draft.selectedQuoteId && <section className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[8px] border border-border-1 bg-bg-surface p-4 print:hidden">
         <div><h2 style={{ fontSize: 14 }} className="text-sm font-bold text-fg-1">Formalizar a escolha do cliente</h2><p className="mt-1 text-xs text-fg-3">Revise o documento antes de concluir. A cotação será vinculada à proposta.</p></div>
         <div className="flex flex-wrap gap-2">{existingProposal ? <button type="button" className={secondaryButton} onClick={() => navigate(`/apolices/${existingProposal.apolice_id}`)}>Abrir proposta vinculada</button> : <>
-          <button type="button" disabled={!canEdit || savePresentation.isPending} className={secondaryButton} onClick={async () => { if (await persist('RASCUNHO', false)) navigate(`/propostas/novo?cotacao=${encodeURIComponent(draft.selectedQuoteId!)}`) }}>Cadastrar proposta</button>
-          <button type="button" disabled={!canEdit || savePresentation.isPending} className={secondaryButton} onClick={async () => { if (await persist('RASCUNHO', false)) navigate(`/propostas/importar?cotacao=${encodeURIComponent(draft.selectedQuoteId!)}`) }}>Importar proposta</button>
+          <button type="button" disabled={!canEdit || savePending} className={secondaryButton} onClick={async () => { if (await persist('RASCUNHO', false)) navigate(`/propostas/novo?cotacao=${encodeURIComponent(draft.selectedQuoteId!)}`) }}>Cadastrar proposta</button>
+          <button type="button" disabled={!canEdit || savePending} className={secondaryButton} onClick={async () => { if (await persist('RASCUNHO', false)) navigate(`/propostas/importar?cotacao=${encodeURIComponent(draft.selectedQuoteId!)}`) }}>Importar proposta</button>
         </>}</div>
       </section>}
 
@@ -313,7 +462,7 @@ function PresentationEditor({ opportunity, initialWorkspace, canEdit, onBack }: 
           selectedViews={selectedViews}
           comparison={comparison}
           canEdit={canEdit}
-          pending={toggleQuote.isPending}
+          pending={usesBackendDomainData ? false : toggleQuote.isPending}
           onToggle={toggleCandidate}
           onContinue={() => void goToStep('CONFIGURAR')}
         />
@@ -339,6 +488,7 @@ function PresentationEditor({ opportunity, initialWorkspace, canEdit, onBack }: 
           status={status}
           generatedAt={generatedAt}
           canEdit={canEdit}
+          connected={usesBackendDomainData}
           onBack={() => void goToStep('CONFIGURAR')}
           onGenerate={async () => { await persist('GERADA') }}
         />
@@ -389,7 +539,7 @@ function CompareStep({ candidates, selectedQuoteIds, selectedViews, comparison, 
         </div>
         {groups.length === 0 ? <EmptyResults /> : <div className="mt-4 space-y-5">{groups.map(([profile, rows]) => <div key={profile}><div className="mb-2 flex items-center gap-2"><LayoutList size={14} className="text-accent-primary" /><h3 className="text-xs font-black text-fg-1">{profile}</h3><span className="text-[11px] font-semibold text-fg-3">{rows.length} {rows.length === 1 ? 'resultado' : 'resultados'}</span></div><div className="divide-y divide-border-1 overflow-hidden rounded-[6px] border border-border-1">{rows.map((candidate) => {
           const selected = selectedQuoteIds.has(candidate.quote.id)
-          return <label key={candidate.quote.id} className={selected ? 'grid cursor-pointer gap-3 bg-accent-primary-soft/60 p-4 md:grid-cols-[auto_minmax(180px,1fr)_repeat(3,minmax(130px,0.7fr))] md:items-center' : 'grid cursor-pointer gap-3 bg-bg-surface p-4 hover:bg-bg-surface-2 md:grid-cols-[auto_minmax(180px,1fr)_repeat(3,minmax(130px,0.7fr))] md:items-center'}><input type="checkbox" disabled={!canEdit || pending} checked={selected} onChange={() => void onToggle(candidate.quote.id)} className="h-4 w-4 rounded border-border-2 text-accent-primary focus:ring-accent-primary" /><span><span className="block text-sm font-black text-fg-1">{candidate.insurerName}</span><span className="mt-0.5 block font-mono text-[11px] text-fg-3">{candidate.quote.numero_cotacao_seguradora ?? 'Sem número externo'}</span></span><DataPoint label="Prêmio" value={currency.format(candidate.quote.premio_total ?? 0)} /><DataPoint label="Franquia" value={candidate.franchiseValue === null ? 'Não informada' : currency.format(candidate.franchiseValue)} /><DataPoint label="Pagamento" value={paymentLabel(candidate.primaryInstallment)} /></label>
+          return <label key={candidate.quote.id} className={selected ? 'grid cursor-pointer gap-3 bg-accent-primary-soft/60 p-4 md:grid-cols-[auto_minmax(180px,1fr)_repeat(3,minmax(130px,0.7fr))] md:items-center' : 'grid cursor-pointer gap-3 bg-bg-surface p-4 hover:bg-bg-surface-2 md:grid-cols-[auto_minmax(180px,1fr)_repeat(3,minmax(130px,0.7fr))] md:items-center'}><input type="checkbox" disabled={!canEdit || pending} checked={selected} onChange={() => void onToggle(candidate.quote.id)} className="h-4 w-4 rounded border-border-2 text-accent-primary focus:ring-accent-primary" /><span><span className="block text-sm font-black text-fg-1">{candidate.insurerName}</span><span className="mt-0.5 block font-mono text-[11px] text-fg-3">{candidate.quote.numero_cotacao_seguradora ?? 'Sem número externo'}</span></span><DataPoint label="Prêmio" value={money(candidate.quote.premio_total)} /><DataPoint label="Franquia" value={candidate.franchiseValue === null ? 'Não informada' : currency.format(candidate.franchiseValue)} /><DataPoint label="Pagamento" value={paymentLabel(candidate.primaryInstallment)} /></label>
         })}</div></div>)}</div>}
       </section>
 
@@ -405,7 +555,7 @@ function ComparisonTable({ selectedViews, comparison }: {
   comparison: ReturnType<typeof alignCommercialPresentationCoverages>
 }) {
   const columns = `220px repeat(${selectedViews.length}, minmax(220px, 1fr))`
-  return <section className="overflow-hidden rounded-[8px] border border-border-1 bg-bg-surface shadow-[var(--shadow-1)]"><div className="border-b border-border-1 p-5"><h2 className="flex items-center gap-2 text-base font-black text-fg-1"><FileChartColumnIncreasing size={18} className="text-accent-primary" /> Comparação lado a lado</h2><p className="mt-1 text-sm text-fg-3">Ausências e diferenças de limite, FIPE e franquia são destacadas sem preencher valores não devolvidos.</p></div><div className="overflow-x-auto"><div style={{ display: 'grid', gridTemplateColumns: columns, minWidth: `${220 + selectedViews.length * 220}px` }}><div className="border-b border-r border-border-1 bg-bg-surface-2 p-3 text-[10px] font-black uppercase tracking-wider text-fg-4">Produto</div>{selectedViews.map(({ candidate }) => <div key={candidate.quote.id} className="border-b border-r border-border-1 bg-bg-surface-2 p-3 last:border-r-0"><p className="text-sm font-black text-fg-1">{candidate.insurerShortName}</p><p className="mt-1 text-[11px] font-semibold text-fg-3">{candidate.profileLabel}</p></div>)}<ComparisonMetric label="Prêmio total" cells={selectedViews.map(({ candidate }) => currency.format(candidate.quote.premio_total ?? 0))} /><ComparisonMetric label="Pagamento principal" cells={selectedViews.map(({ candidate }) => paymentLabel(candidate.primaryInstallment))} /><ComparisonMetric label="Franquia principal" cells={selectedViews.map(({ candidate }) => candidate.franchiseValue === null ? 'Não informada' : currency.format(candidate.franchiseValue))} highlight />{comparison.map((row) => <ComparisonMetric key={row.key} label={row.name} highlight={row.differs} cells={row.cells.map(({ coverage }) => coverage ? coverageValue(coverage) : 'Não oferecida')} />)}</div></div></section>
+  return <section className="overflow-hidden rounded-[8px] border border-border-1 bg-bg-surface shadow-[var(--shadow-1)]"><div className="border-b border-border-1 p-5"><h2 className="flex items-center gap-2 text-base font-black text-fg-1"><FileChartColumnIncreasing size={18} className="text-accent-primary" /> Comparação lado a lado</h2><p className="mt-1 text-sm text-fg-3">Ausências e diferenças de limite, FIPE e franquia são destacadas sem preencher valores não devolvidos.</p></div><div className="overflow-x-auto"><div style={{ display: 'grid', gridTemplateColumns: columns, minWidth: `${220 + selectedViews.length * 220}px` }}><div className="border-b border-r border-border-1 bg-bg-surface-2 p-3 text-[10px] font-black uppercase tracking-wider text-fg-4">Produto</div>{selectedViews.map(({ candidate }) => <div key={candidate.quote.id} className="border-b border-r border-border-1 bg-bg-surface-2 p-3 last:border-r-0"><p className="text-sm font-black text-fg-1">{candidate.insurerShortName}</p><p className="mt-1 text-[11px] font-semibold text-fg-3">{candidate.profileLabel}</p></div>)}<ComparisonMetric label="Prêmio total" cells={selectedViews.map(({ candidate }) => money(candidate.quote.premio_total))} /><ComparisonMetric label="Pagamento principal" cells={selectedViews.map(({ candidate }) => paymentLabel(candidate.primaryInstallment))} /><ComparisonMetric label="Franquia principal" cells={selectedViews.map(({ candidate }) => candidate.franchiseValue === null ? 'Não informada' : currency.format(candidate.franchiseValue))} highlight />{comparison.map((row) => <ComparisonMetric key={row.key} label={row.name} highlight={row.differs} cells={row.cells.map(({ coverage }) => coverage ? coverageValue(coverage) : 'Não oferecida')} />)}</div></div></section>
 }
 
 function ComparisonMetric({ label, cells, highlight = false }: { label: string; cells: string[]; highlight?: boolean }) {
@@ -430,12 +580,12 @@ function ConfigureStep({ draft, selectedViews, canEdit, canShowCommission, onCha
   }))
   return <div className="space-y-5"><section className="rounded-[8px] border border-border-1 bg-bg-surface p-5 shadow-[var(--shadow-1)]"><h2 className="text-base font-black text-fg-1">Estrutura da apresentação</h2><p className="mt-1 text-sm text-fg-3">Defina o formato e o conteúdo visível. Os valores oficiais das cotações permanecem somente leitura.</p><div className="mt-5 grid gap-5 lg:grid-cols-2"><label><span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Título</span><input disabled={!canEdit} value={draft.title} onChange={(event) => onChange((current) => ({ ...current, title: event.target.value }))} className={inputClass} /></label><label><span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Ordenar por</span><select disabled={!canEdit} value={draft.ordering} onChange={(event) => onChange((current) => ({ ...current, ordering: event.target.value as ApresentacaoCriterioOrdenacao }))} className={inputClass}><option value="MANUAL">Ordem manual</option><option value="RECOMENDACAO">Recomendação</option><option value="PREMIO">Menor prêmio</option><option value="FRANQUIA">Menor franquia</option></select></label><fieldset><legend className="mb-2 text-[10px] font-black uppercase tracking-wider text-fg-3">Layout</legend><div className="grid grid-cols-2 gap-2"><SegmentButton selected={draft.layout === 'HORIZONTAL'} disabled={!canEdit} onClick={() => onChange((current) => ({ ...current, layout: 'HORIZONTAL' }))} icon={<Columns3 size={15} />} label="Horizontal" /><SegmentButton selected={draft.layout === 'VERTICAL'} disabled={!canEdit} onClick={() => onChange((current) => ({ ...current, layout: 'VERTICAL' }))} icon={<LayoutList size={15} />} label="Vertical" /></div></fieldset><fieldset><legend className="mb-2 text-[10px] font-black uppercase tracking-wider text-fg-3">Conteúdo visível</legend><div className="grid gap-2 sm:grid-cols-2"><Toggle label="Percentual FIPE" checked={draft.showFipe} disabled={!canEdit} onChange={(checked) => onChange((current) => ({ ...current, showFipe: checked }))} /><Toggle label="Vantagens" checked={draft.showAdvantages} disabled={!canEdit} onChange={(checked) => onChange((current) => ({ ...current, showAdvantages: checked }))} /><Toggle label="Legenda" checked={draft.showLegend} disabled={!canEdit} onChange={(checked) => onChange((current) => ({ ...current, showLegend: checked }))} /><Toggle label="Observações" checked={draft.showNotes} disabled={!canEdit} onChange={(checked) => onChange((current) => ({ ...current, showNotes: checked }))} /><Toggle label="Comissão" checked={draft.showCommission} disabled={!canEdit || !canShowCommission} onChange={(checked) => onChange((current) => ({ ...current, showCommission: checked }))} /></div>{!canShowCommission && <p className="mt-2 text-[11px] font-semibold text-signal-warning">A comissão só pode ser exibida por perfil administrativo.</p>}</fieldset></div><label className="mt-5 block"><span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Observações gerais ao cliente</span><textarea disabled={!canEdit} rows={3} value={draft.commercialNotes} onChange={(event) => onChange((current) => ({ ...current, commercialNotes: event.target.value }))} className={inputClass} placeholder="Orientações comerciais permitidas, sem alterar o retorno da seguradora." /></label></section>
 
-    <section className="rounded-[8px] border border-border-1 bg-bg-surface p-5 shadow-[var(--shadow-1)]"><div className="border-b border-border-1 pb-4"><h2 className="text-base font-black text-fg-1">Produtos selecionados</h2><p className="mt-1 text-sm text-fg-3">Escolha parcelamento, destaque e textos comerciais para cada produto.</p></div><div className="mt-4 space-y-4">{selectedViews.map(({ item, candidate }, index) => <article key={candidate.quote.id} className="rounded-[6px] border border-border-1 bg-bg-surface-2 p-4"><div className="flex flex-col gap-3 border-b border-border-1 pb-3 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-black text-fg-1">{candidate.insurerName}</h3>{item.recommended && <span className="rounded-full bg-accent-primary-soft px-2.5 py-1 text-[10px] font-black text-accent-primary">Recomendado</span>}{draft.selectedQuoteId === candidate.quote.id && <span className="rounded-full bg-signal-success/10 px-2.5 py-1 text-[10px] font-black text-signal-success">Escolha do cliente</span>}</div><p className="mt-1 text-xs font-semibold text-fg-3">{candidate.profileLabel} · {currency.format(candidate.quote.premio_total ?? 0)}</p></div><div className="flex flex-wrap gap-1"><button type="button" disabled={!canEdit || index === 0} onClick={() => onMove(index, -1)} className="rounded-[6px] p-2 text-fg-3 hover:bg-bg-surface-3 hover:text-fg-1 disabled:opacity-30" aria-label={`Mover ${candidate.insurerName} para cima`}><ArrowUp size={15} /></button><button type="button" disabled={!canEdit || index === selectedViews.length - 1} onClick={() => onMove(index, 1)} className="rounded-[6px] p-2 text-fg-3 hover:bg-bg-surface-3 hover:text-fg-1 disabled:opacity-30" aria-label={`Mover ${candidate.insurerName} para baixo`}><ArrowDown size={15} /></button></div></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><label><span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Opção de pagamento</span><select disabled={!canEdit} value={item.installmentId ?? ''} onChange={(event) => updateItem(candidate.quote.id, { installmentId: event.target.value || null })} className={inputClass}>{candidate.installments.map((installment) => <option key={installment.id} value={installment.id}>{paymentLabel(installment)}</option>)}</select></label><label><span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Título comercial</span><input disabled={!canEdit} value={item.commercialTitle ?? ''} onChange={(event) => updateItem(candidate.quote.id, { commercialTitle: event.target.value })} className={inputClass} placeholder={candidate.insurerShortName} /></label><label><span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Vantagens permitidas</span><textarea disabled={!canEdit} rows={2} value={item.advantagesText ?? ''} onChange={(event) => updateItem(candidate.quote.id, { advantagesText: event.target.value })} className={inputClass} placeholder="Resumo comercial sem modificar coberturas ou valores." /></label><label><span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Observação comercial</span><textarea disabled={!canEdit} rows={2} value={item.commercialNote ?? ''} onChange={(event) => updateItem(candidate.quote.id, { commercialNote: event.target.value })} className={inputClass} placeholder="Orientação específica deste produto." /></label></div><div className="mt-4 flex flex-wrap gap-2"><button type="button" disabled={!canEdit} onClick={() => updateItem(candidate.quote.id, { recommended: !item.recommended })} className={item.recommended ? 'inline-flex items-center gap-2 rounded-full bg-accent-primary-soft px-3 py-2 text-xs font-black text-accent-primary' : secondaryButton}><Sparkles size={14} /> {item.recommended ? 'Produto recomendado' : 'Marcar como recomendado'}</button><button type="button" disabled={!canEdit} onClick={() => onChange((current) => ({ ...current, selectedQuoteId: current.selectedQuoteId === candidate.quote.id ? null : candidate.quote.id }))} className={draft.selectedQuoteId === candidate.quote.id ? 'inline-flex items-center gap-2 rounded-full bg-signal-success/10 px-3 py-2 text-xs font-black text-signal-success' : secondaryButton}><BadgeCheck size={14} /> {draft.selectedQuoteId === candidate.quote.id ? 'Escolha registrada' : 'Registrar escolha do cliente'}</button></div></article>)}</div><div className="mt-4 flex items-start gap-2 rounded-[6px] bg-accent-primary-soft p-3 text-xs font-semibold text-fg-2"><Info size={14} className="mt-0.5 shrink-0 text-accent-primary" />Registrar a escolha não cria proposta. A efetivação permanece uma ação explícita fora deste fluxo.</div></section>
+    <section className="rounded-[8px] border border-border-1 bg-bg-surface p-5 shadow-[var(--shadow-1)]"><div className="border-b border-border-1 pb-4"><h2 className="text-base font-black text-fg-1">Produtos selecionados</h2><p className="mt-1 text-sm text-fg-3">Escolha parcelamento, destaque e textos comerciais para cada produto.</p></div><div className="mt-4 space-y-4">{selectedViews.map(({ item, candidate }, index) => <article key={candidate.quote.id} className="rounded-[6px] border border-border-1 bg-bg-surface-2 p-4"><div className="flex flex-col gap-3 border-b border-border-1 pb-3 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-black text-fg-1">{candidate.insurerName}</h3>{item.recommended && <span className="rounded-full bg-accent-primary-soft px-2.5 py-1 text-[10px] font-black text-accent-primary">Recomendado</span>}{draft.selectedQuoteId === candidate.quote.id && <span className="rounded-full bg-signal-success/10 px-2.5 py-1 text-[10px] font-black text-signal-success">Escolha do cliente</span>}</div><p className="mt-1 text-xs font-semibold text-fg-3">{candidate.profileLabel} · {money(candidate.quote.premio_total)}</p></div><div className="flex flex-wrap gap-1"><button type="button" disabled={!canEdit || index === 0} onClick={() => onMove(index, -1)} className="rounded-[6px] p-2 text-fg-3 hover:bg-bg-surface-3 hover:text-fg-1 disabled:opacity-30" aria-label={`Mover ${candidate.insurerName} para cima`}><ArrowUp size={15} /></button><button type="button" disabled={!canEdit || index === selectedViews.length - 1} onClick={() => onMove(index, 1)} className="rounded-[6px] p-2 text-fg-3 hover:bg-bg-surface-3 hover:text-fg-1 disabled:opacity-30" aria-label={`Mover ${candidate.insurerName} para baixo`}><ArrowDown size={15} /></button></div></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><label><span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Opção de pagamento</span><select disabled={!canEdit} value={item.installmentId ?? ''} onChange={(event) => updateItem(candidate.quote.id, { installmentId: event.target.value || null })} className={inputClass}><option value="">Não informado</option>{candidate.installments.map((installment) => <option key={installment.id} value={installment.id}>{paymentLabel(installment)}</option>)}</select></label><label><span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Título comercial</span><input disabled={!canEdit} value={item.commercialTitle ?? ''} onChange={(event) => updateItem(candidate.quote.id, { commercialTitle: event.target.value })} className={inputClass} placeholder={candidate.insurerShortName} /></label><label><span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Vantagens permitidas</span><textarea disabled={!canEdit} rows={2} value={item.advantagesText ?? ''} onChange={(event) => updateItem(candidate.quote.id, { advantagesText: event.target.value })} className={inputClass} placeholder="Resumo comercial sem modificar coberturas ou valores." /></label><label><span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Observação comercial</span><textarea disabled={!canEdit} rows={2} value={item.commercialNote ?? ''} onChange={(event) => updateItem(candidate.quote.id, { commercialNote: event.target.value })} className={inputClass} placeholder="Orientação específica deste produto." /></label></div><div className="mt-4 flex flex-wrap gap-2"><button type="button" disabled={!canEdit} onClick={() => updateItem(candidate.quote.id, { recommended: !item.recommended })} className={item.recommended ? 'inline-flex items-center gap-2 rounded-full bg-accent-primary-soft px-3 py-2 text-xs font-black text-accent-primary' : secondaryButton}><Sparkles size={14} /> {item.recommended ? 'Produto recomendado' : 'Marcar como recomendado'}</button><button type="button" disabled={!canEdit} onClick={() => onChange((current) => ({ ...current, selectedQuoteId: current.selectedQuoteId === candidate.quote.id ? null : candidate.quote.id }))} className={draft.selectedQuoteId === candidate.quote.id ? 'inline-flex items-center gap-2 rounded-full bg-signal-success/10 px-3 py-2 text-xs font-black text-signal-success' : secondaryButton}><BadgeCheck size={14} /> {draft.selectedQuoteId === candidate.quote.id ? 'Escolha registrada' : 'Registrar escolha do cliente'}</button></div></article>)}</div><div className="mt-4 flex items-start gap-2 rounded-[6px] bg-accent-primary-soft p-3 text-xs font-semibold text-fg-2"><Info size={14} className="mt-0.5 shrink-0 text-accent-primary" />Registrar a escolha não cria proposta. A efetivação permanece uma ação explícita fora deste fluxo.</div></section>
 
     <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between print:hidden"><button type="button" onClick={onBack} className={secondaryButton}><ArrowLeft size={14} /> Voltar ao comparativo</button><button type="button" onClick={onContinue} className="inline-flex items-center justify-center gap-2 rounded-full bg-accent-primary px-5 py-2.5 text-xs font-black text-fg-on-brand shadow-[var(--shadow-brand)] hover:bg-accent-primary-hover">Ver prévia <ArrowRight size={14} /></button></div></div>
 }
 
-function PreviewStep({ opportunity, draft, selectedViews, comparison, status, generatedAt, canEdit, onBack, onGenerate }: {
+function PreviewStep({ opportunity, draft, selectedViews, comparison, status, generatedAt, canEdit, connected, onBack, onGenerate }: {
   opportunity: NonNullable<ReturnType<typeof useOportunidade>['data']>
   draft: PresentationDraft
   selectedViews: Array<{ item: CommercialPresentationItemInput; candidate: CommercialPresentationCandidate }>
@@ -443,6 +593,7 @@ function PreviewStep({ opportunity, draft, selectedViews, comparison, status, ge
   status: ApresentacaoStatus
   generatedAt: string | null
   canEdit: boolean
+  connected: boolean
   onBack: () => void
   onGenerate: () => Promise<void>
 }) {
@@ -452,17 +603,17 @@ function PreviewStep({ opportunity, draft, selectedViews, comparison, status, ge
         <div className="flex items-start gap-3">
           <Info size={17} className="mt-0.5 shrink-0 text-accent-primary" />
           <div>
-            <p className="text-sm font-black text-fg-1">Confira a apresentação antes de salvar</p>
-            <p className="mt-1 text-xs text-fg-3">Revise as opções e as condições. Gere a apresentação e escolha Salvar como PDF na impressão.</p>
+            <p className="text-sm font-black text-fg-1">Confira o comparativo antes de salvar</p>
+            <p className="mt-1 text-xs text-fg-3">{connected ? 'Esta é uma prévia comercial. Geração e publicação de PDF permanecem fora deste fluxo.' : 'Revise as opções e as condições. Gere a apresentação e escolha Salvar como PDF na impressão.'}</p>
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <button type="button" onClick={onBack} className={secondaryButton}><ArrowLeft size={14} /> Ajustar</button>
-          {status === 'GERADA' ? (
+          {!connected && (status === 'GERADA' ? (
             <button type="button" onClick={() => window.print()} className="inline-flex items-center justify-center gap-2 rounded-full bg-accent-primary px-4 py-2.5 text-xs font-black text-fg-on-brand hover:bg-accent-primary-hover"><Printer size={14} /> Imprimir ou salvar PDF</button>
           ) : (
             <button type="button" disabled={!canEdit} onClick={() => void onGenerate()} className="inline-flex items-center justify-center gap-2 rounded-full bg-accent-primary px-4 py-2.5 text-xs font-black text-fg-on-brand hover:bg-accent-primary-hover disabled:opacity-50"><FileDown size={14} /> Gerar representação mock</button>
-          )}
+          ))}
         </div>
       </div>
 
@@ -473,6 +624,7 @@ function PreviewStep({ opportunity, draft, selectedViews, comparison, status, ge
         selectedViews={selectedViews}
         comparison={comparison}
         generatedAt={generatedAt}
+        connected={connected}
       />
     </div>
   )

@@ -184,6 +184,7 @@ function LoginPage() {
 function AppLayout() {
   const { pathname } = useLocation()
   const supported = /^\/(segurados|oportunidades)(\/[^/]+)?$/.test(pathname)
+    || /^\/oportunidades\/[^/]+\/(?:calculos\/(?:novo|[^/]+)(?:\/cotacoes\/nova)?|apresentacao)$/.test(pathname)
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('nexus-crm-theme')
     if (saved) return saved === 'dark'

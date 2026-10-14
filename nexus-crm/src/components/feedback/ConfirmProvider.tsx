@@ -114,6 +114,9 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           onMouseDown={() => closeConfirm(false)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="system-confirm-title"
             className="w-full max-w-md overflow-hidden rounded-[12px] border border-border-1 bg-bg-surface shadow-[var(--shadow-3)] animate-in zoom-in-95 duration-200"
             onMouseDown={(event) => event.stopPropagation()}
           >
@@ -122,7 +125,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 <ToneIcon tone={confirmState.tone} size={20} />
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="text-base font-black uppercase tracking-tight text-fg-1">{confirmState.title}</h2>
+                <h2 id="system-confirm-title" className="text-base font-black uppercase tracking-tight text-fg-1">{confirmState.title}</h2>
                 {confirmState.description && (
                   <p className="mt-2 text-sm leading-relaxed text-fg-3">{confirmState.description}</p>
                 )}

@@ -20,6 +20,8 @@ import {
 } from 'lucide-react'
 import { useConfirm, useSystemFeedback } from '../feedback/systemFeedbackContext'
 import { useAuth } from '../../hooks/useAuth'
+import { useCanonicalCommercialPresentation } from '../../hooks/useCanonicalCommercialPresentation'
+import { usesBackendDomainData } from '../../lib/backendDomainApi'
 import {
   useCommercialPresentationWorkspace,
   useToggleCommercialPresentationQuote,
@@ -34,12 +36,14 @@ import type {
   CalculationExecutionView,
 } from '../../modules/comercial/calculationExecutionDomain'
 import type { CalculoExecucaoRow, CalculoRow } from '../../types/database'
+import { presentationPayment } from '../../modules/comercial/commercialPresentationFormat'
 import { fmtDate } from '../../utils/date'
 import CommercialPresentationTray from './CommercialPresentationTray'
 import { useNavigate } from 'react-router-dom'
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const percent = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 })
+const money = (value: number | null) => value === null ? 'Não informado' : currency.format(value)
 const inputClass = 'w-full rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-sm font-semibold text-fg-1 placeholder:text-fg-3 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 disabled:cursor-not-allowed disabled:opacity-60'
 const secondaryButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-border-1 px-3.5 py-2 text-xs font-black text-fg-2 hover:border-accent-primary/30 hover:bg-accent-primary-soft hover:text-accent-primary disabled:cursor-not-allowed disabled:opacity-50'
 
@@ -88,12 +92,7 @@ function responseTimeLabel(milliseconds: number | null): string {
 }
 
 function paymentLabel(result: CalculationExecutionView): string {
-  const option = result.primaryInstallment
-  if (!option) return 'Pagamento não informado'
-  const form = option.forma_pagamento.replaceAll('_', ' ').toLocaleLowerCase('pt-BR')
-  return option.quantidade_parcelas === 1
-    ? form + ' à vista · ' + currency.format(option.valor_total ?? option.valor_parcela ?? 0)
-    : String(option.quantidade_parcelas) + 'x de ' + currency.format(option.valor_parcela ?? 0) + ' · ' + form
+  return presentationPayment(result.primaryInstallment)
 }
 
 export default function CalculationExecutionSection({
@@ -120,7 +119,9 @@ export default function CalculationExecutionSection({
   const { notify } = useSystemFeedback()
   const confirm = useConfirm()
   const { user } = useAuth()
-  const presentation = useCommercialPresentationWorkspace(calculation.oportunidade_id)
+  const demoPresentation = useCommercialPresentationWorkspace(calculation.oportunidade_id)
+  const canonicalPresentation = useCanonicalCommercialPresentation(calculation.oportunidade_id)
+  const presentation = usesBackendDomainData ? canonicalPresentation : demoPresentation
   const togglePresentationQuote = useToggleCommercialPresentationQuote()
 
   const selectedIds = useMemo(() => selection ?? new Set(insurers.map((insurer) => insurer.id)), [insurers, selection])
@@ -223,6 +224,10 @@ export default function CalculationExecutionSection({
   }
 
   const toggleComparison = async (quoteId: string) => {
+    if (usesBackendDomainData) {
+      navigate(`/oportunidades/${calculation.oportunidade_id}/apresentacao`)
+      return
+    }
     const wasSelected = selectedQuoteIds.has(quoteId)
     try {
       await togglePresentationQuote.mutateAsync({
@@ -248,7 +253,7 @@ export default function CalculationExecutionSection({
 
   return (
     <>
-      <section className="rounded-[8px] border border-border-1 bg-bg-surface p-5 shadow-[var(--shadow-1)]">
+      {!usesBackendDomainData ? <section className="rounded-[8px] border border-border-1 bg-bg-surface p-5 shadow-[var(--shadow-1)]">
         <SectionHeading
           number={executionSectionNumber}
           title="Companhias e comissões"
@@ -308,7 +313,12 @@ export default function CalculationExecutionSection({
             )
           })}
         </div>
-      </section>
+      </section> : <section className="rounded-[8px] border border-border-1 bg-bg-surface p-5 shadow-[var(--shadow-1)]"><SectionHeading number={executionSectionNumber} title="Tentativas de cotação" description="O backend mantém cada tentativa manual e seu histórico. Transmissão automática para seguradoras permanece fora deste recorte." /><div className="flex flex-col gap-3 rounded-[6px] bg-accent-primary-soft p-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><Info size={17} className="mt-0.5 shrink-0 text-accent-primary" /><div><p className="text-sm font-black text-fg-1">Registro manual pelo fluxo canônico</p><p className="mt-1 text-xs text-fg-3">Prepare a tentativa, registre apenas o retorno recebido e preserve valores desconhecidos como não informados.</p></div></div><button type="button" disabled={!canExecute || draftChanged} onClick={() => navigate(`/oportunidades/${calculation.oportunidade_id}/calculos/${calculation.id}/cotacoes/nova`)} className={secondaryButton}>Registrar cotação manual</button></div></section>}
+
+      {usesBackendDomainData && (workspace.data?.latestExecutions.length ?? 0) > 0 && <section className="divide-y divide-border-1 rounded-[8px] border border-border-1 bg-bg-surface">{workspace.data?.latestExecutions.map(({ execution, insurerName }) => {
+        const status = statusPresentation(execution)
+        return <div key={execution.id} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="text-sm font-black text-fg-1">{insurerName} · tentativa {execution.tentativa}</p><span className={`mt-1 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black ${status.className}`}>{status.icon}{status.label}</span></div>{canExecute && execution.motor === 'MANUAL' && <button type="button" disabled={draftChanged} className={secondaryButton} onClick={() => navigate(`/oportunidades/${calculation.oportunidade_id}/calculos/${calculation.id}/cotacoes/nova?tentativa=${encodeURIComponent(execution.id)}`)}>{['AGUARDANDO', 'EM_EXECUCAO', 'PENDENTE_DADOS'].includes(execution.status) ? 'Retomar tentativa' : 'Preparar nova tentativa'}</button>}</div>
+      })}</section>}
 
       <section className="rounded-[8px] border border-border-1 bg-bg-surface p-5 shadow-[var(--shadow-1)]">
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -321,7 +331,7 @@ export default function CalculationExecutionSection({
           <div className="flex min-h-44 flex-col items-center justify-center rounded-[6px] border border-dashed border-border-2 bg-bg-surface-2 px-6 py-8 text-center">
             <FileSearch size={24} className="text-accent-primary" />
             <h3 className="mt-3 text-sm font-black text-fg-1">Nenhum resultado disponível</h3>
-            <p className="mt-1 max-w-lg text-sm text-fg-3">Selecione as companhias e inicie a simulação. Pendências e erros aparecem acima sem bloquear os demais retornos.</p>
+            <p className="mt-1 max-w-lg text-sm text-fg-3">{usesBackendDomainData ? 'Registre uma cotação manual sem inventar valores. Tentativas canceladas ou com erro permanecem no histórico.' : 'Selecione as companhias e inicie a simulação. Pendências e erros aparecem acima sem bloquear os demais retornos.'}</p>
           </div>
         ) : <div className="space-y-3" aria-live="polite">{workspace.data?.results.map((result) => <ResultCard
           key={result.quote?.id ?? result.execution.id}
@@ -333,6 +343,7 @@ export default function CalculationExecutionSection({
           adjustment={adjustment}
           selectedForComparison={result.quote ? selectedQuoteIds.has(result.quote.id) : false}
           comparisonPending={togglePresentationQuote.isPending}
+          connected={usesBackendDomainData}
           onToggleDetails={toggleDetails}
           onToggleComparison={toggleComparison}
           onSetAdjustment={setAdjustment}
@@ -340,12 +351,12 @@ export default function CalculationExecutionSection({
           onRerun={rerun}
         /> )}</div>}
       </section>
-      <CommercialPresentationTray opportunityId={calculation.oportunidade_id} />
+      {!usesBackendDomainData && <CommercialPresentationTray opportunityId={calculation.oportunidade_id} />}
     </>
   )
 }
 
-function ResultCard({ result, calculation, canExecute, busy, expanded, adjustment, selectedForComparison, comparisonPending, onToggleDetails, onToggleComparison, onSetAdjustment, onApplyAdjustment, onRerun }: {
+function ResultCard({ result, calculation, canExecute, busy, expanded, adjustment, selectedForComparison, comparisonPending, connected, onToggleDetails, onToggleComparison, onSetAdjustment, onApplyAdjustment, onRerun }: {
   result: CalculationExecutionView
   calculation: CalculoRow
   canExecute: boolean
@@ -354,6 +365,7 @@ function ResultCard({ result, calculation, canExecute, busy, expanded, adjustmen
   adjustment: { executionId: string; value: string } | null
   selectedForComparison: boolean
   comparisonPending: boolean
+  connected: boolean
   onToggleDetails: (quoteId: string) => void
   onToggleComparison: (quoteId: string) => Promise<void>
   onSetAdjustment: (value: { executionId: string; value: string } | null) => void
@@ -377,15 +389,15 @@ function ResultCard({ result, calculation, canExecute, busy, expanded, adjustmen
             <p className="mt-1 font-mono text-xs font-semibold text-fg-3">{quote.numero_cotacao_seguradora} · tentativa {result.execution.tentativa}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {canExecute && <button type="button" disabled={comparisonPending} onClick={() => void onToggleComparison(quote.id)} className={selectedForComparison ? 'inline-flex items-center justify-center gap-2 rounded-full bg-accent-primary-soft px-3.5 py-2 text-xs font-black text-accent-primary disabled:opacity-50' : secondaryButton}><Columns3 size={14} /> {selectedForComparison ? 'No comparativo' : 'Adicionar ao comparativo'}</button>}
+            {canExecute && <button type="button" disabled={comparisonPending} onClick={() => void onToggleComparison(quote.id)} className={selectedForComparison ? 'inline-flex items-center justify-center gap-2 rounded-full bg-accent-primary-soft px-3.5 py-2 text-xs font-black text-accent-primary disabled:opacity-50' : secondaryButton}><Columns3 size={14} /> {connected ? 'Abrir comparativo' : selectedForComparison ? 'No comparativo' : 'Adicionar ao comparativo'}</button>}
             <button type="button" onClick={() => onToggleDetails(quote.id)} className={secondaryButton}>{expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />} {expanded ? 'Ocultar detalhes' : 'Ver detalhes'}</button>
-            {canExecute && <button type="button" disabled={busy} onClick={() => onSetAdjustment(adjusting ? null : { executionId: result.execution.id, value: String(result.execution.comissao_pct_aplicada ?? calculation.comissao_sugerida_pct ?? 0) })} className={secondaryButton}><Settings2 size={14} /> Ajustar para esta seguradora</button>}
-            {canExecute && <button type="button" disabled={busy} onClick={() => void onRerun(result.execution.id)} className={secondaryButton}><RotateCcw size={14} /> Recalcular</button>}
+            {!connected && canExecute && <button type="button" disabled={busy} onClick={() => onSetAdjustment(adjusting ? null : { executionId: result.execution.id, value: String(result.execution.comissao_pct_aplicada ?? calculation.comissao_sugerida_pct ?? 0) })} className={secondaryButton}><Settings2 size={14} /> Ajustar para esta seguradora</button>}
+            {!connected && canExecute && <button type="button" disabled={busy} onClick={() => void onRerun(result.execution.id)} className={secondaryButton}><RotateCcw size={14} /> Recalcular</button>}
           </div>
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Metric label="Prêmio total" value={currency.format(quote.premio_total ?? 0)} icon={<ReceiptText size={15} />} />
+          <Metric label="Prêmio total" value={money(quote.premio_total)} icon={<ReceiptText size={15} />} />
           <Metric label="Pagamento principal" value={paymentLabel(result)} icon={<ShieldCheck size={15} />} />
           <Metric label="Franquia" value={result.franchiseValue === null ? 'Não informada' : currency.format(result.franchiseValue)} icon={<Settings2 size={15} />} />
           <Metric label="Retorno e validade" value={responseTimeLabel(result.responseTimeMs) + ' · até ' + fmtDate(quote.validade)} icon={<Clock3 size={15} />} />
@@ -393,17 +405,18 @@ function ResultCard({ result, calculation, canExecute, busy, expanded, adjustmen
 
         <div className="mt-4 grid gap-3 border-t border-border-1 pt-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(220px,1fr)]">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-wider text-fg-4">Coberturas aceitas</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-fg-4">Coberturas retornadas</p>
             <div className="mt-2 flex flex-wrap gap-2">{result.coverages.map((coverage) => {
               const accepted = coverage.limite_aceito !== null
                 ? ' · ' + currency.format(coverage.limite_aceito)
                 : coverage.percentual_fipe_aceito !== null ? ' · ' + percent.format(coverage.percentual_fipe_aceito) + '% FIPE' : ''
-              return <span key={coverage.id} className="rounded-full bg-bg-surface-2 px-2.5 py-1 text-xs font-bold text-fg-2">{coverage.name}{accepted}</span>
+              const condition = coverage.incluida === false ? ' · Não incluída' : coverage.incluida === null ? ' · Inclusão não informada' : accepted
+              return <span key={coverage.id} className="rounded-full bg-bg-surface-2 px-2.5 py-1 text-xs font-bold text-fg-2">{coverage.name}{condition}</span>
             })}</div>
           </div>
           <div className="text-sm">
             <p className="text-[10px] font-black uppercase tracking-wider text-fg-4">Comissão aplicada</p>
-            <p className="mt-2 font-black text-fg-1">{percent.format(result.execution.comissao_pct_aplicada ?? 0)}% · {currency.format(quote.comissao_valor ?? 0)}</p>
+            <p className="mt-2 font-black text-fg-1">{result.execution.comissao_pct_aplicada === null ? 'Percentual não informado' : `${percent.format(result.execution.comissao_pct_aplicada)}%`} · {money(quote.comissao_valor)}</p>
             <p className="mt-0.5 text-xs text-fg-3">{result.execution.comissao_origem === 'SOBRESCRITA' ? 'Sobrescrita nesta seguradora' : 'Herdada do padrão do cálculo'}</p>
           </div>
         </div>
@@ -411,7 +424,7 @@ function ResultCard({ result, calculation, canExecute, busy, expanded, adjustmen
         {(quote.mensagem_seguradora || quote.restricoes) && <div className="mt-4 grid gap-2">{quote.mensagem_seguradora && <p className="flex items-start gap-2 rounded-[6px] bg-accent-primary-soft p-3 text-xs font-semibold text-fg-2"><Info size={14} className="mt-0.5 shrink-0 text-accent-primary" />{quote.mensagem_seguradora}</p>}{quote.restricoes && <p className="flex items-start gap-2 rounded-[6px] bg-signal-warning/10 p-3 text-xs font-semibold text-fg-2"><CircleAlert size={14} className="mt-0.5 shrink-0 text-signal-warning" />{quote.restricoes}</p>}</div>}
       </div>
 
-      {adjusting && <div className="border-t border-border-1 bg-bg-surface-2 p-4">
+      {!connected && adjusting && <div className="border-t border-border-1 bg-bg-surface-2 p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <label className="w-full max-w-xs"><span className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-fg-3">Comissão na nova tentativa (%)</span><input type="number" min="0" step="0.01" value={adjustment.value} onChange={(event) => onSetAdjustment({ executionId: result.execution.id, value: event.target.value })} className={inputClass} /></label>
           <div className="flex flex-wrap gap-2"><button type="button" onClick={() => onSetAdjustment(null)} className={secondaryButton}>Cancelar</button><button type="button" disabled={busy} onClick={() => onApplyAdjustment(result)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-accent-primary px-4 py-2 text-xs font-black text-accent-primary-fg hover:bg-accent-primary-hover disabled:opacity-50"><Play size={13} /> Gerar nova tentativa</button></div>
@@ -437,11 +450,11 @@ function ResultDetails({ result }: { result: CalculationExecutionView }) {
     <div className="grid gap-5 xl:grid-cols-2">
       <div>
         <h4 className="flex items-center gap-2 text-sm font-black text-fg-1"><ShieldCheck size={15} className="text-accent-primary" /> Coberturas devolvidas</h4>
-        <div className="mt-3 divide-y divide-border-1 overflow-hidden rounded-[6px] border border-border-1 bg-bg-surface">{result.coverages.map((coverage) => <div key={coverage.id} className="p-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-black text-fg-1">{coverage.name}</p><span className="text-[10px] font-black uppercase tracking-wide text-signal-success">{coverage.incluida ? 'Incluída' : 'Não incluída'}</span></div><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-fg-3">{coverage.limite_aceito !== null && <span>Limite {currency.format(coverage.limite_aceito)}</span>}{coverage.percentual_fipe_aceito !== null && <span>{percent.format(coverage.percentual_fipe_aceito)}% FIPE</span>}{coverage.franquia_valor !== null && <span>Franquia {coverage.franquia_tipo?.toLocaleLowerCase('pt-BR')} · {currency.format(coverage.franquia_valor)}</span>}{coverage.premio !== null && <span>Prêmio {currency.format(coverage.premio)}</span>}</div>{coverage.clausula_texto && <p className="mt-2 text-xs text-fg-2">{coverage.clausula_texto}</p>}</div>)}</div>
+        <div className="mt-3 divide-y divide-border-1 overflow-hidden rounded-[6px] border border-border-1 bg-bg-surface">{result.coverages.map((coverage) => <div key={coverage.id} className="p-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-black text-fg-1">{coverage.name}</p><span className={coverage.incluida === true ? 'text-[10px] font-black uppercase tracking-wide text-signal-success' : 'text-[10px] font-black uppercase tracking-wide text-fg-3'}>{coverage.incluida === null ? 'Inclusão não informada' : coverage.incluida ? 'Incluída' : 'Não incluída'}</span></div><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-fg-3">{coverage.limite_aceito !== null && <span>Limite {currency.format(coverage.limite_aceito)}</span>}{coverage.percentual_fipe_aceito !== null && <span>{percent.format(coverage.percentual_fipe_aceito)}% FIPE</span>}{coverage.franquia_valor !== null && <span>Franquia {coverage.franquia_tipo?.toLocaleLowerCase('pt-BR')} · {currency.format(coverage.franquia_valor)}</span>}{coverage.premio !== null && <span>Prêmio {currency.format(coverage.premio)}</span>}</div>{coverage.clausula_texto && <p className="mt-2 text-xs text-fg-2">{coverage.clausula_texto}</p>}</div>)}</div>
       </div>
       <div>
         <h4 className="flex items-center gap-2 text-sm font-black text-fg-1"><ReceiptText size={15} className="text-accent-primary" /> Opções de pagamento</h4>
-        <div className="mt-3 divide-y divide-border-1 overflow-hidden rounded-[6px] border border-border-1 bg-bg-surface">{result.installments.map((installment) => <div key={installment.id} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="text-sm font-black text-fg-1">{installment.forma_pagamento.replaceAll('_', ' ')}</p>{installment.principal && <span className="rounded-full bg-accent-primary-soft px-2 py-0.5 text-[10px] font-black text-accent-primary">Principal</span>}</div><p className="mt-1 text-xs text-fg-3">{installment.quantidade_parcelas === 1 ? 'À vista' : String(installment.quantidade_parcelas) + ' parcelas'} · primeiro vencimento {fmtDate(installment.primeiro_vencimento)}</p></div><div className="sm:text-right"><p className="text-sm font-black text-fg-1">{installment.quantidade_parcelas > 1 ? String(installment.quantidade_parcelas) + 'x ' + currency.format(installment.valor_parcela ?? 0) : currency.format(installment.valor_total ?? 0)}</p><p className="text-xs text-fg-3">Total {currency.format(installment.valor_total ?? 0)}</p></div></div>)}</div>
+        <div className="mt-3 divide-y divide-border-1 overflow-hidden rounded-[6px] border border-border-1 bg-bg-surface">{result.installments.map((installment) => <div key={installment.id} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="text-sm font-black text-fg-1">{installment.forma_pagamento.replaceAll('_', ' ')}</p>{installment.principal && <span className="rounded-full bg-accent-primary-soft px-2 py-0.5 text-[10px] font-black text-accent-primary">Principal</span>}</div><p className="mt-1 text-xs text-fg-3">{installment.quantidade_parcelas === 1 ? 'À vista' : String(installment.quantidade_parcelas) + ' parcelas'} · primeiro vencimento {fmtDate(installment.primeiro_vencimento)}</p></div><div className="sm:text-right"><p className="text-sm font-black text-fg-1">{installment.quantidade_parcelas > 1 ? String(installment.quantidade_parcelas) + 'x ' + money(installment.valor_parcela) : money(installment.valor_total)}</p><p className="text-xs text-fg-3">Total {money(installment.valor_total)}</p></div></div>)}</div>
       </div>
     </div>
   </div>

@@ -22,19 +22,23 @@ import {
 import { useConfirm, useSystemFeedback } from '../components/feedback/systemFeedbackContext'
 import CalculationExecutionSection from '../components/oportunidades/CalculationExecutionSection'
 import {
-  getCalculationDuplicateInput,
   useCalculation,
   useCalculationAssistance,
   useCalculationEditorLookups,
   useCalculationSourcePolicy,
   useCreateCalculation,
 } from '../hooks/useCalculos'
+import { useCanonicalCalculationCommands } from '../hooks/useCanonicalCalculationCommands'
+import { useCanonicalCalculationEditorData } from '../hooks/useCanonicalCalculationEditorData'
 import { useOportunidade } from '../hooks/useOportunidades'
 import { usePermission } from '../hooks/usePermission'
+import { useSegurados } from '../hooks/useSegurados'
+import { usesBackendDomainData } from '../lib/backendDomainApi'
 import type { SourcePolicyAssistance } from '../modules/comercial/calculationAssistance'
 import {
   addCalendarYear,
   buildCalculationVersionLabel,
+  duplicateCalculationInput,
   type CalculationAggregate,
   type CalculationCoverageInput,
   type CalculationCreateInput,
@@ -84,9 +88,10 @@ function createInitialInput(
   insuredId: string | null,
   forma: CalculoForma,
   sourcePolicy: SourcePolicyAssistance | null,
+  branchDate: string,
 ): CalculationCreateInput {
   const type: CalculoTipoSeguro = sourcePolicy ? 'RENOVACAO_PROPRIA' : 'NOVO'
-  const validityStart = sourcePolicy?.vigencia_fim ?? todayInBranchTimezone()
+  const validityStart = sourcePolicy?.vigencia_fim ?? branchDate
   const specialization = sourcePolicy?.vehicle
     ? withAutoValues(createEmptySpecialization(forma), sourcePolicy.vehicle)
     : createEmptySpecialization(forma)
@@ -116,7 +121,7 @@ function createInitialInput(
 }
 
 function inputFromAggregate(aggregate: CalculationAggregate): CalculationCreateInput {
-  return getCalculationDuplicateInput(aggregate.calculation.id)
+  return duplicateCalculationInput(aggregate)
 }
 
 export default function CalculoOportunidadePage() {
@@ -124,17 +129,23 @@ export default function CalculoOportunidadePage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const opportunity = useOportunidade(oportunidadeId)
-  const calculation = useCalculation(calculoId)
-  const sourcePolicy = useCalculationSourcePolicy(opportunity.data?.apolice_origem_id ?? undefined)
   const sourceId = searchParams.get('from')
+  const calculation = useCalculation(calculoId ?? sourceId ?? undefined)
+  const canonicalEditor = useCanonicalCalculationEditorData(oportunidadeId, opportunity.data?.ramo_id ?? undefined)
+  const sourcePolicy = useCalculationSourcePolicy(opportunity.data?.apolice_origem_id ?? undefined)
   const { can } = usePermission('comercial', opportunityPermissionContext(opportunity.data))
   const isSavedRoute = Boolean(calculoId)
   const isReadOnly = isSavedRoute && !can('create')
 
   if (!oportunidadeId) return <PageState title="Identificador inválido" description="Não foi possível localizar a oportunidade." onBack={() => navigate('/oportunidades')} />
-  if (opportunity.isLoading || (calculoId && calculation.isLoading) || (!calculoId && opportunity.data?.apolice_origem_id && sourcePolicy.isLoading)) return <PageSkeleton />
+  const calculationNeeded = Boolean(calculoId || sourceId)
+  const editorLoading = usesBackendDomainData
+    ? canonicalEditor.isLoading
+    : Boolean(!calculoId && opportunity.data?.apolice_origem_id && sourcePolicy.isLoading)
+  if (opportunity.isLoading || (calculationNeeded && calculation.isLoading) || editorLoading) return <PageSkeleton />
   if (opportunity.isError || !opportunity.data) return <PageState title="Oportunidade não encontrada" description="O registro pode ter sido removido ou não estar acessível." onBack={() => navigate('/oportunidades')} />
-  if (calculoId && (calculation.isError || !calculation.data)) return <PageState title="Cálculo não encontrado" description="A versão solicitada não pertence ao contexto disponível." onBack={() => navigate(`/oportunidades/${oportunidadeId}?tab=calculos`)} />
+  if (calculationNeeded && (calculation.isError || !calculation.data)) return <PageState title="Cálculo não encontrado" description="A versão solicitada não pertence ao contexto disponível." onBack={() => navigate(`/oportunidades/${oportunidadeId}?tab=calculos`)} />
+  if (usesBackendDomainData && (canonicalEditor.isError || !canonicalEditor.data)) return <PageState title="Editor indisponível" description="Não foi possível carregar calendário, catálogos e contexto da oportunidade." onBack={() => navigate(`/oportunidades/${oportunidadeId}?tab=calculos`)} />
 
   const row = opportunity.data
   if (!row.ramo_id || !isCalculationForm(row.ramos?.forma_calculo)) {
@@ -142,13 +153,33 @@ export default function CalculoOportunidadePage() {
   }
   if (!isReadOnly && !can('create')) return <PageState title="Acesso somente leitura" description="Seu perfil não pode criar versões de cálculo nesta corretora." onBack={() => navigate(`/oportunidades/${oportunidadeId}?tab=calculos`)} />
 
+  const canonicalSourcePolicy = canonicalEditor.data?.context.sourcePolicy
+    ? {
+        id: canonicalEditor.data.context.sourcePolicy.id,
+        segurado_id: canonicalEditor.data.context.sourcePolicy.insuredPersonId,
+        seguradora_id: canonicalEditor.data.context.sourcePolicy.insurerId,
+        seguradora_nome: canonicalEditor.data.insurers.find(row => row.id === canonicalEditor.data?.context.sourcePolicy?.insurerId)?.nome ?? null,
+        numero_apolice: canonicalEditor.data.context.sourcePolicy.number,
+        vigencia_fim: canonicalEditor.data.context.sourcePolicy.coverageEndsOn,
+        status: canonicalEditor.data.context.sourcePolicy.status,
+        bonus: null,
+        vehicle: null,
+      } satisfies SourcePolicyAssistance
+    : null
+  const effectiveSourcePolicy = usesBackendDomainData ? canonicalSourcePolicy : sourcePolicy.data ?? null
+  const branchDate = canonicalEditor.data?.context.branchDate ?? todayInBranchTimezone()
   let initialInput: CalculationCreateInput
   try {
     initialInput = calculation.data
       ? inputFromAggregate(calculation.data)
-      : sourceId
-        ? getCalculationDuplicateInput(sourceId)
-        : createInitialInput(row.id, row.ramo_id, row.segurado_id, row.ramos.forma_calculo, sourcePolicy.data ?? null)
+      : createInitialInput(
+          row.id,
+          row.ramo_id,
+          canonicalEditor.data?.context.insuredPersonId ?? row.segurado_id,
+          row.ramos.forma_calculo,
+          effectiveSourcePolicy,
+          branchDate,
+        )
   } catch (cause) {
     return <PageState title="Não foi possível preparar a versão" description={cause instanceof Error ? cause.message : 'Revise o cálculo de origem.'} onBack={() => navigate(`/oportunidades/${oportunidadeId}?tab=calculos`)} />
   }
@@ -162,9 +193,12 @@ export default function CalculoOportunidadePage() {
       key={`${calculoId ?? 'new'}:${sourceId ?? 'empty'}`}
       opportunity={row}
       initialInput={initialInput}
-      sourcePolicy={sourcePolicy.data ?? null}
+      sourcePolicy={effectiveSourcePolicy}
+      canonicalEditorData={canonicalEditor.data ?? null}
+      branchDate={branchDate}
+      branchTimeZone={canonicalEditor.data?.context.timeZone ?? 'America/Sao_Paulo'}
       readOnly={isReadOnly}
-      savedCalculation={calculation.data?.calculation ?? null}
+      savedCalculation={calculoId ? calculation.data?.calculation ?? null : null}
       canExecute={can('update')}
       sourceId={sourceId}
       onBack={() => navigate(`/oportunidades/${oportunidadeId}?tab=calculos`)}
@@ -173,10 +207,13 @@ export default function CalculoOportunidadePage() {
   )
 }
 
-function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, savedCalculation, canExecute, sourceId, onBack, onDuplicate }: {
+function CalculationForm({ opportunity, initialInput, sourcePolicy, canonicalEditorData, branchDate, branchTimeZone, readOnly, savedCalculation, canExecute, sourceId, onBack, onDuplicate }: {
   opportunity: NonNullable<ReturnType<typeof useOportunidade>['data']>
   initialInput: CalculationCreateInput
   sourcePolicy: SourcePolicyAssistance | null
+  canonicalEditorData: ReturnType<typeof useCanonicalCalculationEditorData>['data'] | null
+  branchDate: string
+  branchTimeZone: string
   readOnly: boolean
   savedCalculation: CalculoRow | null
   canExecute: boolean
@@ -193,13 +230,26 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
     : '')
   const [vehicleIdentifierEdited, setVehicleIdentifierEdited] = useState(false)
   const [cepEdited, setCepEdited] = useState(false)
+  const [connectedInsuredResult, setConnectedInsuredResult] = useState<NonNullable<ReturnType<typeof useSegurados>['data']>[number] | null>(null)
+  const [connectedInsuredSearched, setConnectedInsuredSearched] = useState(false)
   const savedRef = useRef(false)
   const navigate = useNavigate()
   const confirm = useConfirm()
   const { notify } = useSystemFeedback()
   const create = useCreateCalculation()
+  const canonicalCommands = useCanonicalCalculationCommands()
   const lookups = useCalculationEditorLookups(opportunity.tenant_id, opportunity.filial_id, opportunity.ramo_id ?? undefined)
   const assistance = useCalculationAssistance(opportunity.filial_id)
+  const insuredPermission = usePermission('segurados')
+  const insuredPeople = useSegurados(usesBackendDomainData && (otherInsured || Boolean(draft.segurado_id)) && insuredPermission.can('read'))
+  const insurers = usesBackendDomainData ? canonicalEditorData?.insurers ?? [] : lookups.data?.insurers ?? []
+  const coverageOptions = usesBackendDomainData
+    ? (canonicalEditorData?.coverages ?? []).map((coverage) => ({ ...coverage, nome: coverage.nome ?? coverage.codigo ?? 'Cobertura sem nome' }))
+    : lookups.data?.coverages ?? []
+  const insuredOptions = usesBackendDomainData ? insuredPeople.data ?? [] : lookups.data?.insureds ?? []
+  const catalogLoading = usesBackendDomainData ? !canonicalEditorData : lookups.isLoading
+  const catalogError = usesBackendDomainData ? false : lookups.isError
+  const createPending = usesBackendDomainData ? canonicalCommands.createCalculation.isPending : create.isPending
 
   useEffect(() => {
     if (readOnly || !dirty || savedRef.current) return
@@ -257,7 +307,9 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
     if (accepted) { savedRef.current = true; onBack() }
   }
 
-  const createSnapshot = async () => create.mutateAsync(draft)
+  const createSnapshot = async () => usesBackendDomainData
+    ? canonicalCommands.createCalculation.mutateAsync(draft)
+    : create.mutateAsync(draft)
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -286,7 +338,7 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
   }
 
   const changeInsuranceType = (type: CalculoTipoSeguro) => {
-    const today = todayInBranchTimezone()
+    const today = branchDate
     if (type === 'NOVO') {
       patch({
         tipo_seguro: type,
@@ -338,8 +390,15 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
   }
 
   const findInsured = async () => {
+    if (usesBackendDomainData && !insuredPermission.can('read')) return
     if (![11, 14].includes(onlyDigits(insuredDocument).length)) return
-    const result = await assistance.insured.mutateAsync(insuredDocument)
+    const result = usesBackendDomainData
+      ? insuredPeople.data?.find(row => onlyDigits(row.cpf_cnpj ?? '') === onlyDigits(insuredDocument)) ?? null
+      : await assistance.insured.mutateAsync(insuredDocument)
+    if (usesBackendDomainData) {
+      setConnectedInsuredResult(result)
+      setConnectedInsuredSearched(true)
+    }
     if (!result) return
     setDraft((current) => ({
       ...current,
@@ -358,7 +417,8 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
   }
 
   const useOpportunityInsuredAsDriver = () => {
-    const insured = lookups.data?.insureds.find((row) => row.id === draft.segurado_id)
+    if (usesBackendDomainData && !insuredPermission.can('read')) return
+    const insured = insuredOptions.find((row) => row.id === draft.segurado_id)
     if (!insured) return
     patch({
       origem: draft.origem === 'MANUAL' ? 'ASSISTIDA' : draft.origem,
@@ -374,7 +434,9 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
   }
 
   const toggleOtherInsured = () => {
-    assistance.insured.reset()
+    if (!usesBackendDomainData) assistance.insured.reset()
+    setConnectedInsuredResult(null)
+    setConnectedInsuredSearched(false)
     if (otherInsured) {
       patch({ segurado_id: opportunity.segurado_id })
       setInsuredDocument('')
@@ -403,7 +465,6 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
     setCepEdited(false)
   }
 
-  const coverageOptions = lookups.data?.coverages ?? []
   const selectedById = useMemo(() => new Map(draft.coverages.map((coverage) => [coverage.cobertura_id, coverage])), [draft.coverages])
   const changeCoverage = (coverageId: string, values: Partial<CalculationCoverageInput>, selected: boolean) => {
     setDraft((current) => {
@@ -429,10 +490,10 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
     })
     setDirty(true)
   }
-  const setVehicleFeature = (key: 'alienado' | 'kit_gas' | 'blindado' | 'chassi_remarcado' | 'antifurto', value: boolean) => {
-    const removedCodes = key === 'kit_gas' && !value
+  const setVehicleFeature = (key: 'alienado' | 'kit_gas' | 'blindado' | 'chassi_remarcado' | 'antifurto', value: boolean | null) => {
+    const removedCodes = key === 'kit_gas' && value === false
       ? ['kit-gas']
-      : key === 'blindado' && !value
+      : key === 'blindado' && value === false
         ? ['blindagem']
         : []
     const removedIds = new Set(coverageOptions.filter((coverage) => removedCodes.includes(coverage.codigo?.toLowerCase() ?? '')).map((coverage) => coverage.id))
@@ -472,7 +533,7 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
           </div>
           <div className="flex flex-wrap gap-2">
             {onDuplicate && <button type="button" onClick={onDuplicate} className={secondaryButton}><CopyPlus size={14} /> Criar nova versão</button>}
-            {!readOnly && (!savedCalculation || dirty) && <button type="submit" disabled={create.isPending || lookups.isLoading} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent-primary px-5 py-2.5 text-xs font-black text-accent-primary-fg shadow-[var(--shadow-brand)] hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-50">{create.isPending ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} {savedCalculation ? 'Gerar nova versão' : 'Salvar cálculo'}</button>}
+            {!readOnly && (!savedCalculation || dirty) && <button type="submit" disabled={createPending || catalogLoading} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent-primary px-5 py-2.5 text-xs font-black text-accent-primary-fg shadow-[var(--shadow-brand)] hover:bg-accent-primary-hover disabled:cursor-not-allowed disabled:opacity-50">{createPending ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} {savedCalculation ? 'Gerar nova versão' : 'Salvar cálculo'}</button>}
           </div>
         </div>
       </header>
@@ -490,8 +551,9 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
       <div className="space-y-5">
         <InsuranceSection
           draft={draft}
-          insurers={lookups.data?.insurers ?? []}
+          insurers={insurers}
           sourcePolicy={sourcePolicy}
+          branchTimeZone={branchTimeZone}
           readOnly={readOnly}
           onTypeChange={changeInsuranceType}
           onPatch={patch}
@@ -504,7 +566,7 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
                 <div className="flex flex-col gap-3 rounded-[6px] bg-bg-surface-2 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 items-start gap-3">
                     <UserRound size={18} className="mt-0.5 shrink-0 text-accent-primary" />
-                    <div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-wider text-fg-4">Cotado nesta versão</p><p className="truncate text-sm font-black text-fg-1">{lookups.data?.insureds.find((row) => row.id === draft.segurado_id)?.nome ?? customer}</p><p className="mt-0.5 text-xs text-fg-3">{draft.segurado_id === opportunity.segurado_id ? 'Cliente da oportunidade' : 'Pessoa selecionada explicitamente'}</p></div>
+                    <div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-wider text-fg-4">Cotado nesta versão</p><p className="truncate text-sm font-black text-fg-1">{insuredOptions.find((row) => row.id === draft.segurado_id)?.nome ?? connectedInsuredResult?.nome ?? customer}</p><p className="mt-0.5 text-xs text-fg-3">{draft.segurado_id === opportunity.segurado_id ? 'Cliente da oportunidade' : 'Pessoa selecionada explicitamente'}</p></div>
                   </div>
                   {!readOnly && <button type="button" className={secondaryButton} onClick={toggleOtherInsured}>{otherInsured ? 'Usar cliente da oportunidade' : 'Cotar outra pessoa'}</button>}
                 </div>
@@ -512,10 +574,12 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
                 {otherInsured && !readOnly && (
                   <div className="rounded-[6px] border border-border-1 p-4">
                     <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-                      <Field label="CPF/CNPJ da pessoa"><input inputMode="numeric" value={formatCpfCnpj(insuredDocument)} onChange={(event) => { setInsuredDocument(onlyDigits(event.target.value).slice(0, 14)); assistance.insured.reset() }} onBlur={() => void findInsured()} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void findInsured() } }} className={inputClass} placeholder="000.000.000-00" /></Field>
-                      <button type="button" onClick={() => void findInsured()} disabled={assistance.insured.isPending || ![11, 14].includes(onlyDigits(insuredDocument).length)} className={secondaryButton}>{assistance.insured.isPending ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Consultar pessoa</button>
+                      <Field label="CPF/CNPJ da pessoa"><input inputMode="numeric" value={formatCpfCnpj(insuredDocument)} onChange={(event) => { setInsuredDocument(onlyDigits(event.target.value).slice(0, 14)); if (!usesBackendDomainData) assistance.insured.reset(); setConnectedInsuredSearched(false); setConnectedInsuredResult(null) }} onBlur={() => void findInsured()} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void findInsured() } }} className={inputClass} placeholder="000.000.000-00" /></Field>
+                      <button type="button" onClick={() => void findInsured()} disabled={(usesBackendDomainData ? insuredPeople.isLoading || !insuredPermission.can('read') : assistance.insured.isPending) || ![11, 14].includes(onlyDigits(insuredDocument).length)} className={secondaryButton}>{(usesBackendDomainData ? insuredPeople.isLoading : assistance.insured.isPending) ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Consultar pessoa</button>
                     </div>
-                    <AssistanceMessage pending={assistance.insured.isPending} success={assistance.insured.isSuccess && Boolean(assistance.insured.data)} notFound={assistance.insured.isSuccess && !assistance.insured.data} error={assistance.insured.isError} foundText={assistance.insured.data ? `${assistance.insured.data.nome}: pessoa localizada e dados básicos reaproveitados.` : undefined} notFoundText="Pessoa não encontrada nesta corretora. Cadastre ou qualifique a pessoa antes de cotar em nome dela." />
+                    {usesBackendDomainData && !insuredPermission.can('read')
+                      ? <p className="mt-3 text-xs font-bold text-signal-warning">A consulta de pessoas exige permissão de leitura em Segurados.</p>
+                      : <AssistanceMessage pending={usesBackendDomainData ? insuredPeople.isLoading : assistance.insured.isPending} success={usesBackendDomainData ? connectedInsuredSearched && Boolean(connectedInsuredResult) : assistance.insured.isSuccess && Boolean(assistance.insured.data)} notFound={usesBackendDomainData ? connectedInsuredSearched && !connectedInsuredResult : assistance.insured.isSuccess && !assistance.insured.data} error={usesBackendDomainData ? insuredPeople.isError : assistance.insured.isError} foundText={(usesBackendDomainData ? connectedInsuredResult : assistance.insured.data) ? `${(usesBackendDomainData ? connectedInsuredResult : assistance.insured.data)?.nome}: pessoa localizada e dados básicos reaproveitados.` : undefined} notFoundText="Pessoa não encontrada nesta corretora. Cadastre ou qualifique a pessoa antes de cotar em nome dela." />}
                   </div>
                 )}
 
@@ -537,7 +601,7 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
             </Section>
 
             <Section number="3" title="Veículo" description="Consulte por placa ou chassi e mantenha preenchimento manual como fallback.">
-              {!readOnly && <div className="mb-5 rounded-[6px] border border-border-1 bg-bg-surface-2 p-4"><div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end"><Field label="Placa ou chassi"><input value={formatVehicleIdentifier(vehicleIdentifier)} onChange={(event) => { setVehicleIdentifier(normalizeVehicleIdentifier(event.target.value)); setVehicleIdentifierEdited(true); assistance.vehicle.reset() }} onBlur={() => { if (vehicleIdentifierEdited) void findVehicle() }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void findVehicle() } }} className={inputClass} placeholder="Ex.: BRA-2E19" /></Field><button type="button" onClick={() => void findVehicle()} disabled={assistance.vehicle.isPending || ![7, 17].includes(normalizeVehicleIdentifier(vehicleIdentifier).length)} className={secondaryButton}>{assistance.vehicle.isPending ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Consultar veículo</button></div><AssistanceMessage pending={assistance.vehicle.isPending} success={assistance.vehicle.isSuccess && Boolean(assistance.vehicle.data)} notFound={assistance.vehicle.isSuccess && !assistance.vehicle.data} error={assistance.vehicle.isError} foundText={assistance.vehicle.data ? `${assistance.vehicle.data.marca ?? 'Veículo'} ${assistance.vehicle.data.modelo ?? ''} localizado; revise os dados preenchidos.` : undefined} notFoundText="Veículo não encontrado. Continue pelo preenchimento manual abaixo." /></div>}
+              {!readOnly && !usesBackendDomainData && <div className="mb-5 rounded-[6px] border border-border-1 bg-bg-surface-2 p-4"><div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end"><Field label="Placa ou chassi"><input value={formatVehicleIdentifier(vehicleIdentifier)} onChange={(event) => { setVehicleIdentifier(normalizeVehicleIdentifier(event.target.value)); setVehicleIdentifierEdited(true); assistance.vehicle.reset() }} onBlur={() => { if (vehicleIdentifierEdited) void findVehicle() }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void findVehicle() } }} className={inputClass} placeholder="Ex.: BRA-2E19" /></Field><button type="button" onClick={() => void findVehicle()} disabled={assistance.vehicle.isPending || ![7, 17].includes(normalizeVehicleIdentifier(vehicleIdentifier).length)} className={secondaryButton}>{assistance.vehicle.isPending ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Consultar veículo</button></div><AssistanceMessage pending={assistance.vehicle.isPending} success={assistance.vehicle.isSuccess && Boolean(assistance.vehicle.data)} notFound={assistance.vehicle.isSuccess && !assistance.vehicle.data} error={assistance.vehicle.isError} foundText={assistance.vehicle.data ? `${assistance.vehicle.data.marca ?? 'Veículo'} ${assistance.vehicle.data.modelo ?? ''} localizado; revise os dados preenchidos.` : undefined} notFoundText="Veículo não encontrado. Continue pelo preenchimento manual abaixo." /></div>}
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <Field label="Código FIPE"><TextInput disabled={readOnly} value={autoValue('codigo_fipe')} onChange={(value) => setAuto('codigo_fipe', value)} /></Field>
                 <Field label="Marca"><TextInput disabled={readOnly} value={autoValue('marca')} onChange={(value) => setAuto('marca', value)} /></Field>
@@ -555,25 +619,25 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
               </div>
               <div className="mt-5 border-t border-border-1 pt-5">
                 <h3 className="text-sm font-black text-fg-1">Informações adicionais</h3>
-                <p className="mt-1 text-xs text-fg-3">Ative somente as características presentes neste veículo.</p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-                  <ToggleSwitch label="Zero km" disabled={readOnly} checked={autoValue('zero_km') === true} onChange={(value) => setAuto('zero_km', value)} />
-                  <ToggleSwitch label="Alienado" disabled={readOnly} checked={autoValue('alienado') === true} onChange={(value) => setVehicleFeature('alienado', value)} />
-                  <ToggleSwitch label="Kit gás" disabled={readOnly} checked={autoValue('kit_gas') === true} onChange={(value) => setVehicleFeature('kit_gas', value)} />
-                  <ToggleSwitch label="Blindado" disabled={readOnly} checked={autoValue('blindado') === true} onChange={(value) => setVehicleFeature('blindado', value)} />
-                  <ToggleSwitch label="Chassi remarcado" disabled={readOnly} checked={autoValue('chassi_remarcado') === true} onChange={(value) => setVehicleFeature('chassi_remarcado', value)} />
-                  <ToggleSwitch label="Antifurto" disabled={readOnly} checked={autoValue('antifurto') === true} onChange={(value) => setVehicleFeature('antifurto', value)} />
+                <p className="mt-1 text-xs text-fg-3">Diferencie explicitamente “sim”, “não” e informação ainda desconhecida.</p>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+                  <Field label="Zero km"><BooleanSelect disabled={readOnly} value={typeof autoValue('zero_km') === 'boolean' ? autoValue('zero_km') as boolean : null} onChange={(value) => setAuto('zero_km', value)} /></Field>
+                  <Field label="Alienado"><BooleanSelect disabled={readOnly} value={typeof autoValue('alienado') === 'boolean' ? autoValue('alienado') as boolean : null} onChange={(value) => setVehicleFeature('alienado', value)} /></Field>
+                  <Field label="Kit gás"><BooleanSelect disabled={readOnly} value={typeof autoValue('kit_gas') === 'boolean' ? autoValue('kit_gas') as boolean : null} onChange={(value) => setVehicleFeature('kit_gas', value)} /></Field>
+                  <Field label="Blindado"><BooleanSelect disabled={readOnly} value={typeof autoValue('blindado') === 'boolean' ? autoValue('blindado') as boolean : null} onChange={(value) => setVehicleFeature('blindado', value)} /></Field>
+                  <Field label="Chassi remarcado"><BooleanSelect disabled={readOnly} value={typeof autoValue('chassi_remarcado') === 'boolean' ? autoValue('chassi_remarcado') as boolean : null} onChange={(value) => setVehicleFeature('chassi_remarcado', value)} /></Field>
+                  <Field label="Antifurto"><BooleanSelect disabled={readOnly} value={typeof autoValue('antifurto') === 'boolean' ? autoValue('antifurto') as boolean : null} onChange={(value) => setVehicleFeature('antifurto', value)} /></Field>
                 </div>
               </div>
             </Section>
 
             <Section number="4" title="Avaliação de risco" description="Perguntas adicionais aparecem somente quando a resposta anterior as torna aplicáveis.">
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <Field label="CEP de pernoite" className="md:col-span-2"><div className="flex gap-2"><input inputMode="numeric" disabled={readOnly} value={formatCep(String(autoValue('cep_pernoite') ?? ''))} onChange={(event) => { setAuto('cep_pernoite', onlyDigits(event.target.value).slice(0, 8) || null); setCepEdited(true); assistance.cep.reset() }} onBlur={() => { if (cepEdited) void findCep() }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void findCep() } }} className={inputClass} placeholder="00000-000" /><button type="button" title="Consultar CEP" aria-label="Consultar CEP de pernoite" onClick={() => void findCep()} disabled={readOnly || assistance.cep.isPending || onlyDigits(String(autoValue('cep_pernoite') ?? '')).length !== 8} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[6px] border border-border-1 text-accent-primary hover:bg-accent-primary-soft disabled:opacity-50">{assistance.cep.isPending ? <Loader2 size={15} className="animate-spin" /> : <LocateFixed size={15} />}</button></div></Field>
+                <Field label="CEP de pernoite" className="md:col-span-2"><div className="flex gap-2"><input inputMode="numeric" disabled={readOnly} value={formatCep(String(autoValue('cep_pernoite') ?? ''))} onChange={(event) => { setAuto('cep_pernoite', onlyDigits(event.target.value).slice(0, 8) || null); if (!usesBackendDomainData) { setCepEdited(true); assistance.cep.reset() } }} onBlur={() => { if (!usesBackendDomainData && cepEdited) void findCep() }} onKeyDown={(event) => { if (!usesBackendDomainData && event.key === 'Enter') { event.preventDefault(); void findCep() } }} className={inputClass} placeholder="00000-000" />{!usesBackendDomainData && <button type="button" title="Consultar CEP" aria-label="Consultar CEP de pernoite" onClick={() => void findCep()} disabled={readOnly || assistance.cep.isPending || onlyDigits(String(autoValue('cep_pernoite') ?? '')).length !== 8} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[6px] border border-border-1 text-accent-primary hover:bg-accent-primary-soft disabled:opacity-50">{assistance.cep.isPending ? <Loader2 size={15} className="animate-spin" /> : <LocateFixed size={15} />}</button>}</div></Field>
                 <Field label="Uso do veículo"><select disabled={readOnly} value={String(autoValue('uso') ?? '')} onChange={(event) => setAuto('uso', event.target.value || null)} className={inputClass}><option value="">Selecione</option><option value="PARTICULAR">Particular</option><option value="TRABALHO">Deslocamento ao trabalho</option><option value="COMERCIAL">Uso comercial</option><option value="APLICATIVO">Aplicativo</option><option value="ESTUDO">Deslocamento para estudo</option><option value="LAZER">Lazer</option></select></Field>
                 {autoValue('uso') !== 'LAZER' && <Field label="Quilometragem mensal"><NumberInput disabled={readOnly} value={typeof autoValue('km_mensal') === 'number' ? autoValue('km_mensal') as number : null} onChange={(value) => setAuto('km_mensal', value)} /></Field>}
               </div>
-              <AssistanceMessage pending={assistance.cep.isPending} success={assistance.cep.isSuccess && Boolean(assistance.cep.data)} notFound={assistance.cep.isSuccess && !assistance.cep.data} error={assistance.cep.isError} foundText={assistance.cep.data ? `${assistance.cep.data.logradouro} · ${assistance.cep.data.bairro} · ${assistance.cep.data.cidade}/${assistance.cep.data.uf}` : undefined} notFoundText="CEP não encontrado na demonstração. O CEP informado permanece disponível para preenchimento manual." />
+              {!usesBackendDomainData && <AssistanceMessage pending={assistance.cep.isPending} success={assistance.cep.isSuccess && Boolean(assistance.cep.data)} notFound={assistance.cep.isSuccess && !assistance.cep.data} error={assistance.cep.isError} foundText={assistance.cep.data ? `${assistance.cep.data.logradouro} · ${assistance.cep.data.bairro} · ${assistance.cep.data.cidade}/${assistance.cep.data.uf}` : undefined} notFoundText="CEP não encontrado na demonstração. O CEP informado permanece disponível para preenchimento manual." />}
               <div className="mt-5 grid gap-4 border-t border-border-1 pt-5 md:grid-cols-2 xl:grid-cols-4">
                 <Field label="Garagem na residência"><BooleanSelect disabled={readOnly} value={typeof autoValue('possui_garagem_residencia') === 'boolean' ? autoValue('possui_garagem_residencia') as boolean : null} onChange={(value) => setAuto('possui_garagem_residencia', value)} /></Field>
                 {['TRABALHO', 'COMERCIAL', 'APLICATIVO'].includes(String(autoValue('uso') ?? '')) && <Field label="Garagem no trabalho"><BooleanSelect disabled={readOnly} value={typeof autoValue('possui_garagem_trabalho') === 'boolean' ? autoValue('possui_garagem_trabalho') as boolean : null} onChange={(value) => setAuto('possui_garagem_trabalho', value)} /></Field>}
@@ -592,8 +656,8 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
           number={isAuto ? '5' : '3'}
           options={coverageOptions}
           selectedById={selectedById}
-          loading={lookups.isLoading}
-          error={lookups.isError}
+          loading={catalogLoading}
+          error={catalogError}
           readOnly={readOnly}
           autoFeatures={isAuto ? {
             blindado: autoValue('blindado') === true,
@@ -609,7 +673,7 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
             <ReviewItem icon={<Umbrella size={16} />} label="Coberturas" value={`${draft.coverages.length} selecionada${draft.coverages.length === 1 ? '' : 's'}`} />
             <ReviewItem icon={<CheckCircle2 size={16} />} label="Persistência" value={readOnly ? 'Snapshot salvo' : 'Novo snapshot do pedido'} />
           </div>
-          {!readOnly && (!savedCalculation || dirty) && <div className="mt-5 flex flex-col-reverse gap-2 border-t border-border-1 pt-5 sm:flex-row sm:justify-end"><button type="button" onClick={() => void leave()} className={secondaryButton}>Cancelar</button><button type="submit" disabled={create.isPending || lookups.isLoading} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-accent-primary px-6 py-2.5 text-xs font-black text-accent-primary-fg shadow-[var(--shadow-brand)] hover:bg-accent-primary-hover disabled:opacity-50">{create.isPending ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} {savedCalculation ? 'Gerar nova versão' : 'Salvar cálculo'}</button></div>}
+          {!readOnly && (!savedCalculation || dirty) && <div className="mt-5 flex flex-col-reverse gap-2 border-t border-border-1 pt-5 sm:flex-row sm:justify-end"><button type="button" onClick={() => void leave()} className={secondaryButton}>Cancelar</button><button type="submit" disabled={createPending || catalogLoading} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-accent-primary px-6 py-2.5 text-xs font-black text-accent-primary-fg shadow-[var(--shadow-brand)] hover:bg-accent-primary-hover disabled:opacity-50">{createPending ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} {savedCalculation ? 'Gerar nova versão' : 'Salvar cálculo'}</button></div>}
         </Section>
 
       </div>
@@ -619,10 +683,10 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
           <div className="space-y-5 pb-10">
           <CalculationExecutionSection
             calculation={savedCalculation}
-            insurers={lookups.data?.insurers ?? []}
+            insurers={insurers}
             canExecute={canExecute}
             draftChanged={dirty}
-            versionCreating={create.isPending}
+            versionCreating={createPending}
             createVersion={dirty && !readOnly ? async () => (await createSnapshot()).calculation : undefined}
             onVersionCreated={(row) => {
               savedRef.current = true
@@ -638,10 +702,11 @@ function CalculationForm({ opportunity, initialInput, sourcePolicy, readOnly, sa
   )
 }
 
-function InsuranceSection({ draft, insurers, sourcePolicy, readOnly, onTypeChange, onPatch }: {
+function InsuranceSection({ draft, insurers, sourcePolicy, branchTimeZone, readOnly, onTypeChange, onPatch }: {
   draft: CalculationCreateInput
   insurers: Array<{ id: string; nome: string }>
   sourcePolicy: SourcePolicyAssistance | null
+  branchTimeZone: string
   readOnly: boolean
   onTypeChange: (type: CalculoTipoSeguro) => void
   onPatch: (values: Partial<CalculationCreateInput>) => void
@@ -652,7 +717,7 @@ function InsuranceSection({ draft, insurers, sourcePolicy, readOnly, onTypeChang
     <Section number="1" title="Tipo e vigência" description="Datas e referências anteriores seguem o tipo de seguro; endosso permanece no fluxo contratual.">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Field label="Tipo de seguro"><select disabled={readOnly} value={draft.tipo_seguro} onChange={(event) => onTypeChange(event.target.value as CalculoTipoSeguro)} className={inputClass}><option value="NOVO">Novo</option><option value="RENOVACAO_PROPRIA">Renovação própria</option><option value="RENOVACAO_OUTRA">Renovação de outra corretora</option></select></Field>
-        <Field label="Início da vigência"><input disabled={readOnly || draft.tipo_seguro === 'RENOVACAO_PROPRIA'} type="date" value={draft.vigencia_inicio ?? ''} onChange={(event) => { const start = event.target.value || null; onPatch({ vigencia_inicio: start, vigencia_fim: addCalendarYear(start) }) }} className={inputClass} /></Field>
+        <Field label="Início da vigência"><input disabled={readOnly || draft.tipo_seguro === 'RENOVACAO_PROPRIA'} type="date" value={draft.vigencia_inicio ?? ''} onChange={(event) => { const start = event.target.value || null; onPatch({ vigencia_inicio: start, vigencia_fim: addCalendarYear(start) }) }} className={inputClass} /><span className="mt-1 block text-[11px] text-fg-3">Calendário da corretora · {branchTimeZone}</span></Field>
         <Field label="Fim da vigência"><div className="relative"><input readOnly value={fmtDate(draft.vigencia_fim)} className={`${inputClass} pr-9`} /><CalendarRange size={14} className="pointer-events-none absolute right-3 top-3.5 text-fg-4" /></div><span className="mt-1 block text-[11px] text-fg-3">Derivado em um ano-calendário.</span></Field>
       </div>
 
@@ -720,7 +785,7 @@ function CoverageSection({ number, options, selectedById, loading, error, readOn
   }, [autoFeatures?.blindado, autoFeatures?.kitGas, options])
 
   return (
-    <Section number={number} title="Coberturas desejadas" description="Preencha diretamente as preferências. Valor zero e opções “Sem cobertura” não serão enviados para contratação.">
+    <Section number={number} title="Coberturas desejadas" description="Campo vazio significa não solicitado; zero permanece uma preferência explícita e distinta de valor desconhecido.">
       {loading ? <div className="h-24 animate-pulse rounded-[6px] bg-bg-surface-2" /> : error ? <p className="rounded-[6px] bg-signal-danger/10 p-4 text-sm font-bold text-signal-danger">Não foi possível carregar o catálogo de coberturas.</p> : options.length === 0 ? <p className="rounded-[6px] border border-dashed border-border-2 p-5 text-sm text-fg-3">Nenhuma cobertura ativa foi cadastrada para este ramo. O cálculo pode ser salvo sem preferências de cobertura.</p> : (
         <div className="space-y-6">
           {groups.map((group) => <div key={group.id}>
@@ -733,16 +798,15 @@ function CoverageSection({ number, options, selectedById, loading, error, readOn
                 const isCasco = code === 'casco'
                 const isService = ['assistencia', 'servico'].includes(type) || code.includes('assist') || code.includes('vidro') || code.includes('carro-reserva')
                 if (isCasco) {
-                  const percentage = coverage?.percentual_fipe_solicitado ?? 0
+                  const percentage = coverage?.percentual_fipe_solicitado ?? null
                   return <div key={catalog.id} className="contents">
                     <Field label="Casco — percentual FIPE (%)"><NumberInput disabled={readOnly} value={percentage} onChange={(value) => {
-                      const next = value ?? 0
                       onChange(catalog.id, {
-                        percentual_fipe_solicitado: next,
+                        percentual_fipe_solicitado: value,
                         franquia_tipo_solicitado: coverage?.franquia_tipo_solicitado ?? 'NORMAL',
-                      }, next > 0)
+                      }, value !== null)
                     }} step="0.01" /></Field>
-                    <Field label="Casco — franquia"><select disabled={readOnly || percentage <= 0} value={coverage?.franquia_tipo_solicitado ?? 'NORMAL'} onChange={(event) => onChange(catalog.id, { franquia_tipo_solicitado: event.target.value }, percentage > 0)} className={inputClass}><option value="NORMAL">Normal</option><option value="REDUZIDA">Reduzida</option><option value="MAJORADA">Majorada</option></select></Field>
+                    <Field label="Casco — franquia"><select disabled={readOnly || percentage === null} value={coverage?.franquia_tipo_solicitado ?? 'NORMAL'} onChange={(event) => onChange(catalog.id, { franquia_tipo_solicitado: event.target.value }, percentage !== null)} className={inputClass}><option value="NORMAL">Normal</option><option value="REDUZIDA">Reduzida</option><option value="MAJORADA">Majorada</option></select></Field>
                   </div>
                 }
                 if (isService) {
@@ -762,13 +826,12 @@ function CoverageSection({ number, options, selectedById, loading, error, readOn
                       const next = event.target.value
                       onChange(catalog.id, { opcao_solicitada: next || null }, Boolean(next))
                     }} className={inputClass}><option value="">{emptyLabel}</option><option value="PADRAO">{selectedLabel}</option></select></Field>
-                    {code.includes('carro-reserva') && selectedOption && <Field label="Carro reserva — diárias"><NumberInput disabled={readOnly} value={coverage?.quantidade_solicitada ?? 0} onChange={(value) => onChange(catalog.id, { quantidade_solicitada: value ?? 0 }, true)} /></Field>}
+                    {code.includes('carro-reserva') && selectedOption && <Field label="Carro reserva — diárias"><NumberInput disabled={readOnly} value={coverage?.quantidade_solicitada ?? null} onChange={(value) => onChange(catalog.id, { quantidade_solicitada: value }, true)} /></Field>}
                   </div>
                 }
-                const amount = coverage?.limite_solicitado ?? 0
+                const amount = coverage?.limite_solicitado ?? null
                 return <Field key={catalog.id} label={catalog.nome}><CurrencyInput disabled={readOnly} value={amount} onChange={(value) => {
-                  const next = value ?? 0
-                  onChange(catalog.id, { limite_solicitado: next }, next > 0)
+                  onChange(catalog.id, { limite_solicitado: value }, value !== null)
                 }} /></Field>
               })}
             </div>
@@ -782,7 +845,7 @@ function CoverageSection({ number, options, selectedById, loading, error, readOn
 function AssistanceMessage({ pending, success, notFound, error, foundText, notFoundText }: { pending: boolean; success: boolean; notFound: boolean; error: boolean; foundText?: string; notFoundText: string }) {
   if (!pending && !success && !notFound && !error) return null
   const tone = error ? 'text-signal-danger' : notFound ? 'text-signal-warning' : success ? 'text-signal-success' : 'text-accent-primary'
-  return <p aria-live="polite" className={`mt-3 flex items-center gap-2 text-xs font-bold ${tone}`}>{pending ? <Loader2 size={13} className="animate-spin" /> : success ? <CheckCircle2 size={13} /> : <Search size={13} />}{pending ? 'Consultando fixture local…' : error ? 'A consulta simulada falhou. Continue pelo preenchimento manual.' : success ? foundText : notFoundText}</p>
+  return <p aria-live="polite" className={`mt-3 flex items-center gap-2 text-xs font-bold ${tone}`}>{pending ? <Loader2 size={13} className="animate-spin" /> : success ? <CheckCircle2 size={13} /> : <Search size={13} />}{pending ? 'Consultando…' : error ? 'Não foi possível consultar. Continue pelo preenchimento manual.' : success ? foundText : notFoundText}</p>
 }
 
 function Section({ number, title, description, children }: { number: string; title: string; description: string; children: ReactNode }) {
@@ -807,29 +870,6 @@ function CurrencyInput({ value, onChange, disabled }: { value: number | null; on
 
 function BooleanSelect({ value, onChange, disabled }: { value: boolean | null; onChange: (value: boolean | null) => void; disabled?: boolean }) {
   return <select disabled={disabled} value={value === null ? '' : value ? 'sim' : 'nao'} onChange={(event) => onChange(event.target.value === '' ? null : event.target.value === 'sim')} className={inputClass}><option value="">Não informado</option><option value="sim">Sim</option><option value="nao">Não</option></select>
-}
-
-function ToggleSwitch({ label, checked, onChange, disabled = false }: { label: string; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-[6px] border border-border-1 bg-bg-surface-2 px-3 py-2.5 text-left focus-visible:border-accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 ${
-        disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
-      }`}
-    >
-      <span className="text-sm font-semibold text-fg-1">{label}</span>
-      <span
-        aria-hidden="true"
-        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors after:absolute after:left-1 after:top-1 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform ${
-          checked ? 'bg-accent-primary after:translate-x-5' : 'bg-border-2'
-        }`}
-      />
-    </button>
-  )
 }
 
 function RiskField({ definition, specialization, readOnly, onChange }: { definition: RiskFieldDefinition; specialization: CalculationCreateInput['specialization']; readOnly: boolean; onChange: (value: string | number | boolean | null) => void }) {

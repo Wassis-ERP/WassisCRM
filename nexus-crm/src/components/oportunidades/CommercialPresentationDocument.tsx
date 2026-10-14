@@ -13,9 +13,10 @@ type Settings = {
   showNotes: boolean; showLegend: boolean; commercialNotes: string
 }
 
-export default function CommercialPresentationDocument({ title, insuredName, draft, selectedViews, comparison, generatedAt }: {
+export default function CommercialPresentationDocument({ title, insuredName, draft, selectedViews, comparison, generatedAt, connected = false }: {
   title: string | null; insuredName: string; draft: Settings
   selectedViews: ItemView[]; comparison: CommercialPresentationComparisonRow[]; generatedAt: string | null
+  connected?: boolean
 }) {
   const document = (
     <article className={`commercial-presentation-print ${draft.layout === 'HORIZONTAL' ? 'presentation-horizontal' : 'presentation-vertical'}`}>
@@ -29,7 +30,7 @@ export default function CommercialPresentationDocument({ title, insuredName, dra
         <div className="presentation-meta">
           <strong>{selectedViews.length} opções de seguro</strong>
           <p>{generatedAt ? `Gerado em ${new Date(generatedAt).toLocaleString('pt-BR')}` : 'Prévia para conferência'}</p>
-          <p>Simulação com dados demonstrativos</p>
+          <p>{connected ? 'Resultados registrados para conferência' : 'Simulação com dados demonstrativos'}</p>
         </div>
       </header>
 
@@ -41,7 +42,7 @@ export default function CommercialPresentationDocument({ title, insuredName, dra
             <tr key={candidate.quote.id}>
               <th scope="row">{index + 1}. {candidate.insurerShortName}{item.recommended && <span className="presentation-recommendation">Recomendado</span>}{draft.selectedQuoteId === candidate.quote.id && <span className="presentation-choice">Escolha do cliente</span>}</th>
               <td className="presentation-money">{presentationMoney(candidate.quote.premio_total)}</td>
-              <td>{presentationPayment(candidate.installments.find((row) => row.id === item.installmentId) ?? candidate.primaryInstallment)}</td>
+              <td>{presentationPayment(candidate.installments.find((row) => row.id === item.installmentId) ?? null)}</td>
               <td>{presentationDate(candidate.quote.validade)}</td>
             </tr>
           ))}</tbody>
@@ -66,11 +67,11 @@ export default function CommercialPresentationDocument({ title, insuredName, dra
       {draft.showNotes && draft.commercialNotes && <section className="presentation-notes"><h2>Observações comerciais</h2><p>{draft.commercialNotes}</p></section>}
       <footer className="presentation-footer">
         <p>Valores sujeitos à validade, análise e condições oficiais de cada seguradora. Confira coberturas, franquias e condições antes de escolher.</p>
-        <p>Simulação demonstrativa. Não constitui proposta emitida nem confirmação de cobertura.</p>
+        <p>{connected ? 'A escolha comercial não constitui proposta emitida nem confirmação de cobertura.' : 'Simulação demonstrativa. Não constitui proposta emitida nem confirmação de cobertura.'}</p>
       </footer>
     </article>
   )
-  return <>{document}{createPortal(<div className="commercial-print-root">{document}</div>, window.document.body)}</>
+  return <>{document}{!connected && createPortal(<div className="commercial-print-root">{document}</div>, window.document.body)}</>
 }
 
 function Product({ item, candidate, index, settings }: ItemView & { index: number; settings: Settings }) {
@@ -96,7 +97,7 @@ function Product({ item, candidate, index, settings }: ItemView & { index: numbe
       <h3>Coberturas e condições</h3>
       {candidate.coverages.length === 0 ? <p>Coberturas não informadas.</p> : <ul>{candidate.coverages.map((coverage) => (
         <li key={coverage.id}>
-          {coverage.incluida === false ? <Minus size={13} /> : <Check size={13} />}
+          {coverage.incluida === true ? <Check size={13} /> : <Minus size={13} />}
           <span><strong>{coverage.name}</strong><br />{presentationCoverage(coverage, settings.showFipe)}</span>
         </li>
       ))}</ul>}

@@ -82,7 +82,7 @@ export function useCalculationEditorLookups(
   lineId: string | undefined,
 ) {
   return useQuery({
-    enabled: Boolean(tenantId && branchId && lineId),
+    enabled: Boolean(!usesBackendDomainData && tenantId && branchId && lineId),
     queryKey: ['calculation-editor-lookups', tenantId, branchId, lineId],
     queryFn: async (): Promise<CalculationEditorLookups> => {
       requireCalculationDemo('O editor de cálculo')
@@ -105,7 +105,7 @@ export function useCalculationEditorLookups(
 
 export function useCalculationSourcePolicy(policyId: string | undefined) {
   return useQuery({
-    enabled: Boolean(policyId),
+    enabled: Boolean(!usesBackendDomainData && policyId),
     queryKey: ['calculation-source-policy', policyId],
     queryFn: async () => {
       requireCalculationDemo('A renovação no editor')
