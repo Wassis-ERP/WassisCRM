@@ -6,6 +6,8 @@
 
 ## Norte do plano
 
+- [x] 15/10/2026 — Checkpoint conjunto e roteiro de fechamento: repos atualizados para BE `5691a2a` / FE `2e01c14`; CIs aprovados, 169 testes BE e 395 testes FE registrados, jornada real 2/2 documentada. Nove PRs incrementais ainda em rascunho (BE #34–37 / FE #53–57); main não recebeu esse pacote. Próxima sequência recomendada: integração/HML → configuração mínima → proposta/apólice manual → financeiro → demais módulos. Micro-plano `micro-plano-checkpoint-fechamento-2026-10-15.md`; walkthrough central no WAssisBE `docs/checkpoint-fechamento-2026-10-15.md`. Checkboxes de fases frontend abaixo não certificam integração SaaS completa.
+
 - [x] 14/10/2026 — Telas de cálculo canônico integradas sobre FE #56 / BE #36: editor, tentativa/cotação manual e comparativo usam HTTP, revisão explícita e recuperação idempotente. Gates locais: TypeScript/build conectado, 395 testes, lint focado, audit sem vulnerabilidades, smoke Production 1/1 e jornada real PostgreSQL/TLS + navegador 2/2. BE de apoio preserva a etapa ao atualizar campos da oportunidade (161 + oito PostgreSQL aprovados). Evidência desktop 1440×900/100%; CI do HEAD publicado em acompanhamento. Transmissão, aprovação e PDF permanecem fora. Micro-plano `micro-plano-integracao-telas-calculo-canonico-2026-10-14.md`.
 
 - [x] 14/10/2026 — Camada de dados dos comandos HTTP canônicos preparada: chaves recuperáveis após erro de rede, snapshot do input, resultados manuais, dados do editor e seleção/comparação com revisão explícita. Tsc, 394 testes, lint focado e build aprovados. Cutover/jornada das telas pendentes com Renato; depende do BE `codex/calculation-historical-insurers`. Micro-plano `micro-plano-comandos-canonicos-http-2026-10-12.md`.
