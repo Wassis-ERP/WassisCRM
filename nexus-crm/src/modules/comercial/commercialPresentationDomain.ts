@@ -113,9 +113,10 @@ function requireOpportunity(store: CommercialPresentationStore, opportunityId: s
   return opportunity
 }
 
-function comparisonKey(coverage: CotacaoCoberturaRow): string {
+export function commercialCoverageComparisonKey(coverage: CotacaoCoberturaRow): string {
   if (coverage.cobertura_id) return `catalogo:${coverage.cobertura_id}`
-  return `retorno:${coverage.chave_resultado.trim().toLocaleLowerCase('pt-BR')}`
+  // D23 only promises identity inside one quote. Provider keys cannot establish cross-quote equivalence.
+  return `retorno:${coverage.cotacao_id}:${coverage.chave_resultado}`
 }
 
 function quoteOpportunityId(store: CommercialPresentationStore, quoteId: string): string {
@@ -137,7 +138,7 @@ function candidateFromQuote(store: CommercialPresentationStore, quote: CotacaoRo
     .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
     .map((row): CommercialPresentationCoverage => ({
       ...row,
-      comparisonKey: comparisonKey(row),
+      comparisonKey: commercialCoverageComparisonKey(row),
       name: row.cobertura_id
         ? store.coverageCatalog.find((coverage) => coverage.id === row.cobertura_id)?.nome
           ?? row.nome_informado

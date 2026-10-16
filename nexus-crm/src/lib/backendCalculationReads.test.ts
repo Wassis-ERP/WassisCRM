@@ -121,7 +121,7 @@ describe('leitura conectada de cálculos', () => {
     expect(workspace.results[0].coverages[0]).toMatchObject({ name: 'Casco informado na cotação', percentual_fipe_aceito: 0 })
     expect(workspace.results[0].primaryInstallment).toBeNull()
     expect(getBackendCalculation).toHaveBeenCalledWith('calculation', controller.signal)
-    expect(listBackendCalculationInsurers).toHaveBeenCalledWith('opportunity', expect.objectContaining({ signal: controller.signal }))
+    expect(listBackendCalculationInsurers).toHaveBeenCalledWith('opportunity', expect.objectContaining({ signal: controller.signal }), true)
     expect(listBackendCalculationCoverages).not.toHaveBeenCalled()
   })
 

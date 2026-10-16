@@ -58,7 +58,7 @@ export async function readBackendCalculationExecutionWorkspace(
   const [executions, quotes, insurers] = await Promise.all([
     readCalculationPages(options => listBackendCalculationExecutions(calculation.id, options), item => item.id, signal),
     readCalculationPages(options => listBackendOpportunityQuotes(calculation.oportunidade_id, options), item => item.quote.id, signal),
-    readCalculationPages(options => listBackendCalculationInsurers(calculation.oportunidade_id, options), item => item.id, signal),
+    readCalculationPages(options => listBackendCalculationInsurers(calculation.oportunidade_id, options, true), item => item.id, signal),
   ])
   const executionById = new Map(executions.map(execution => [execution.id, execution]))
   const results = quotes.filter(result => result.execution.calculo_id === calculation.id)

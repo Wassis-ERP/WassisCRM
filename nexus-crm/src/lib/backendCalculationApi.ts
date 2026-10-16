@@ -65,8 +65,9 @@ export async function createBackendCalculation(input: CalculationCreateInput, ke
   const result = decodeCalculation(await requestAuthenticatedBackendJson<unknown>(`/api/oportunidades/${id(input.oportunidade_id)}/calculos`, write(key, 'POST', body)))
   return scope(result, sameId(result.calculation.oportunidade_id, input.oportunidade_id) && sameId(result.calculation.ramo_id, input.ramo_id))
 }
-export async function listBackendCalculationInsurers(opportunityId: string, options: CalculationPageOptions = {}) {
-  return paged(`/api/oportunidades/${id(opportunityId)}/calculos/lookups/seguradoras`, decodeInsurer, options)
+export async function listBackendCalculationInsurers(opportunityId: string, options: CalculationPageOptions = {}, includeReferencedInactive = false) {
+  return paged(`/api/oportunidades/${id(opportunityId)}/calculos/lookups/seguradoras`, decodeInsurer, options,
+    includeReferencedInactive ? { includeReferencedInactive: 'true' } : undefined)
 }
 export async function listBackendCalculationCoverages(opportunityId: string, insuranceBranchId: string, options: CalculationPageOptions = {}) {
   id(insuranceBranchId)
@@ -81,6 +82,10 @@ export async function getBackendCalculationContext(opportunityId: string, insura
 export async function listBackendCalculationExecutions(calculationId: string, options: CalculationPageOptions = {}) {
   const result = await paged(`/api/calculos/${id(calculationId)}/execucoes`, decodeExecution, options)
   return scope(result, result.items.every(e => sameId(e.calculo_id, calculationId)))
+}
+export async function getBackendCalculationExecution(executionId: string, signal?: AbortSignal) {
+  const result = decodeExecution(await requestAuthenticatedBackendJson<unknown>(`/api/execucoes/${id(executionId)}`, { signal }))
+  return scope(result, sameId(result.id, executionId))
 }
 export async function createBackendManualExecution(calculationId: string, insurerId: string, key: string, commissionOverride: number | null = null) {
   id(insurerId); commission(commissionOverride)
@@ -133,7 +138,7 @@ export async function saveBackendPresentation(input: SaveCommercialPresentationI
   // Opportunity identity is immutable on the server. Validate it before PUT, rather than after an unintended write.
   if (input.presentationId) {
     const current = await getBackendPresentation(input.presentationId)
-    if (!sameId(current.presentation.oportunidade_id, input.opportunityId) || current.revision !== expectedRevision) throw new Error('Releia a apresentação e sua revisão antes de salvar.')
+    if (!sameId(current.presentation.oportunidade_id, input.opportunityId)) throw new Error('Releia a apresentação antes de salvar.')
   }
   const body = {
     cotacao_escolhida_id: input.selectedQuoteId ?? null, titulo: input.title ?? null, layout: input.layout,
