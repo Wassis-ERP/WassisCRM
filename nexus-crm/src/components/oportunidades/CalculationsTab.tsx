@@ -4,6 +4,7 @@ import { useCalculations } from '../../hooks/useCalculos'
 import type { OpportunityDetail } from '../../hooks/useOportunidades'
 import { fmtDate } from '../../utils/date'
 import CommercialPresentationTray from './CommercialPresentationTray'
+import { usesBackendDomainData } from '../../lib/backendDomainApi'
 
 const percent = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 })
 
@@ -91,7 +92,7 @@ export default function CalculationsTab({ opportunity, canCreate }: { opportunit
           ))}
         </div>
       )}
-      <CommercialPresentationTray opportunityId={opportunity.id} />
+      {usesBackendDomainData ? <button type="button" onClick={() => navigate(`/oportunidades/${opportunity.id}/apresentacao`)} className="inline-flex items-center gap-2 rounded-full border border-border-1 px-4 py-2.5 text-xs font-black text-fg-2 hover:bg-accent-primary-soft hover:text-accent-primary"><Layers3 size={15} /> Abrir comparativo comercial</button> : <CommercialPresentationTray opportunityId={opportunity.id} />}
     </div>
   )
 }

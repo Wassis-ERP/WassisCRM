@@ -297,7 +297,7 @@ export default function OportunidadeDetalhePage() {
       <EntityTabsBar tabs={tabs} active={activeTab} onChange={handleTabChange} wrap />
 
       <div role="tabpanel">
-        {usesBackendDomainData && activeTab !== 'visao' ? <IntegrationPending /> : <>
+        {usesBackendDomainData && !['visao', 'calculos'].includes(activeTab) ? <IntegrationPending /> : <>
         {activeTab === 'visao' && (
           <div className="space-y-5">
             {!row.segurado_id && qualifying && (

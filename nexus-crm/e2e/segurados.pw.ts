@@ -82,7 +82,7 @@ test('Segurados e Oportunidades persistem na interface original', async ({ page 
   await page.getByRole('tab', { name: 'Tarefas', exact: true }).click()
   await expect(page.getByText('Integração pendente.', { exact: false })).toBeVisible()
   await page.getByRole('tab', { name: 'Cálculos', exact: true }).click()
-  await expect(page.getByText('Integração pendente.', { exact: false })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Nenhuma versão criada', exact: true })).toBeVisible()
   await page.getByRole('link', { name: 'Oportunidades', exact: true }).click()
   await page.getByRole('button', { name: 'Todas', exact: true }).click()
   await page.getByRole('button', { name: 'Exibir lista', exact: true }).click()

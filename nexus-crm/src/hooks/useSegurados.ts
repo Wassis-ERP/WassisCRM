@@ -35,14 +35,14 @@ const SEGURADO_WITH_JOINS_SELECT =
  * Traz join de produtor/gerente para que a listagem mostre o nome resolvido
  * sem precisar de hidratar separadamente.
  */
-export function useSegurados() {
+export function useSegurados(enabled = true) {
   const { session, user, loading: authLoading, activeBranchId } = useAuth();
   const authReady = !authLoading && !!session;
 
   return useQuery({
     // activeBranchId entra na chave: trocar a corretora ativa refaz a lista.
     queryKey: [...SEGURADOS_KEY, 'branch', activeBranchId ?? '__all__'] as const,
-    enabled: authReady,
+    enabled: authReady && enabled,
     queryFn: async (): Promise<SeguradoRow[]> => {
       if (usesBackendDomainData) {
         return listBackendInsuredPeople(user?.tenantId ?? null, activeBranchId);
