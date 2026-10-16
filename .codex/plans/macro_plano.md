@@ -6,6 +6,8 @@
 
 ## Norte do plano
 
+- [x] 12/10/2026 — Camada de leitura do contexto comercial integrada: referências vinculadas deixam de exigir Configurações; Segurados mantém autorização própria. BE PR #35; FE 375 testes, tsc, lint focado e build aprovados. Sem alterações de tela; design ficou com Renato por orientação do usuário. Micro-plano `micro-plano-contexto-comercial-http-2026-10-12.md`.
+
 - [x] 12/10/2026 — Checkpoint da leitura conectada dos hooks de cálculo/execução: projeções compartilhadas, paginação/cancelamento, cache por usuário/filial e recusa de ações simuladas na sessão backend. Tsc, 363 testes, lint focado e build aprovados; jornada completa e editor/cotação/comparativo continuam pendentes, sem liberação deste checkpoint isolado. Base PR #53; micro-plano `micro-plano-calculo-leitura-conectada-2026-10-12.md`.
 
 - [~] 12/10/2026 — Após merges BE #33 / FE #52, lookups comerciais e adapter HTTP tipado para pedidos Auto/resultados manuais/comparativos implementados. Gates locais aprovados: BE 161 + oito PostgreSQL/TLS; FE 348 testes, tsc, lint focado e build conectado. Hooks/telas e jornada no navegador são bloco seguinte. Branch `codex/calculation-http-foundation`; micro-plano `micro-plano-calculo-http-foundation-2026-10-12.md`.
