@@ -71,6 +71,17 @@ export type CalculationExecutionWorkspace = {
   executionCount: number
 }
 
+// A read projection needs only public labels, not insurer credentials or mock scenarios.
+export type CalculationExecutionReadSource = {
+  calculations: ReadonlyArray<Pick<CalculoRow, 'id'>>
+  insurers: ReadonlyArray<Pick<InsurerRow, 'id' | 'nome'> & Partial<Pick<InsurerRow, 'nome_curto' | 'codigo_interno'>>>
+  coverageCatalog: ReadonlyArray<Pick<CoverageCatalogRow, 'id' | 'nome'>>
+  executions: readonly CalculoExecucaoRow[]
+  quotes: readonly CotacaoRow[]
+  quoteCoverages: readonly CotacaoCoberturaRow[]
+  quoteInstallments: readonly CotacaoParcelamentoRow[]
+}
+
 type SuccessScenario = {
   kind: 'SUCCESS'
   premium: number
@@ -151,7 +162,7 @@ function validateInsurerForCalculation(store: CalculationExecutionStore, calcula
   return insurer
 }
 
-function insurerCode(insurer: InsurerRow): string {
+function insurerCode(insurer: CalculationExecutionReadSource['insurers'][number]): string {
   return (insurer.codigo_interno || insurer.nome_curto || insurer.nome || '').trim().toLocaleLowerCase('pt-BR')
 }
 
@@ -503,7 +514,7 @@ function numericSort(a: number | null, b: number | null): number {
 }
 
 export function getCalculationExecutionWorkspace(
-  store: CalculationExecutionStore,
+  store: CalculationExecutionReadSource,
   calculationId: string,
   sort: CalculationExecutionSort = 'RETORNO',
 ): CalculationExecutionWorkspace {
@@ -513,7 +524,7 @@ export function getCalculationExecutionWorkspace(
   executions.forEach((row) => highestAttemptByInsurer.set(row.seguradora_id, Math.max(highestAttemptByInsurer.get(row.seguradora_id) ?? 0, row.tentativa)))
 
   const views = executions.map((execution): CalculationExecutionView => {
-    const insurer = getInsurer(store, execution.seguradora_id)
+    const insurer = store.insurers.find((row) => row.id === execution.seguradora_id)
     const quote = store.quotes.find((row) => row.execucao_id === execution.id) ?? null
     const coverages = quote
       ? store.quoteCoverages
@@ -531,9 +542,9 @@ export function getCalculationExecutionWorkspace(
       : []
     return {
       execution,
-      insurerName: insurer.nome ?? 'Não informado',
-      insurerShortName: insurer.nome_curto || insurer.nome || 'Seguradora não informada',
-      insurerCode: insurerCode(insurer),
+      insurerName: insurer?.nome ?? 'Seguradora não informada',
+      insurerShortName: insurer?.nome_curto || insurer?.nome || 'Seguradora não informada',
+      insurerCode: insurer ? insurerCode(insurer) : '',
       quote,
       coverages,
       installments,

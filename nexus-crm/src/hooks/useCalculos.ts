@@ -1,4 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from './useAuth'
+import { usesBackendDomainData } from '../lib/backendDomainApi'
+import { getBackendCalculation } from '../lib/backendCalculationApi'
+import { readBackendCalculationItems, readBackendCalculationExecutionWorkspace } from '../lib/backendCalculationReads'
 import {
   createCalculationInMemory,
   findCalculationCepInMemory,
@@ -46,19 +50,29 @@ export type CalculationEditorLookups = {
 const mockAssistanceDelay = () => new Promise<void>((resolve) => window.setTimeout(resolve, 240))
 const mockExecutionDelay = (milliseconds: number) => new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds))
 
+function requireCalculationDemo(feature: string) {
+  if (usesBackendDomainData) throw new Error(`${feature} ainda não está conectado. Dados de demonstração não são usados nesta sessão.`)
+}
+
 export function useCalculations(opportunityId: string | undefined) {
+  const { user } = useAuth()
   return useQuery({
-    enabled: Boolean(opportunityId),
-    queryKey: ['calculations', opportunityId],
-    queryFn: async (): Promise<CalculationListItem[]> => listCalculationsInMemory(opportunityId as string),
+    enabled: Boolean(opportunityId && (!usesBackendDomainData || user?.id && user.tenantId && user.branchId)),
+    queryKey: ['calculations', opportunityId, usesBackendDomainData, user?.id, user?.tenantId, user?.branchId],
+    queryFn: async ({ signal }): Promise<CalculationListItem[]> => usesBackendDomainData
+      ? readBackendCalculationItems(opportunityId as string, signal)
+      : listCalculationsInMemory(opportunityId as string),
   })
 }
 
 export function useCalculation(calculationId: string | undefined) {
+  const { user } = useAuth()
   return useQuery({
-    enabled: Boolean(calculationId),
-    queryKey: ['calculation', calculationId],
-    queryFn: async (): Promise<CalculationAggregate> => getCalculationInMemory(calculationId as string),
+    enabled: Boolean(calculationId && (!usesBackendDomainData || user?.id && user.tenantId && user.branchId)),
+    queryKey: ['calculation', calculationId, usesBackendDomainData, user?.id, user?.tenantId, user?.branchId],
+    queryFn: async ({ signal }): Promise<CalculationAggregate> => usesBackendDomainData
+      ? getBackendCalculation(calculationId as string, signal)
+      : getCalculationInMemory(calculationId as string),
   })
 }
 
@@ -71,6 +85,7 @@ export function useCalculationEditorLookups(
     enabled: Boolean(tenantId && branchId && lineId),
     queryKey: ['calculation-editor-lookups', tenantId, branchId, lineId],
     queryFn: async (): Promise<CalculationEditorLookups> => {
+      requireCalculationDemo('O editor de cálculo')
       const [insuredResult, insurerResult, coverageResult] = await Promise.all([
         supabase.from('segurados').select('id, nome, cpf_cnpj, filial_id, tenant_id, data_nascimento, sexo, estado_civil').eq('tenant_id', tenantId as string).eq('filial_id', branchId as string).order('nome'),
         supabase.from('seguradoras').select('id, nome, tenant_id').eq('tenant_id', tenantId as string).eq('ativo', true).order('nome'),
@@ -92,25 +107,31 @@ export function useCalculationSourcePolicy(policyId: string | undefined) {
   return useQuery({
     enabled: Boolean(policyId),
     queryKey: ['calculation-source-policy', policyId],
-    queryFn: async () => getCalculationSourcePolicyInMemory(policyId as string),
+    queryFn: async () => {
+      requireCalculationDemo('A renovação no editor')
+      return getCalculationSourcePolicyInMemory(policyId as string)
+    },
   })
 }
 
 export function useCalculationAssistance(branchId: string) {
   const insured = useMutation({
     mutationFn: async (document: string) => {
+      requireCalculationDemo('A consulta assistida de segurados')
       await mockAssistanceDelay()
       return findCalculationInsuredInMemory(document, branchId)
     },
   })
   const vehicle = useMutation({
     mutationFn: async (identifier: string) => {
+      requireCalculationDemo('A consulta assistida de veículos')
       await mockAssistanceDelay()
       return findCalculationVehicleInMemory(identifier)
     },
   })
   const cep = useMutation({
     mutationFn: async (value: string) => {
+      requireCalculationDemo('A consulta assistida de CEP')
       await mockAssistanceDelay()
       return findCalculationCepInMemory(value)
     },
@@ -121,7 +142,10 @@ export function useCalculationAssistance(branchId: string) {
 export function useCreateCalculation() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (input: CalculationCreateInput): Promise<CalculationAggregate> => createCalculationInMemory(input),
+    mutationFn: async (input: CalculationCreateInput): Promise<CalculationAggregate> => {
+      requireCalculationDemo('A criação pelo editor de cálculo')
+      return createCalculationInMemory(input)
+    },
     onSuccess: (aggregate) => {
       void queryClient.invalidateQueries({ queryKey: ['calculations', aggregate.calculation.oportunidade_id] })
       void queryClient.invalidateQueries({ queryKey: ['calculation', aggregate.calculation.id] })
@@ -131,14 +155,18 @@ export function useCreateCalculation() {
 }
 
 export function getCalculationDuplicateInput(calculationId: string): CalculationCreateInput {
+  requireCalculationDemo('A duplicação pelo editor de cálculo')
   return getCalculationDuplicateInputInMemory(calculationId)
 }
 
 export function useCalculationExecutionWorkspace(calculationId: string | undefined, sort: CalculationExecutionSort) {
+  const { user } = useAuth()
   return useQuery({
-    enabled: Boolean(calculationId),
-    queryKey: ['calculation-executions', calculationId, sort],
-    queryFn: async (): Promise<CalculationExecutionWorkspace> => getCalculationExecutionWorkspaceInMemory(calculationId as string, sort),
+    enabled: Boolean(calculationId && (!usesBackendDomainData || user?.id && user.tenantId && user.branchId)),
+    queryKey: ['calculation-executions', calculationId, sort, usesBackendDomainData, user?.id, user?.tenantId, user?.branchId],
+    queryFn: async ({ signal }): Promise<CalculationExecutionWorkspace> => usesBackendDomainData
+      ? readBackendCalculationExecutionWorkspace(calculationId as string, sort, signal)
+      : getCalculationExecutionWorkspaceInMemory(calculationId as string, sort),
   })
 }
 
@@ -146,6 +174,7 @@ export function useStartCalculationExecutions() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: StartCalculationExecutionsInput) => {
+      requireCalculationDemo('A transmissão automática às seguradoras')
       const rows = startCalculationExecutionsInMemory(input)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['calculation-executions', input.calculationId] }),
@@ -168,6 +197,7 @@ export function useRecalculateCalculationExecution() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: StartRecalculationInput) => {
+      requireCalculationDemo('A reexecução pelo painel')
       const row = startCalculationRecalculationInMemory(input)
       await queryClient.invalidateQueries({ queryKey: ['calculation-executions', row.calculo_id] })
       await mockExecutionDelay(120)
