@@ -6,6 +6,8 @@
 
 ## Norte do plano
 
+- [~] 12/10/2026 — Após merges BE #33 / FE #52, lookups comerciais e adapter HTTP tipado para pedidos Auto/resultados manuais/comparativos implementados. Gates locais aprovados: BE 161 + oito PostgreSQL/TLS; FE 348 testes, tsc, lint focado e build conectado. Hooks/telas e jornada no navegador são bloco seguinte. Branch `codex/calculation-http-foundation`; micro-plano `micro-plano-calculo-http-foundation-2026-10-12.md`.
+
 - [~] 12/10/2026 — Execuções MANUAL/cotações normalizadas implementadas no WAssisBE e oito integrações PostgreSQL/TLS aprovadas; comparativo de até cinco cotações com revisão/idempotência em validação. Sem contratos específicos ou chamadas externas de seguradoras. APIs automáticas e ligação dos hooks seguem em etapas próprias. Micro-plano: `micro-plano-execucoes-manuais-2026-10-12.md`.
 
 - [~] 12/10/2026 — Segurados/Oportunidades consolidados sobre `erp.*`, CI com 160 testes aprovado; pedidos Auto canônicos criados/listados/lidos com CTI, coberturas, idempotência e calendário. Cobertura final e próximos passos de execuções/resultados/apresentações em andamento. Reset não produtivo autorizado pelo usuário. Micro-plano: `micro-plano-raizes-crm-canonicas-2026-10-12.md`.
